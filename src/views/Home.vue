@@ -372,11 +372,11 @@ onMounted(() => {
 }
 
 .logo-container.animate-up {
-  height: 70px;
+  height: 80px;
   background: rgba(0, 0, 0, 0.95);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0 20px;
+  padding: 10px 20px;
   overflow: visible;
   justify-content: center;
   align-items: center;
@@ -390,9 +390,9 @@ onMounted(() => {
 }
 
 .logo-container.animate-up .logo {
-  max-width: 150px;
+  max-width: 180px;
   width: auto;
-  height: 55px;
+  height: 60px;
   object-fit: contain;
   margin: 0;
 }
@@ -1066,13 +1066,13 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .logo-container.animate-up {
-    height: 60px;
-    padding: 0 15px;
+    height: 70px;
+    padding: 8px 15px;
   }
   
   .logo-container.animate-up .logo {
-    max-width: 120px;
-    height: 45px;
+    max-width: 140px;
+    height: 50px;
     margin: 0;
   }
   
