@@ -92,12 +92,13 @@ onMounted(async () => {
   await carregarDados()
 })
 
-// Carregar dados da API
+// Carregar dados da API (usando proxy para evitar CORS)
 const carregarDados = async () => {
   loading.value = true
   
   try {
-    const resMercado = await fetch('https://api.cartola.globo.com/atletas/mercado')
+    // Usando proxies serverless para evitar CORS
+    const resMercado = await fetch('/api/cartola/mercado')
     const dataMercado = await resMercado.json()
     
     atletas.value = dataMercado.atletas?.map(a => ({
@@ -106,10 +107,10 @@ const carregarDados = async () => {
     })) || []
     clubes.value = dataMercado.clubes || {}
     
-    const resStatus = await fetch('https://api.cartola.globo.com/mercado/status')
+    const resStatus = await fetch('/api/cartola/status')
     statusMercado.value = await resStatus.json()
     
-    const resPartidas = await fetch('https://api.cartola.globo.com/partidas')
+    const resPartidas = await fetch('/api/cartola/partidas')
     const dataPartidas = await resPartidas.json()
     partidas.value = dataPartidas.partidas || []
     
