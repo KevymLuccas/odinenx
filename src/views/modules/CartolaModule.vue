@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../../lib/supabase'
 import { getSubscriptionStatus, plans } from '../../lib/stripe'
@@ -8,29 +8,33 @@ const router = useRouter()
 const user = ref(null)
 const subscription = ref(null)
 const loading = ref(true)
-const activeTab = ref('mercado')
+const activeTab = ref('escalacao')
 const atletas = ref([])
 const clubes = ref({})
 const partidas = ref([])
 const escalacao = ref([])
 const reservas = ref([])
+const capitao = ref(null)
 const cartoletas = ref(100)
 const filtroPos = ref('todas')
 const filtroBusca = ref('')
 const statusMercado = ref({})
 const analisando = ref(false)
+const mobileMenuOpen = ref(false)
+const modalJogador = ref(null)
+const modalPosicao = ref(null)
 
 // Posições
 const POSICOES = {
-  1: { nome: 'Goleiro', abrev: 'GOL', cor: '#f59e0b' },
-  2: { nome: 'Lateral', abrev: 'LAT', cor: '#3b82f6' },
-  3: { nome: 'Zagueiro', abrev: 'ZAG', cor: '#10b981' },
-  4: { nome: 'Meia', abrev: 'MEI', cor: '#8b5cf6' },
-  5: { nome: 'Atacante', abrev: 'ATA', cor: '#ef4444' },
-  6: { nome: 'Técnico', abrev: 'TEC', cor: '#6b7280' }
+  1: { nome: 'Goleiro', abrev: 'GOL', cor: '#f59e0b', icon: '🧤' },
+  2: { nome: 'Lateral', abrev: 'LAT', cor: '#3b82f6', icon: '🏃' },
+  3: { nome: 'Zagueiro', abrev: 'ZAG', cor: '#10b981', icon: '🛡️' },
+  4: { nome: 'Meia', abrev: 'MEI', cor: '#8b5cf6', icon: '⚙️' },
+  5: { nome: 'Atacante', abrev: 'ATA', cor: '#ef4444', icon: '⚽' },
+  6: { nome: 'Técnico', abrev: 'TEC', cor: '#6b7280', icon: '📋' }
 }
 
-// Esquema tático fixo
+// Esquema tático fixo: 1 GOL, 2 LAT, 2 ZAG, 4 MEI, 2 ATA, 1 TEC
 const ESQUEMA = { 1: 1, 2: 2, 3: 2, 4: 4, 5: 2, 6: 1 }
 
 // Status dos atletas
@@ -42,12 +46,32 @@ const STATUS = {
   7: { nome: 'Provável', emoji: '✅', cor: '#00ff88' }
 }
 
+// Força dos times
+const FORCA_TIMES = {
+  262: { nome: 'Flamengo', ataque: 88, defesa: 75 },
+  263: { nome: 'Botafogo', ataque: 82, defesa: 78 },
+  264: { nome: 'Fluminense', ataque: 72, defesa: 70 },
+  275: { nome: 'Palmeiras', ataque: 90, defesa: 85 },
+  276: { nome: 'São Paulo', ataque: 78, defesa: 80 },
+  277: { nome: 'Santos', ataque: 70, defesa: 65 },
+  282: { nome: 'Atlético-MG', ataque: 80, defesa: 72 },
+  283: { nome: 'Cruzeiro', ataque: 75, defesa: 70 },
+  284: { nome: 'Grêmio', ataque: 76, defesa: 74 },
+  285: { nome: 'Internacional', ataque: 78, defesa: 76 },
+  286: { nome: 'Vasco', ataque: 68, defesa: 65 },
+  287: { nome: 'Bahia', ataque: 74, defesa: 68 },
+  290: { nome: 'Corinthians', ataque: 75, defesa: 70 },
+  293: { nome: 'Fortaleza', ataque: 76, defesa: 78 },
+  356: { nome: 'Athletico-PR', ataque: 74, defesa: 72 },
+  315: { nome: 'RB Bragantino', ataque: 72, defesa: 70 }
+}
+
 const currentPlan = computed(() => {
   const planId = subscription.value?.plan || 'free'
   return plans[planId] || plans.free
 })
 
-// Computed
+// Computed - Atletas por posição para o mercado
 const atletasFiltrados = computed(() => {
   let lista = atletas.value
   
@@ -63,7 +87,26 @@ const atletasFiltrados = computed(() => {
     )
   }
   
-  return lista.sort((a, b) => (b.media_num || 0) - (a.media_num || 0))
+  return lista.sort((a, b) => (b.score || 0) - (a.score || 0))
+})
+
+// Escalação organizada por posição
+const escalacaoPorPosicao = computed(() => {
+  const org = {}
+  for (const posId in POSICOES) {
+    org[posId] = escalacao.value.filter(a => a.posicao_id == posId)
+  }
+  return org
+})
+
+// Slots vazios
+const slotsVazios = computed(() => {
+  const slots = {}
+  for (const [posId, qtd] of Object.entries(ESQUEMA)) {
+    const atual = escalacao.value.filter(a => a.posicao_id == posId).length
+    slots[posId] = qtd - atual
+  }
+  return slots
 })
 
 const gastoTotal = computed(() => {
@@ -75,7 +118,17 @@ const saldoRestante = computed(() => {
 })
 
 const pontuacaoEstimada = computed(() => {
-  return escalacao.value.reduce((sum, a) => sum + (a.score || 0), 0)
+  let total = escalacao.value.reduce((sum, a) => sum + (a.score || 0), 0)
+  // Capitão dobra pontos
+  if (capitao.value) {
+    const cap = escalacao.value.find(a => a.atleta_id === capitao.value)
+    if (cap) total += cap.score || 0
+  }
+  return total
+})
+
+const timeCompleto = computed(() => {
+  return escalacao.value.length === 12
 })
 
 onMounted(async () => {
@@ -92,12 +145,11 @@ onMounted(async () => {
   await carregarDados()
 })
 
-// Carregar dados da API (usando proxy para evitar CORS)
+// Carregar dados da API
 const carregarDados = async () => {
   loading.value = true
   
   try {
-    // Usando proxies serverless para evitar CORS
     const resMercado = await fetch('/api/cartola/mercado')
     const dataMercado = await resMercado.json()
     
@@ -146,11 +198,12 @@ const escalarAutomatico = () => {
   analisando.value = true
   escalacao.value = []
   reservas.value = []
+  capitao.value = null
   
   setTimeout(() => {
     const atletasValidos = atletas.value.filter(a => 
       a.status_id === 7 && 
-      (a.preco_num || 0) <= saldoRestante.value + gastoTotal.value
+      (a.preco_num || 0) <= cartoletas.value
     )
     
     const porPosicao = {}
@@ -163,6 +216,7 @@ const escalarAutomatico = () => {
     const novaEscalacao = []
     let gastoAtual = 0
     
+    // Preencher por posição
     for (const [posId, qtd] of Object.entries(ESQUEMA)) {
       const disponiveis = porPosicao[posId] || []
       let adicionados = 0
@@ -179,6 +233,13 @@ const escalarAutomatico = () => {
     
     escalacao.value = novaEscalacao
     
+    // Selecionar capitão (maior score)
+    if (novaEscalacao.length > 0) {
+      const melhor = novaEscalacao.reduce((a, b) => (a.score > b.score ? a : b))
+      capitao.value = melhor.atleta_id
+    }
+    
+    // Reservas
     const reservasTemp = []
     const idsEscalados = new Set(novaEscalacao.map(a => a.atleta_id))
     
@@ -201,7 +262,7 @@ const adicionarAtleta = (atleta) => {
   const maxPos = ESQUEMA[posId] || 0
   
   if (qtdPos >= maxPos) {
-    alert(`Já tem ${maxPos} ${POSICOES[posId]?.nome}(s) na escalação!`)
+    alert(`Limite de ${maxPos} ${POSICOES[posId]?.nome}(s) atingido!`)
     return
   }
   
@@ -216,28 +277,108 @@ const adicionarAtleta = (atleta) => {
   }
   
   escalacao.value.push(atleta)
+  modalJogador.value = null
 }
 
 // Remover atleta da escalação
-const removerAtleta = (index) => {
-  escalacao.value.splice(index, 1)
+const removerAtleta = (atletaId) => {
+  const index = escalacao.value.findIndex(a => a.atleta_id === atletaId)
+  if (index > -1) {
+    escalacao.value.splice(index, 1)
+    if (capitao.value === atletaId) {
+      capitao.value = null
+    }
+  }
+}
+
+// Definir capitão
+const definirCapitao = (atletaId) => {
+  capitao.value = atletaId
+}
+
+// Trocar jogador
+const abrirModalTroca = (posicao) => {
+  modalPosicao.value = posicao
+  filtroPos.value = posicao.toString()
+}
+
+const fecharModal = () => {
+  modalPosicao.value = null
+  modalJogador.value = null
+}
+
+// Promover reserva
+const promoverReserva = (atleta) => {
+  // Verificar se pode adicionar
+  const posId = atleta.posicao_id
+  const qtdPos = escalacao.value.filter(a => a.posicao_id === posId).length
+  const maxPos = ESQUEMA[posId] || 0
+  
+  if (qtdPos >= maxPos) {
+    alert(`Remova um ${POSICOES[posId]?.nome} antes!`)
+    return
+  }
+  
+  if (gastoTotal.value + atleta.preco_num > cartoletas.value) {
+    alert('Cartoletas insuficientes!')
+    return
+  }
+  
+  // Adicionar à escalação
+  escalacao.value.push(atleta)
+  
+  // Remover das reservas
+  const idx = reservas.value.findIndex(r => r.atleta_id === atleta.atleta_id)
+  if (idx > -1) reservas.value.splice(idx, 1)
 }
 
 // Limpar escalação
 const limparEscalacao = () => {
   escalacao.value = []
   reservas.value = []
+  capitao.value = null
+}
+
+// Obter foto do atleta
+const getFoto = (atleta) => {
+  if (atleta.foto) {
+    return atleta.foto.replace('FORMATO', '100x100')
+  }
+  return '/icone.webp'
+}
+
+// Analisar confronto
+const analisarConfronto = (partida) => {
+  const casaId = partida.clube_casa_id
+  const foraId = partida.clube_visitante_id
+  
+  const forcaCasa = FORCA_TIMES[casaId] || { ataque: 70, defesa: 70 }
+  const forcaFora = FORCA_TIMES[foraId] || { ataque: 70, defesa: 70 }
+  
+  const potGolsCasa = ((forcaCasa.ataque - forcaFora.defesa + 100) / 200 * 10).toFixed(1)
+  const potGolsFora = ((forcaFora.ataque - forcaCasa.defesa + 100) / 200 * 10).toFixed(1)
+  
+  return { potGolsCasa, potGolsFora }
 }
 
 const logout = async () => {
   await supabase.auth.signOut()
   router.push('/')
 }
+
+const toggleMobileMenu = () => {
+  mobileMenuOpen.value = !mobileMenuOpen.value
+}
+
+const navigateTo = (path) => {
+  router.push(path)
+  mobileMenuOpen.value = false
+}
 </script>
 
 <template>
   <div class="dashboard">
-    <!-- Sidebar -->
+    <!-- Sidebar Desktop -->
     <aside class="sidebar">
       <div class="sidebar-header">
         <router-link to="/">
@@ -246,31 +387,25 @@ const logout = async () => {
       </div>
 
       <nav class="sidebar-nav">
-        <!-- PRINCIPAL -->
         <div class="nav-category">Principal</div>
         <router-link to="/dashboard" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="7" height="7" rx="1"/>
-            <rect x="14" y="3" width="7" height="7" rx="1"/>
-            <rect x="3" y="14" width="7" height="7" rx="1"/>
-            <rect x="14" y="14" width="7" height="7" rx="1"/>
+            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
           </svg>
           Dashboard
         </router-link>
 
-        <!-- MÓDULOS -->
         <div class="nav-category">Módulos</div>
         <router-link to="/bet" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 6v6l4 2"/>
+            <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
           </svg>
           BET
         </router-link>
         <router-link to="/trade" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
-            <polyline points="16 7 22 7 22 13"/>
+            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
           </svg>
           TRADE
         </router-link>
@@ -283,7 +418,6 @@ const logout = async () => {
           Cartola FC
         </router-link>
 
-        <!-- ACOMPANHAMENTO -->
         <div class="nav-category">Acompanhamento</div>
         <router-link to="/alerts" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -294,13 +428,11 @@ const logout = async () => {
         </router-link>
         <router-link to="/history" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 8v4l3 3"/>
-            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/>
           </svg>
           Histórico
         </router-link>
 
-        <!-- SISTEMA -->
         <div class="nav-category">Sistema</div>
         <router-link to="/settings" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -312,19 +444,46 @@ const logout = async () => {
       </nav>
 
       <div class="sidebar-footer">
-        <div class="plan-badge-sidebar">
-          {{ currentPlan.name }}
-        </div>
+        <div class="plan-badge-sidebar">{{ currentPlan.name }}</div>
         <button @click="logout" class="logout-btn">
           <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
+            <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
           Sair
         </button>
       </div>
     </aside>
+
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" @click="toggleMobileMenu">
+      <svg v-if="!mobileMenuOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+      <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+
+    <!-- Mobile Menu Overlay -->
+    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false"></div>
+    
+    <!-- Mobile Menu -->
+    <nav class="mobile-menu" :class="{ open: mobileMenuOpen }">
+      <div class="mobile-menu-header">
+        <img src="/logo.webp" alt="ODINENX" class="mobile-logo" />
+      </div>
+      <div class="mobile-nav">
+        <button @click="navigateTo('/dashboard')" class="mobile-nav-item">Dashboard</button>
+        <button @click="navigateTo('/bet')" class="mobile-nav-item">BET</button>
+        <button @click="navigateTo('/trade')" class="mobile-nav-item">TRADE</button>
+        <button @click="navigateTo('/cartola')" class="mobile-nav-item active">Cartola FC</button>
+        <button @click="navigateTo('/alerts')" class="mobile-nav-item">Alertas</button>
+        <button @click="navigateTo('/history')" class="mobile-nav-item">Histórico</button>
+        <button @click="navigateTo('/settings')" class="mobile-nav-item">Configurações</button>
+      </div>
+      <button @click="logout" class="mobile-logout">Sair</button>
+    </nav>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -337,9 +496,9 @@ const logout = async () => {
               <path d="M12 2a10 10 0 0 0-7.07 17.07M12 2a10 10 0 0 1 7.07 17.07"/>
               <circle cx="12" cy="12" r="3"/>
             </svg>
-            Cartola FC
+            Cartola FC Pro
           </h1>
-          <p>Análise inteligente para o Brasileirão</p>
+          <p>Sistema Inteligente de Escalação</p>
         </div>
         <div class="header-right">
           <div class="header-stats" v-if="!loading">
@@ -358,35 +517,214 @@ const logout = async () => {
       <!-- Loading -->
       <div v-if="loading" class="loading-container">
         <div class="spinner"></div>
+        <p>Carregando dados do Cartola...</p>
       </div>
 
       <!-- Content -->
       <div v-else class="dashboard-content">
         <!-- Tabs -->
         <div class="cartola-tabs">
-          <button 
-            v-for="tab in [{id: 'mercado', icon: 'grid', label: 'Mercado'}, {id: 'escalacao', icon: 'users', label: 'Escalação IA'}, {id: 'confrontos', icon: 'zap', label: 'Confrontos'}]" 
-            :key="tab.id"
-            @click="activeTab = tab.id"
-            :class="{ active: activeTab === tab.id }"
-            class="tab-btn"
-          >
-            <svg v-if="tab.icon === 'grid'" class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="7" height="7"/>
-              <rect x="14" y="3" width="7" height="7"/>
-              <rect x="3" y="14" width="7" height="7"/>
-              <rect x="14" y="14" width="7" height="7"/>
-            </svg>
-            <svg v-if="tab.icon === 'users'" class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <button @click="activeTab = 'escalacao'" :class="{ active: activeTab === 'escalacao' }" class="tab-btn">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
               <circle cx="9" cy="7" r="4"/>
               <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
-            <svg v-if="tab.icon === 'zap'" class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            Escalação
+          </button>
+          <button @click="activeTab = 'mercado'" :class="{ active: activeTab === 'mercado' }" class="tab-btn">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+            </svg>
+            Mercado
+          </button>
+          <button @click="activeTab = 'confrontos'" :class="{ active: activeTab === 'confrontos' }" class="tab-btn">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
-            {{ tab.label }}
+            Confrontos
           </button>
+        </div>
+
+        <!-- Tab: Escalação -->
+        <div v-if="activeTab === 'escalacao'" class="tab-content">
+          <!-- Orçamento Header -->
+          <div class="orcamento-bar">
+            <div class="orcamento-item">
+              <span class="label">Cartoletas</span>
+              <input type="number" v-model.number="cartoletas" min="0" max="999" step="5" class="cartoletas-input">
+            </div>
+            <div class="orcamento-item">
+              <span class="label">Gasto</span>
+              <span class="value red">C$ {{ gastoTotal.toFixed(2) }}</span>
+            </div>
+            <div class="orcamento-item">
+              <span class="label">Saldo</span>
+              <span class="value" :class="saldoRestante >= 0 ? 'green' : 'red'">C$ {{ saldoRestante.toFixed(2) }}</span>
+            </div>
+            <div class="orcamento-item">
+              <span class="label">Pontuação Est.</span>
+              <span class="value blue">{{ pontuacaoEstimada.toFixed(1) }} pts</span>
+            </div>
+            <div class="orcamento-actions">
+              <button @click="escalarAutomatico" class="btn-ia" :disabled="analisando">
+                <svg v-if="!analisando" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                <div v-else class="mini-spinner"></div>
+                {{ analisando ? 'Analisando...' : 'Escalar com IA' }}
+              </button>
+              <button @click="limparEscalacao" class="btn-limpar">Limpar</button>
+            </div>
+          </div>
+
+          <!-- Campo de Futebol Visual -->
+          <div class="campo-container">
+            <div class="campo">
+              <!-- Técnico -->
+              <div class="campo-row tecnico-row">
+                <div class="campo-titulo">Técnico</div>
+                <div class="slots-row">
+                  <template v-for="i in ESQUEMA[6]" :key="'tec-'+i">
+                    <div v-if="escalacaoPorPosicao[6]?.[i-1]" class="jogador-slot filled" @click="removerAtleta(escalacaoPorPosicao[6][i-1].atleta_id)">
+                      <img :src="getFoto(escalacaoPorPosicao[6][i-1])" @error="$event.target.src = '/icone.webp'" class="jogador-foto">
+                      <span class="jogador-nome">{{ escalacaoPorPosicao[6][i-1].apelido }}</span>
+                      <span class="jogador-score">{{ escalacaoPorPosicao[6][i-1].score }}</span>
+                      <button v-if="capitao !== escalacaoPorPosicao[6][i-1].atleta_id" @click.stop="definirCapitao(escalacaoPorPosicao[6][i-1].atleta_id)" class="btn-capitao">C</button>
+                      <span v-else class="capitao-badge">C</span>
+                    </div>
+                    <div v-else class="jogador-slot empty" @click="abrirModalTroca(6)">
+                      <span class="slot-icon">📋</span>
+                      <span class="slot-text">TEC</span>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Atacantes -->
+              <div class="campo-row atacantes-row">
+                <div class="campo-titulo">Atacantes</div>
+                <div class="slots-row">
+                  <template v-for="i in ESQUEMA[5]" :key="'ata-'+i">
+                    <div v-if="escalacaoPorPosicao[5]?.[i-1]" class="jogador-slot filled" @click="removerAtleta(escalacaoPorPosicao[5][i-1].atleta_id)">
+                      <img :src="getFoto(escalacaoPorPosicao[5][i-1])" @error="$event.target.src = '/icone.webp'" class="jogador-foto">
+                      <span class="jogador-nome">{{ escalacaoPorPosicao[5][i-1].apelido }}</span>
+                      <span class="jogador-score">{{ escalacaoPorPosicao[5][i-1].score }}</span>
+                      <button v-if="capitao !== escalacaoPorPosicao[5][i-1].atleta_id" @click.stop="definirCapitao(escalacaoPorPosicao[5][i-1].atleta_id)" class="btn-capitao">C</button>
+                      <span v-else class="capitao-badge">C</span>
+                    </div>
+                    <div v-else class="jogador-slot empty" @click="abrirModalTroca(5)">
+                      <span class="slot-icon">⚽</span>
+                      <span class="slot-text">ATA</span>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Meias -->
+              <div class="campo-row meias-row">
+                <div class="campo-titulo">Meias</div>
+                <div class="slots-row">
+                  <template v-for="i in ESQUEMA[4]" :key="'mei-'+i">
+                    <div v-if="escalacaoPorPosicao[4]?.[i-1]" class="jogador-slot filled" @click="removerAtleta(escalacaoPorPosicao[4][i-1].atleta_id)">
+                      <img :src="getFoto(escalacaoPorPosicao[4][i-1])" @error="$event.target.src = '/icone.webp'" class="jogador-foto">
+                      <span class="jogador-nome">{{ escalacaoPorPosicao[4][i-1].apelido }}</span>
+                      <span class="jogador-score">{{ escalacaoPorPosicao[4][i-1].score }}</span>
+                      <button v-if="capitao !== escalacaoPorPosicao[4][i-1].atleta_id" @click.stop="definirCapitao(escalacaoPorPosicao[4][i-1].atleta_id)" class="btn-capitao">C</button>
+                      <span v-else class="capitao-badge">C</span>
+                    </div>
+                    <div v-else class="jogador-slot empty" @click="abrirModalTroca(4)">
+                      <span class="slot-icon">⚙️</span>
+                      <span class="slot-text">MEI</span>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Defesa (Laterais + Zagueiros) -->
+              <div class="campo-row defesa-row">
+                <div class="campo-titulo">Defesa</div>
+                <div class="slots-row">
+                  <!-- Lateral Esquerdo -->
+                  <div v-if="escalacaoPorPosicao[2]?.[0]" class="jogador-slot filled" @click="removerAtleta(escalacaoPorPosicao[2][0].atleta_id)">
+                    <img :src="getFoto(escalacaoPorPosicao[2][0])" @error="$event.target.src = '/icone.webp'" class="jogador-foto">
+                    <span class="jogador-nome">{{ escalacaoPorPosicao[2][0].apelido }}</span>
+                    <span class="jogador-score">{{ escalacaoPorPosicao[2][0].score }}</span>
+                    <button v-if="capitao !== escalacaoPorPosicao[2][0].atleta_id" @click.stop="definirCapitao(escalacaoPorPosicao[2][0].atleta_id)" class="btn-capitao">C</button>
+                    <span v-else class="capitao-badge">C</span>
+                  </div>
+                  <div v-else class="jogador-slot empty" @click="abrirModalTroca(2)">
+                    <span class="slot-icon">🏃</span>
+                    <span class="slot-text">LAT</span>
+                  </div>
+
+                  <!-- Zagueiros -->
+                  <template v-for="i in ESQUEMA[3]" :key="'zag-'+i">
+                    <div v-if="escalacaoPorPosicao[3]?.[i-1]" class="jogador-slot filled" @click="removerAtleta(escalacaoPorPosicao[3][i-1].atleta_id)">
+                      <img :src="getFoto(escalacaoPorPosicao[3][i-1])" @error="$event.target.src = '/icone.webp'" class="jogador-foto">
+                      <span class="jogador-nome">{{ escalacaoPorPosicao[3][i-1].apelido }}</span>
+                      <span class="jogador-score">{{ escalacaoPorPosicao[3][i-1].score }}</span>
+                      <button v-if="capitao !== escalacaoPorPosicao[3][i-1].atleta_id" @click.stop="definirCapitao(escalacaoPorPosicao[3][i-1].atleta_id)" class="btn-capitao">C</button>
+                      <span v-else class="capitao-badge">C</span>
+                    </div>
+                    <div v-else class="jogador-slot empty" @click="abrirModalTroca(3)">
+                      <span class="slot-icon">🛡️</span>
+                      <span class="slot-text">ZAG</span>
+                    </div>
+                  </template>
+
+                  <!-- Lateral Direito -->
+                  <div v-if="escalacaoPorPosicao[2]?.[1]" class="jogador-slot filled" @click="removerAtleta(escalacaoPorPosicao[2][1].atleta_id)">
+                    <img :src="getFoto(escalacaoPorPosicao[2][1])" @error="$event.target.src = '/icone.webp'" class="jogador-foto">
+                    <span class="jogador-nome">{{ escalacaoPorPosicao[2][1].apelido }}</span>
+                    <span class="jogador-score">{{ escalacaoPorPosicao[2][1].score }}</span>
+                    <button v-if="capitao !== escalacaoPorPosicao[2][1].atleta_id" @click.stop="definirCapitao(escalacaoPorPosicao[2][1].atleta_id)" class="btn-capitao">C</button>
+                    <span v-else class="capitao-badge">C</span>
+                  </div>
+                  <div v-else class="jogador-slot empty" @click="abrirModalTroca(2)">
+                    <span class="slot-icon">🏃</span>
+                    <span class="slot-text">LAT</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Goleiro -->
+              <div class="campo-row goleiro-row">
+                <div class="campo-titulo">Goleiro</div>
+                <div class="slots-row">
+                  <template v-for="i in ESQUEMA[1]" :key="'gol-'+i">
+                    <div v-if="escalacaoPorPosicao[1]?.[i-1]" class="jogador-slot filled gol" @click="removerAtleta(escalacaoPorPosicao[1][i-1].atleta_id)">
+                      <img :src="getFoto(escalacaoPorPosicao[1][i-1])" @error="$event.target.src = '/icone.webp'" class="jogador-foto">
+                      <span class="jogador-nome">{{ escalacaoPorPosicao[1][i-1].apelido }}</span>
+                      <span class="jogador-score">{{ escalacaoPorPosicao[1][i-1].score }}</span>
+                      <button v-if="capitao !== escalacaoPorPosicao[1][i-1].atleta_id" @click.stop="definirCapitao(escalacaoPorPosicao[1][i-1].atleta_id)" class="btn-capitao">C</button>
+                      <span v-else class="capitao-badge">C</span>
+                    </div>
+                    <div v-else class="jogador-slot empty gol" @click="abrirModalTroca(1)">
+                      <span class="slot-icon">🧤</span>
+                      <span class="slot-text">GOL</span>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reservas -->
+          <div v-if="reservas.length > 0" class="reservas-section">
+            <h3>Banco de Reservas</h3>
+            <div class="reservas-grid">
+              <div v-for="atleta in reservas" :key="atleta.atleta_id" class="reserva-card" @click="promoverReserva(atleta)">
+                <div class="pos-badge" :style="{ background: POSICOES[atleta.posicao_id]?.cor }">
+                  {{ POSICOES[atleta.posicao_id]?.abrev }}
+                </div>
+                <img :src="getFoto(atleta)" @error="$event.target.src = '/icone.webp'" class="reserva-foto">
+                <span class="reserva-nome">{{ atleta.apelido }}</span>
+                <span class="reserva-score">{{ atleta.score }}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Tab: Mercado -->
@@ -397,9 +735,7 @@ const logout = async () => {
                 <label>Posição</label>
                 <select v-model="filtroPos">
                   <option value="todas">Todas</option>
-                  <option v-for="(pos, id) in POSICOES" :key="id" :value="id">
-                    {{ pos.nome }}
-                  </option>
+                  <option v-for="(pos, id) in POSICOES" :key="id" :value="id">{{ pos.nome }}</option>
                 </select>
               </div>
               <div class="filtro-group">
@@ -408,17 +744,12 @@ const logout = async () => {
               </div>
             </div>
             <div class="mercado-info">
-              <span>{{ atletasFiltrados.length }} atletas encontrados</span>
+              <span>{{ atletasFiltrados.length }} atletas</span>
             </div>
           </div>
 
           <div class="atletas-grid">
-            <div 
-              v-for="atleta in atletasFiltrados.slice(0, 50)" 
-              :key="atleta.atleta_id"
-              class="atleta-card"
-              @click="adicionarAtleta(atleta)"
-            >
+            <div v-for="atleta in atletasFiltrados.slice(0, 60)" :key="atleta.atleta_id" class="atleta-card" @click="adicionarAtleta(atleta)">
               <div class="atleta-header">
                 <div class="pos-badge" :style="{ background: POSICOES[atleta.posicao_id]?.cor }">
                   {{ POSICOES[atleta.posicao_id]?.abrev }}
@@ -428,9 +759,7 @@ const logout = async () => {
                 </div>
               </div>
               <div class="atleta-foto">
-                <img :src="`https://s.sde.globo.com/media/pessoa_cartolafc/foto/${atleta.atleta_id}/100x100`" 
-                     @error="$event.target.src = '/icone.webp'"
-                     :alt="atleta.apelido">
+                <img :src="getFoto(atleta)" @error="$event.target.src = '/icone.webp'" :alt="atleta.apelido">
               </div>
               <div class="atleta-info">
                 <h4>{{ atleta.apelido }}</h4>
@@ -454,100 +783,6 @@ const logout = async () => {
           </div>
         </div>
 
-        <!-- Tab: Escalação -->
-        <div v-if="activeTab === 'escalacao'" class="tab-content">
-          <div class="escalacao-header">
-            <div class="orcamento">
-              <div class="orcamento-item">
-                <span class="label">Cartoletas</span>
-                <input type="number" v-model.number="cartoletas" min="0" max="999" step="5">
-              </div>
-              <div class="orcamento-item">
-                <span class="label">Gasto</span>
-                <span class="value gasto">C$ {{ gastoTotal.toFixed(2) }}</span>
-              </div>
-              <div class="orcamento-item">
-                <span class="label">Saldo</span>
-                <span class="value saldo" :class="{ negativo: saldoRestante < 0 }">
-                  C$ {{ saldoRestante.toFixed(2) }}
-                </span>
-              </div>
-              <div class="orcamento-item">
-                <span class="label">Pts Estimados</span>
-                <span class="value pontos">{{ pontuacaoEstimada.toFixed(1) }}</span>
-              </div>
-            </div>
-            <div class="escalacao-actions">
-              <button @click="escalarAutomatico" class="btn-primary" :disabled="analisando">
-                <svg v-if="!analisando" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                </svg>
-                <div v-else class="mini-spinner"></div>
-                {{ analisando ? 'Analisando...' : 'Escalar com IA' }}
-              </button>
-              <button @click="limparEscalacao" class="btn-secondary">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6"/>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                </svg>
-                Limpar
-              </button>
-            </div>
-          </div>
-
-          <!-- Escalação Grid -->
-          <div class="escalacao-grid">
-            <div v-for="atleta in escalacao" :key="atleta.atleta_id" class="escalacao-card">
-              <div class="pos-badge" :style="{ background: POSICOES[atleta.posicao_id]?.cor }">
-                {{ POSICOES[atleta.posicao_id]?.abrev }}
-              </div>
-              <img :src="`https://s.sde.globo.com/media/pessoa_cartolafc/foto/${atleta.atleta_id}/100x100`" 
-                   @error="$event.target.src = '/icone.webp'"
-                   class="foto">
-              <div class="info">
-                <span class="nome">{{ atleta.apelido }}</span>
-                <span class="time">{{ clubes[atleta.clube_id]?.nome }}</span>
-              </div>
-              <div class="stats">
-                <span class="score">{{ atleta.score }} pts</span>
-                <span class="preco">C$ {{ atleta.preco_num?.toFixed(1) }}</span>
-              </div>
-              <button @click="removerAtleta(escalacao.indexOf(atleta))" class="remove-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- Empty State -->
-          <div v-if="escalacao.length === 0" class="empty-state">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <line x1="19" y1="11" x2="19" y2="17"/>
-              <line x1="16" y1="14" x2="22" y2="14"/>
-            </svg>
-            <h4>Nenhum atleta escalado</h4>
-            <p>Clique em "Escalar com IA" ou adicione atletas manualmente no Mercado.</p>
-          </div>
-
-          <!-- Reservas -->
-          <div v-if="reservas.length > 0" class="reservas-section">
-            <h3>Banco de Reservas</h3>
-            <div class="reservas-grid">
-              <div v-for="atleta in reservas" :key="atleta.atleta_id" class="reserva-card">
-                <div class="pos-badge small" :style="{ background: POSICOES[atleta.posicao_id]?.cor }">
-                  {{ POSICOES[atleta.posicao_id]?.abrev }}
-                </div>
-                <span class="nome">{{ atleta.apelido }}</span>
-                <span class="score">{{ atleta.score }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Tab: Confrontos -->
         <div v-if="activeTab === 'confrontos'" class="tab-content">
           <div class="confrontos-grid">
@@ -556,16 +791,16 @@ const logout = async () => {
                 <span>Rodada {{ statusMercado.rodada_atual }}</span>
               </div>
               <div class="confronto-times">
-                <div class="time">
-                  <img :src="clubes[partida.clube_casa_id]?.escudos?.['60x60']" 
-                       @error="$event.target.src = '/icone.webp'">
-                  <span>{{ clubes[partida.clube_casa_id]?.nome || 'Casa' }}</span>
+                <div class="time casa">
+                  <img :src="clubes[partida.clube_casa_id]?.escudos?.['60x60']" @error="$event.target.src = '/icone.webp'">
+                  <span class="nome">{{ clubes[partida.clube_casa_id]?.nome || 'Casa' }}</span>
+                  <span class="potencial">{{ analisarConfronto(partida).potGolsCasa }} gols</span>
                 </div>
                 <div class="versus">VS</div>
-                <div class="time">
-                  <img :src="clubes[partida.clube_visitante_id]?.escudos?.['60x60']" 
-                       @error="$event.target.src = '/icone.webp'">
-                  <span>{{ clubes[partida.clube_visitante_id]?.nome || 'Fora' }}</span>
+                <div class="time fora">
+                  <img :src="clubes[partida.clube_visitante_id]?.escudos?.['60x60']" @error="$event.target.src = '/icone.webp'">
+                  <span class="nome">{{ clubes[partida.clube_visitante_id]?.nome || 'Fora' }}</span>
+                  <span class="potencial">{{ analisarConfronto(partida).potGolsFora }} gols</span>
                 </div>
               </div>
             </div>
@@ -577,6 +812,32 @@ const logout = async () => {
             </svg>
             <h4>Nenhum confronto disponível</h4>
             <p>Os jogos da rodada aparecerão aqui quando o mercado abrir.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal de Seleção de Jogador -->
+      <div v-if="modalPosicao" class="modal-overlay" @click="fecharModal">
+        <div class="modal-content" @click.stop>
+          <div class="modal-header">
+            <h3>Escolher {{ POSICOES[modalPosicao]?.nome }}</h3>
+            <button @click="fecharModal" class="modal-close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <input type="text" v-model="filtroBusca" placeholder="Buscar jogador..." class="modal-search">
+            <div class="modal-lista">
+              <div v-for="atleta in atletasFiltrados.slice(0, 30)" :key="atleta.atleta_id" class="modal-jogador" @click="adicionarAtleta(atleta)">
+                <img :src="getFoto(atleta)" @error="$event.target.src = '/icone.webp'" class="modal-foto">
+                <div class="modal-info">
+                  <span class="nome">{{ atleta.apelido }}</span>
+                  <span class="time">{{ clubes[atleta.clube_id]?.nome }}</span>
+                </div>
+                <div class="modal-stats">
+                  <span class="score">{{ atleta.score }}</span>
+                  <span class="preco">C$ {{ (atleta.preco_num || 0).toFixed(1) }}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -621,6 +882,7 @@ const logout = async () => {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  overflow-y: auto;
 }
 
 .nav-category {
@@ -703,6 +965,102 @@ const logout = async () => {
   height: 18px;
 }
 
+/* ===== MOBILE MENU ===== */
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-menu-btn svg {
+  width: 28px;
+  height: 28px;
+  stroke: #000;
+}
+
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 998;
+}
+
+.mobile-menu {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #0a0a0a;
+  border-top-left-radius: 25px;
+  border-top-right-radius: 25px;
+  padding: 25px;
+  z-index: 999;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+}
+
+.mobile-menu.open {
+  transform: translateY(0);
+}
+
+.mobile-menu-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.mobile-logo {
+  height: 35px;
+}
+
+.mobile-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-nav-item {
+  padding: 15px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: left;
+}
+
+.mobile-nav-item:hover,
+.mobile-nav-item.active {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.mobile-logout {
+  width: 100%;
+  margin-top: 15px;
+  padding: 15px;
+  background: transparent;
+  border: 1px solid #ef4444;
+  border-radius: 12px;
+  color: #ef4444;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* ===== MAIN CONTENT ===== */
 .main-content {
   flex: 1;
@@ -718,6 +1076,8 @@ const logout = async () => {
   margin-bottom: 30px;
   padding-bottom: 25px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-wrap: wrap;
+  gap: 15px;
 }
 
 .header-left h1 {
@@ -776,9 +1136,15 @@ const logout = async () => {
 /* ===== LOADING ===== */
 .loading-container {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 50vh;
+  gap: 20px;
+}
+
+.loading-container p {
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .spinner {
@@ -799,6 +1165,7 @@ const logout = async () => {
   display: flex;
   gap: 10px;
   margin-bottom: 25px;
+  flex-wrap: wrap;
 }
 
 .tab-btn {
@@ -830,6 +1197,334 @@ const logout = async () => {
 .tab-icon {
   width: 18px;
   height: 18px;
+}
+
+/* ===== ORÇAMENTO BAR ===== */
+.orcamento-bar {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  padding: 20px 25px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+}
+
+.orcamento-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.orcamento-item .label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+}
+
+.orcamento-item .value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.orcamento-item .value.red { color: #ef4444; }
+.orcamento-item .value.green { color: #22c55e; }
+.orcamento-item .value.blue { color: #3b82f6; }
+
+.cartoletas-input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 10px;
+  width: 110px;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.orcamento-actions {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.btn-ia {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  border: none;
+  color: #fff;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-ia:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+}
+
+.btn-ia:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-ia svg {
+  width: 18px;
+  height: 18px;
+}
+
+.mini-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.btn-limpar {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 14px 24px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-limpar:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+/* ===== CAMPO DE FUTEBOL ===== */
+.campo-container {
+  margin-bottom: 30px;
+}
+
+.campo {
+  background: linear-gradient(180deg, #1a472a 0%, #0f2d1a 100%);
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 30px;
+  position: relative;
+  overflow: hidden;
+}
+
+.campo::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.campo::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100px;
+  height: 100px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+}
+
+.campo-row {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 20px;
+}
+
+.campo-titulo {
+  text-align: center;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 12px;
+}
+
+.slots-row {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.jogador-slot {
+  width: 90px;
+  height: 110px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.jogador-slot.empty {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+}
+
+.jogador-slot.empty:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.jogador-slot.filled {
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.jogador-slot.filled:hover {
+  transform: scale(1.05);
+  border-color: #ef4444;
+}
+
+.slot-icon {
+  font-size: 1.5rem;
+  margin-bottom: 5px;
+}
+
+.slot-text {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.jogador-foto {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  margin-bottom: 5px;
+}
+
+.jogador-nome {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+
+.jogador-score {
+  font-size: 0.7rem;
+  color: #22c55e;
+  font-weight: 700;
+}
+
+.btn-capitao {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-capitao:hover {
+  background: #f59e0b;
+  border-color: #f59e0b;
+}
+
+.capitao-badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #f59e0b;
+  color: #000;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== RESERVAS ===== */
+.reservas-section {
+  padding-top: 25px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.reservas-section h3 {
+  font-size: 1rem;
+  margin-bottom: 15px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.reservas-grid {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.reserva-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 18px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.reserva-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #22c55e;
+}
+
+.reserva-foto {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.reserva-nome {
+  font-weight: 600;
+}
+
+.reserva-score {
+  color: #3b82f6;
+  font-weight: 700;
+  margin-left: auto;
+}
+
+.pos-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #fff;
 }
 
 /* ===== MERCADO ===== */
@@ -883,7 +1578,7 @@ const logout = async () => {
 /* ===== ATLETAS GRID ===== */
 .atletas-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 15px;
 }
 
@@ -907,22 +1602,14 @@ const logout = async () => {
   margin-bottom: 12px;
 }
 
-.pos-badge {
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #fff;
-}
-
 .atleta-foto {
   text-align: center;
   margin-bottom: 12px;
 }
 
 .atleta-foto img {
-  width: 70px;
-  height: 70px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid rgba(255, 255, 255, 0.1);
@@ -934,7 +1621,7 @@ const logout = async () => {
 }
 
 .atleta-info h4 {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   margin-bottom: 4px;
 }
 
@@ -954,286 +1641,18 @@ const logout = async () => {
 
 .atleta-stats .label {
   display: block;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   color: rgba(255, 255, 255, 0.4);
   margin-bottom: 3px;
 }
 
 .atleta-stats .value {
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
-.atleta-stats .value.price {
-  color: #22c55e;
-}
-
-.atleta-stats .value.score {
-  color: #3b82f6;
-}
-
-/* ===== ESCALAÇÃO ===== */
-.escalacao-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  flex-wrap: wrap;
-  gap: 20px;
-}
-
-.orcamento {
-  display: flex;
-  gap: 25px;
-  flex-wrap: wrap;
-}
-
-.orcamento-item {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.orcamento-item .label {
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.5);
-  text-transform: uppercase;
-}
-
-.orcamento-item input {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #fff;
-  padding: 10px 14px;
-  border-radius: 10px;
-  width: 110px;
-  font-weight: 700;
-}
-
-.orcamento-item .value {
-  font-size: 1.3rem;
-  font-weight: 700;
-}
-
-.orcamento-item .gasto { color: #ef4444; }
-.orcamento-item .saldo { color: #22c55e; }
-.orcamento-item .saldo.negativo { color: #ef4444; }
-.orcamento-item .pontos { color: #3b82f6; }
-
-.escalacao-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.btn-primary {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #fff;
-  border: none;
-  color: #000;
-  padding: 14px 28px;
-  border-radius: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2);
-}
-
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-primary svg {
-  width: 18px;
-  height: 18px;
-}
-
-.mini-spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(0, 0, 0, 0.2);
-  border-top-color: #000;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-.btn-secondary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.7);
-  padding: 14px 24px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.btn-secondary:hover {
-  border-color: #ef4444;
-  color: #ef4444;
-}
-
-.btn-secondary svg {
-  width: 16px;
-  height: 16px;
-}
-
-/* ===== ESCALAÇÃO GRID ===== */
-.escalacao-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 15px;
-  margin-bottom: 30px;
-}
-
-.escalacao-card {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 15px;
-  padding: 15px;
-  position: relative;
-}
-
-.escalacao-card .foto {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.escalacao-card .info {
-  flex: 1;
-}
-
-.escalacao-card .nome {
-  display: block;
-  font-weight: 600;
-}
-
-.escalacao-card .time {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.escalacao-card .stats {
-  text-align: right;
-}
-
-.escalacao-card .score {
-  display: block;
-  font-weight: 700;
-  color: #3b82f6;
-}
-
-.escalacao-card .preco {
-  font-size: 0.8rem;
-  color: #22c55e;
-}
-
-.escalacao-card .remove-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: rgba(239, 68, 68, 0.2);
-  border: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.escalacao-card:hover .remove-btn {
-  opacity: 1;
-}
-
-.escalacao-card .remove-btn svg {
-  width: 14px;
-  height: 14px;
-  stroke: #ef4444;
-}
-
-/* ===== EMPTY STATE ===== */
-.empty-state {
-  text-align: center;
-  padding: 60px 40px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px dashed rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-}
-
-.empty-state svg {
-  width: 60px;
-  height: 60px;
-  stroke: rgba(255, 255, 255, 0.3);
-  margin-bottom: 20px;
-}
-
-.empty-state h4 {
-  margin-bottom: 10px;
-}
-
-.empty-state p {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-/* ===== RESERVAS ===== */
-.reservas-section {
-  margin-top: 30px;
-  padding-top: 25px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.reservas-section h3 {
-  font-size: 1.1rem;
-  margin-bottom: 15px;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.reservas-grid {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.reserva-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 12px 18px;
-  border-radius: 12px;
-}
-
-.reserva-card .pos-badge.small {
-  padding: 4px 10px;
-  font-size: 0.65rem;
-}
-
-.reserva-card .nome {
-  font-weight: 600;
-}
-
-.reserva-card .score {
-  color: #3b82f6;
-  font-weight: 700;
-}
+.atleta-stats .value.price { color: #22c55e; }
+.atleta-stats .value.score { color: #3b82f6; }
 
 /* ===== CONFRONTOS ===== */
 .confrontos-grid {
@@ -1267,7 +1686,7 @@ const logout = async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex: 1;
 }
 
@@ -1277,10 +1696,15 @@ const logout = async () => {
   object-fit: contain;
 }
 
-.confronto-times .time span {
+.confronto-times .time .nome {
   font-weight: 600;
   text-align: center;
   font-size: 0.9rem;
+}
+
+.confronto-times .time .potencial {
+  font-size: 0.75rem;
+  color: #22c55e;
 }
 
 .versus {
@@ -1288,6 +1712,147 @@ const logout = async () => {
   color: rgba(255, 255, 255, 0.3);
   font-weight: 700;
   padding: 0 15px;
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-state {
+  text-align: center;
+  padding: 60px 40px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+}
+
+.empty-state svg {
+  width: 60px;
+  height: 60px;
+  stroke: rgba(255, 255, 255, 0.3);
+  margin-bottom: 20px;
+}
+
+.empty-state h4 {
+  margin-bottom: 10px;
+}
+
+.empty-state p {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ===== MODAL ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-header h3 {
+  font-size: 1.2rem;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 2rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: #fff;
+}
+
+.modal-body {
+  padding: 20px 25px;
+}
+
+.modal-search {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 14px 18px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  font-size: 1rem;
+}
+
+.modal-lista {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.modal-jogador {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 12px 15px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-jogador:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.modal-foto {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.modal-info {
+  flex: 1;
+}
+
+.modal-info .nome {
+  display: block;
+  font-weight: 600;
+}
+
+.modal-info .time {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.modal-stats {
+  text-align: right;
+}
+
+.modal-stats .score {
+  display: block;
+  font-weight: 700;
+  color: #3b82f6;
+}
+
+.modal-stats .preco {
+  font-size: 0.8rem;
+  color: #22c55e;
 }
 
 /* ===== RESPONSIVE ===== */
@@ -1305,14 +1870,14 @@ const logout = async () => {
     height: 30px;
   }
   
+  .nav-item span,
+  .nav-category {
+    display: none;
+  }
+  
   .nav-item {
     justify-content: center;
     padding: 15px;
-  }
-  
-  .nav-item span,
-  .sidebar-nav .nav-item:not(.nav-icon) {
-    display: none;
   }
   
   .plan-badge-sidebar,
@@ -1334,32 +1899,73 @@ const logout = async () => {
     display: none;
   }
   
+  .mobile-menu-btn {
+    display: flex;
+  }
+  
+  .mobile-overlay {
+    display: block;
+  }
+  
+  .mobile-menu {
+    display: block;
+  }
+  
   .main-content {
     margin-left: 0;
     padding: 20px;
+    padding-bottom: 100px;
   }
   
   .dashboard-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+  
+  .header-left h1 {
+    font-size: 1.4rem;
+  }
+  
+  .orcamento-bar {
+    flex-direction: column;
+    align-items: stretch;
     gap: 15px;
   }
   
-  .cartola-tabs {
-    flex-wrap: wrap;
+  .orcamento-actions {
+    margin-left: 0;
+    flex-direction: column;
   }
   
-  .tab-btn {
-    flex: 1;
+  .btn-ia, .btn-limpar {
+    width: 100%;
     justify-content: center;
-    min-width: 100px;
+  }
+  
+  .jogador-slot {
+    width: 70px;
+    height: 90px;
+  }
+  
+  .jogador-foto {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .jogador-nome {
+    font-size: 0.55rem;
+    max-width: 60px;
+  }
+  
+  .slots-row {
+    gap: 8px;
   }
   
   .atletas-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
   
-  .escalacao-grid {
+  .confrontos-grid {
     grid-template-columns: 1fr;
   }
 }

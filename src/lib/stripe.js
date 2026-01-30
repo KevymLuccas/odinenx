@@ -163,12 +163,15 @@ export const getSubscriptionStatus = async (userId) => {
       .select('*')
       .eq('user_id', userId)
       .eq('status', 'active')
-      .single()
+      .maybeSingle()
 
-    if (error && error.code !== 'PGRST116') throw error
+    // Ignora erros de tabela não existente ou sem dados
+    if (error && error.code !== 'PGRST116' && error.code !== '42P01' && error.code !== 'PGRST301') {
+      console.warn('Aviso subscriptions:', error.code)
+    }
     return data || { plan: 'free', status: 'active' }
   } catch (error) {
-    console.error('Erro ao verificar assinatura:', error)
+    // Silencia erros - retorna plano free
     return { plan: 'free', status: 'active' }
   }
 }
