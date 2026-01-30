@@ -6,6 +6,11 @@ import Pricing from '../views/Pricing.vue'
 import Dashboard from '../views/Dashboard.vue'
 import CheckoutSuccess from '../views/CheckoutSuccess.vue'
 import CheckoutCancel from '../views/CheckoutCancel.vue'
+import BetModule from '../views/modules/BetModule.vue'
+import TradeModule from '../views/modules/TradeModule.vue'
+import Alerts from '../views/Alerts.vue'
+import History from '../views/History.vue'
+import Settings from '../views/Settings.vue'
 
 const routes = [
   {
@@ -32,6 +37,36 @@ const routes = [
     path: '/dashboard',
     name: 'Dashboard',
     component: Dashboard,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/bet',
+    name: 'BetModule',
+    component: BetModule,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/trade',
+    name: 'TradeModule',
+    component: TradeModule,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/alerts',
+    name: 'Alerts',
+    component: Alerts,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/history',
+    name: 'History',
+    component: History,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: Settings,
     meta: { requiresAuth: true }
   },
   {
