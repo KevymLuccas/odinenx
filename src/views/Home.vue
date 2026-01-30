@@ -33,10 +33,10 @@ onMounted(() => {
     <main class="content" :class="{ 'visible': showContent }">
       <!-- Hero Section -->
       <section class="hero">
-        <a href="https://fantomstore.com.br" target="_blank" rel="noopener" class="hero-badge">
-          <img src="https://i.imgur.com/vNwaSEm.png" alt="Fantom Store" class="badge-logo" />
-          <span>Uma solução da <strong>Fantom Store</strong></span>
-        </a>
+        <div class="hero-badge">
+          <img src="https://i.imgur.com/vNwaSEm.png" alt="Fantom Tecnologias" class="badge-logo" />
+          <span>Uma solução da <strong>Fantom Tecnologias</strong></span>
+        </div>
         <h1>Análises precisas para <br><span class="gradient-text">BET</span> e <span class="gradient-text">TRADE</span></h1>
         <p class="subtitle">
           Zero promessas vazias. Dados reais, cálculos precisos e transparência total.
@@ -346,10 +346,10 @@ onMounted(() => {
           <p class="disclaimer">Investimentos e apostas envolvem riscos. Resultados passados não garantem resultados futuros.</p>
           
           <div class="fantom-brand">
-            <a href="https://fantomstore.com.br" target="_blank" rel="noopener">
-              <img src="https://i.imgur.com/vNwaSEm.png" alt="Fantom Store" class="fantom-logo" />
-              <span>Uma solução da <strong>Fantom Store</strong></span>
-            </a>
+            <span class="fantom-info">
+              <img src="https://i.imgur.com/vNwaSEm.png" alt="Fantom Tecnologias" class="fantom-logo" />
+              <span>Uma solução da <strong>Fantom Tecnologias</strong></span>
+            </span>
           </div>
         </div>
       </footer>

@@ -101,22 +101,15 @@ const closeHelp = () => {
               </svg>
               Precisa de mais ajuda?
             </h4>
-            <p>Entre em contato com nosso suporte via WhatsApp ou e-mail.</p>
-            <a href="mailto:suporte@fantomstore.com.br" class="support-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                <polyline points="22,6 12,13 2,6"/>
-              </svg>
-              suporte@fantomstore.com.br
-            </a>
+            <p>Entre em contato com nosso suporte.</p>
           </div>
         </div>
 
         <div class="help-footer">
-          <a href="https://fantomstore.com.br" target="_blank" rel="noopener" class="fantom-link">
-            <img src="https://i.imgur.com/vNwaSEm.png" alt="Fantom Store" />
-            <span>Uma solução da <strong>Fantom Store</strong></span>
-          </a>
+          <div class="fantom-link">
+            <img src="https://i.imgur.com/vNwaSEm.png" alt="Fantom Tecnologias" />
+            <span>Uma solução da <strong>Fantom Tecnologias</strong></span>
+          </div>
         </div>
       </div>
     </Transition>
