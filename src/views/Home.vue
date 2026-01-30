@@ -379,8 +379,7 @@ onMounted(() => {
   padding: 0 20px;
   overflow: visible;
   justify-content: center;
-  align-items: flex-start;
-  padding-left: 30px;
+  align-items: center;
 }
 
 .logo {
@@ -391,11 +390,11 @@ onMounted(() => {
 }
 
 .logo-container.animate-up .logo {
-  max-width: 140px;
+  max-width: 150px;
   width: auto;
-  height: 50px;
+  height: 55px;
   object-fit: contain;
-  margin-top: 10px;
+  margin: 0;
 }
 
 .logo-tagline {
@@ -1069,13 +1068,12 @@ onMounted(() => {
   .logo-container.animate-up {
     height: 60px;
     padding: 0 15px;
-    padding-left: 15px;
   }
   
   .logo-container.animate-up .logo {
-    max-width: 110px;
-    height: 40px;
-    margin-top: 10px;
+    max-width: 120px;
+    height: 45px;
+    margin: 0;
   }
   
   .hero {
