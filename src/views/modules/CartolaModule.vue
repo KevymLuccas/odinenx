@@ -969,12 +969,12 @@ const navigateTo = (path) => {
 .mobile-menu-btn {
   display: none;
   position: fixed;
-  bottom: 25px;
-  right: 25px;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: #fff;
+  top: 20px;
+  left: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
   border: none;
   box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
   z-index: 1000;
