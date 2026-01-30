@@ -8,6 +8,7 @@ import CheckoutSuccess from '../views/CheckoutSuccess.vue'
 import CheckoutCancel from '../views/CheckoutCancel.vue'
 import BetModule from '../views/modules/BetModule.vue'
 import TradeModule from '../views/modules/TradeModule.vue'
+import CartolaModule from '../views/modules/CartolaModule.vue'
 import Alerts from '../views/Alerts.vue'
 import History from '../views/History.vue'
 import Settings from '../views/Settings.vue'
@@ -49,6 +50,12 @@ const routes = [
     path: '/trade',
     name: 'TradeModule',
     component: TradeModule,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/cartola',
+    name: 'CartolaModule',
+    component: CartolaModule,
     meta: { requiresAuth: true }
   },
   {

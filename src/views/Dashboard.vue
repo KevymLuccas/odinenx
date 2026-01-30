@@ -99,6 +99,14 @@ const handleCancelSubscription = async () => {
           </svg>
           Módulo TRADE
         </router-link>
+        <router-link to="/cartola" class="nav-item cartola">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 2a10 10 0 0 0-7.07 17.07M12 2a10 10 0 0 1 7.07 17.07"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          Cartola FC
+        </router-link>
         <router-link to="/alerts" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -285,17 +293,16 @@ const handleCancelSubscription = async () => {
               <router-link to="/trade" class="action-btn">Iniciar</router-link>
             </div>
             <div class="action-card">
-              <div class="action-icon-wrapper calendar">
+              <div class="action-icon-wrapper cartola">
                 <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                  <line x1="16" y1="2" x2="16" y2="6"/>
-                  <line x1="8" y1="2" x2="8" y2="6"/>
-                  <line x1="3" y1="10" x2="21" y2="10"/>
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 2a10 10 0 0 0-7.07 17.07M12 2a10 10 0 0 1 7.07 17.07"/>
+                  <circle cx="12" cy="12" r="3"/>
                 </svg>
               </div>
-              <h4>Calendário</h4>
-              <p>Eventos e jogos do dia</p>
-              <router-link to="/alerts" class="action-btn">Ver</router-link>
+              <h4>Cartola FC</h4>
+              <p>Escale seu time com IA</p>
+              <router-link to="/cartola" class="action-btn">Acessar</router-link>
             </div>
             <div class="action-card">
               <div class="action-icon-wrapper report">
@@ -755,6 +762,14 @@ const handleCancelSubscription = async () => {
 
 .action-icon-wrapper.report .action-svg {
   stroke: #eab308;
+}
+
+.action-icon-wrapper.cartola {
+  background: rgba(155, 89, 182, 0.15);
+}
+
+.action-icon-wrapper.cartola .action-svg {
+  stroke: #9b59b6;
 }
 
 .action-svg {

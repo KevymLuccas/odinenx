@@ -196,6 +196,14 @@ const plansList = Object.values(plans)
           </div>
           
           <div class="table-row">
+            <div class="feature-name">Cartola FC</div>
+            <div class="plan-col">—</div>
+            <div class="plan-col">—</div>
+            <div class="plan-col highlight">✓</div>
+            <div class="plan-col">✓</div>
+          </div>
+          
+          <div class="table-row">
             <div class="feature-name">API Access</div>
             <div class="plan-col">—</div>
             <div class="plan-col">—</div>

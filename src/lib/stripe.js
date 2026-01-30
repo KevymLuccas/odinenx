@@ -57,13 +57,15 @@ export const plans = {
       'IA Completa',
       'Alertas em tempo real',
       'Paper Trading',
+      'Cartola FC com IA',
       'Suporte prioritário'
     ],
     limits: {
       analysisPerDay: -1,
       historyDays: 90,
       alerts: true,
-      paperTrading: true
+      paperTrading: true,
+      cartola: true
     }
   },
   elite: {
