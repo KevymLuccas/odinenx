@@ -341,6 +341,13 @@ onMounted(() => {
         <div class="footer-bottom">
           <p>© 2026 ODINENX. Todos os direitos reservados.</p>
           <p class="disclaimer">Investimentos e apostas envolvem riscos. Resultados passados não garantem resultados futuros.</p>
+          
+          <div class="fantom-brand">
+            <a href="https://fantomstore.com.br" target="_blank" rel="noopener">
+              <img src="https://i.imgur.com/vNwaSEm.png" alt="Fantom Store" class="fantom-logo" />
+              <span>Uma solução da <strong>Fantom Store</strong></span>
+            </a>
+          </div>
         </div>
       </footer>
     </main>
@@ -1047,6 +1054,48 @@ onMounted(() => {
 .disclaimer {
   margin-top: 10px;
   font-size: 0.8rem !important;
+}
+
+.fantom-brand {
+  margin-top: 30px;
+  padding-top: 25px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.fantom-brand a {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.5);
+  transition: all 0.3s ease;
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.fantom-brand a:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.fantom-logo {
+  height: 28px;
+  width: auto;
+  opacity: 0.7;
+  transition: opacity 0.3s;
+}
+
+.fantom-brand a:hover .fantom-logo {
+  opacity: 1;
+}
+
+.fantom-brand span {
+  font-size: 0.85rem;
+}
+
+.fantom-brand strong {
+  color: #fff;
 }
 
 /* Responsivo */
