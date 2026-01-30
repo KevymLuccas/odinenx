@@ -376,12 +376,15 @@ onMounted(() => {
   background: rgba(0, 0, 0, 0.95);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0 20px;
+  overflow: visible;
 }
 
 .logo {
   max-width: 450px;
   width: 80%;
   transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  object-fit: contain;
 }
 
 .logo-container.animate-up .logo {
@@ -1059,6 +1062,16 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
+  .logo-container.animate-up {
+    height: 60px;
+    padding: 0 15px;
+  }
+  
+  .logo-container.animate-up .logo {
+    max-width: 100px;
+    height: 38px;
+  }
+  
   .hero {
     padding: 60px 20px;
   }
@@ -1092,6 +1105,21 @@ onMounted(() => {
   .footer-links {
     grid-template-columns: 1fr;
     text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo-container.animate-up {
+    height: 55px;
+  }
+  
+  .logo-container.animate-up .logo {
+    max-width: 85px;
+    height: 32px;
+  }
+  
+  .logo {
+    max-width: 280px;
   }
 }
 </style>
