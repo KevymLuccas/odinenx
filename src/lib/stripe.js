@@ -124,12 +124,14 @@ export const redirectToCheckout = async (planId) => {
       throw new Error('Usuário não autenticado')
     }
 
-    const { sessionId } = await createCheckoutSession(planId, user.id, user.email)
+    const data = await createCheckoutSession(planId, user.id, user.email)
     
-    const stripe = await getStripe()
-    const { error } = await stripe.redirectToCheckout({ sessionId })
-    
-    if (error) throw error
+    // Usar redirecionamento direto para a URL (novo método)
+    if (data.url) {
+      window.location.href = data.url
+    } else {
+      throw new Error('URL de checkout não retornada')
+    }
   } catch (error) {
     console.error('Erro no checkout:', error)
     throw error

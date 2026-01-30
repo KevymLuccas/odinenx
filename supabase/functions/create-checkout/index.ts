@@ -24,10 +24,14 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting checkout...')
+    
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     
     // Verificar autenticação
     const authHeader = req.headers.get('Authorization')
+    console.log('Auth header present:', !!authHeader)
+    
     if (!authHeader) {
       throw new Error('No authorization header')
     }
@@ -35,11 +39,16 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     
+    console.log('User found:', !!user, 'Auth error:', authError?.message)
+    
     if (authError || !user) {
-      throw new Error('Invalid token')
+      throw new Error('Invalid token: ' + (authError?.message || 'no user'))
     }
 
-    const { priceId, successUrl, cancelUrl } = await req.json()
+    const body = await req.json()
+    console.log('Request body:', JSON.stringify(body))
+    
+    const { priceId, successUrl, cancelUrl } = body
 
     if (!priceId) {
       throw new Error('Price ID is required')
@@ -79,6 +88,7 @@ serve(async (req) => {
     // Criar sessão de checkout
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
+      payment_method_types: ['card'],
       line_items: [
         {
           price: priceId,
