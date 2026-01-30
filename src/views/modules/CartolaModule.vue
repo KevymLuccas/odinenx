@@ -339,6 +339,49 @@ const limparEscalacao = () => {
   capitao.value = null
 }
 
+// Trocar titular por reserva
+const trocarPorReserva = (titular, reserva) => {
+  // Remover titular da escalação
+  const idxTitular = escalacao.value.findIndex(a => a.atleta_id === titular.atleta_id)
+  if (idxTitular > -1) {
+    escalacao.value.splice(idxTitular, 1)
+  }
+  
+  // Remover reserva da lista
+  const idxReserva = reservas.value.findIndex(a => a.atleta_id === reserva.atleta_id)
+  if (idxReserva > -1) {
+    reservas.value.splice(idxReserva, 1)
+  }
+  
+  // Adicionar reserva à escalação
+  escalacao.value.push(reserva)
+  
+  // Adicionar titular às reservas
+  reservas.value.push(titular)
+  
+  // Se o titular era capitão, transferir para o novo
+  if (capitao.value === titular.atleta_id) {
+    capitao.value = reserva.atleta_id
+  }
+}
+
+// Encontrar reserva da mesma posição
+const encontrarReserva = (posicaoId) => {
+  return reservas.value.find(r => r.posicao_id == posicaoId)
+}
+
+// Gastos das reservas
+const gastoReservas = computed(() => {
+  return reservas.value.reduce((sum, a) => sum + (a.preco_num || 0), 0)
+})
+
+// Media das reservas
+const mediaReservas = computed(() => {
+  if (reservas.value.length === 0) return 0
+  const total = reservas.value.reduce((sum, a) => sum + (a.media_num || 0), 0)
+  return total / reservas.value.length
+})
+
 // Obter foto do atleta
 const getFoto = (atleta) => {
   if (atleta.foto) {
@@ -711,17 +754,97 @@ const navigateTo = (path) => {
             </div>
           </div>
 
-          <!-- Reservas -->
-          <div v-if="reservas.length > 0" class="reservas-section">
-            <h3>Banco de Reservas</h3>
-            <div class="reservas-grid">
-              <div v-for="atleta in reservas" :key="atleta.atleta_id" class="reserva-card" @click="promoverReserva(atleta)">
-                <div class="pos-badge" :style="{ background: POSICOES[atleta.posicao_id]?.cor }">
-                  {{ POSICOES[atleta.posicao_id]?.abrev }}
-                </div>
-                <img :src="getFoto(atleta)" @error="$event.target.src = '/icone.webp'" class="reserva-foto">
-                <span class="reserva-nome">{{ atleta.apelido }}</span>
-                <span class="reserva-score">{{ atleta.score }}</span>
+          <!-- Reservas de Luxo -->
+          <div class="reservas-section">
+            <div class="reservas-header">
+              <h3>🏆 BANCO DE RESERVAS DE LUXO</h3>
+              <div class="reservas-stats">
+                <span class="stat">💎 {{ reservas.length }} jogadores</span>
+                <span class="stat">💰 C$ {{ gastoReservas.toFixed(2) }}</span>
+                <span class="stat">📊 Média: {{ mediaReservas.toFixed(1) }} pts</span>
+              </div>
+            </div>
+            <p class="reservas-desc">Reservas mais baratas que titulares | Prontas para entrar!</p>
+            
+            <div class="reservas-grid-luxo">
+              <!-- GOL Reserva -->
+              <div class="reserva-card-luxo" :class="{ vazio: !encontrarReserva(1) }">
+                <div class="reserva-pos" style="background: #f59e0b;">GOL</div>
+                <template v-if="encontrarReserva(1)">
+                  <img :src="getFoto(encontrarReserva(1))" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
+                  <span class="reserva-nome-luxo">{{ encontrarReserva(1).apelido }}</span>
+                  <span class="reserva-preco">C$ {{ encontrarReserva(1).preco_num?.toFixed(1) }}</span>
+                  <span class="reserva-media">{{ encontrarReserva(1).media_num?.toFixed(1) }} pts</span>
+                  <button class="btn-trocar" @click="promoverReserva(encontrarReserva(1))">↑ Escalar</button>
+                </template>
+                <template v-else>
+                  <span class="reserva-vazio">🧤</span>
+                  <span class="reserva-texto">Sem reserva</span>
+                </template>
+              </div>
+
+              <!-- LAT Reserva -->
+              <div class="reserva-card-luxo" :class="{ vazio: !encontrarReserva(2) }">
+                <div class="reserva-pos" style="background: #3b82f6;">LAT</div>
+                <template v-if="encontrarReserva(2)">
+                  <img :src="getFoto(encontrarReserva(2))" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
+                  <span class="reserva-nome-luxo">{{ encontrarReserva(2).apelido }}</span>
+                  <span class="reserva-preco">C$ {{ encontrarReserva(2).preco_num?.toFixed(1) }}</span>
+                  <span class="reserva-media">{{ encontrarReserva(2).media_num?.toFixed(1) }} pts</span>
+                  <button class="btn-trocar" @click="promoverReserva(encontrarReserva(2))">↑ Escalar</button>
+                </template>
+                <template v-else>
+                  <span class="reserva-vazio">🏃</span>
+                  <span class="reserva-texto">Sem reserva</span>
+                </template>
+              </div>
+
+              <!-- ZAG Reserva -->
+              <div class="reserva-card-luxo" :class="{ vazio: !encontrarReserva(3) }">
+                <div class="reserva-pos" style="background: #10b981;">ZAG</div>
+                <template v-if="encontrarReserva(3)">
+                  <img :src="getFoto(encontrarReserva(3))" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
+                  <span class="reserva-nome-luxo">{{ encontrarReserva(3).apelido }}</span>
+                  <span class="reserva-preco">C$ {{ encontrarReserva(3).preco_num?.toFixed(1) }}</span>
+                  <span class="reserva-media">{{ encontrarReserva(3).media_num?.toFixed(1) }} pts</span>
+                  <button class="btn-trocar" @click="promoverReserva(encontrarReserva(3))">↑ Escalar</button>
+                </template>
+                <template v-else>
+                  <span class="reserva-vazio">🛡️</span>
+                  <span class="reserva-texto">Sem reserva</span>
+                </template>
+              </div>
+
+              <!-- MEI Reserva -->
+              <div class="reserva-card-luxo" :class="{ vazio: !encontrarReserva(4) }">
+                <div class="reserva-pos" style="background: #8b5cf6;">MEI</div>
+                <template v-if="encontrarReserva(4)">
+                  <img :src="getFoto(encontrarReserva(4))" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
+                  <span class="reserva-nome-luxo">{{ encontrarReserva(4).apelido }}</span>
+                  <span class="reserva-preco">C$ {{ encontrarReserva(4).preco_num?.toFixed(1) }}</span>
+                  <span class="reserva-media">{{ encontrarReserva(4).media_num?.toFixed(1) }} pts</span>
+                  <button class="btn-trocar" @click="promoverReserva(encontrarReserva(4))">↑ Escalar</button>
+                </template>
+                <template v-else>
+                  <span class="reserva-vazio">⚙️</span>
+                  <span class="reserva-texto">Sem reserva</span>
+                </template>
+              </div>
+
+              <!-- ATA Reserva -->
+              <div class="reserva-card-luxo" :class="{ vazio: !encontrarReserva(5) }">
+                <div class="reserva-pos" style="background: #ef4444;">ATA</div>
+                <template v-if="encontrarReserva(5)">
+                  <img :src="getFoto(encontrarReserva(5))" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
+                  <span class="reserva-nome-luxo">{{ encontrarReserva(5).apelido }}</span>
+                  <span class="reserva-preco">C$ {{ encontrarReserva(5).preco_num?.toFixed(1) }}</span>
+                  <span class="reserva-media">{{ encontrarReserva(5).media_num?.toFixed(1) }} pts</span>
+                  <button class="btn-trocar" @click="promoverReserva(encontrarReserva(5))">↑ Escalar</button>
+                </template>
+                <template v-else>
+                  <span class="reserva-vazio">⚽</span>
+                  <span class="reserva-texto">Sem reserva</span>
+                </template>
               </div>
             </div>
           </div>
@@ -970,7 +1093,7 @@ const navigateTo = (path) => {
   display: none;
   position: fixed;
   top: 20px;
-  left: 20px;
+  right: 20px;
   width: 50px;
   height: 50px;
   border-radius: 12px;
@@ -1467,56 +1590,138 @@ const navigateTo = (path) => {
   justify-content: center;
 }
 
-/* ===== RESERVAS ===== */
+/* ===== RESERVAS DE LUXO ===== */
 .reservas-section {
-  padding-top: 25px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 30px;
+  padding: 25px;
+  background: linear-gradient(135deg, rgba(162, 155, 254, 0.1), rgba(26, 26, 26, 0.9));
+  border: 2px solid #a29bfe;
+  border-radius: 20px;
+}
+
+.reservas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 10px;
 }
 
 .reservas-section h3 {
-  font-size: 1rem;
-  margin-bottom: 15px;
+  font-size: 1.2rem;
+  color: #a29bfe;
+  margin: 0;
+}
+
+.reservas-stats {
+  display: flex;
+  gap: 20px;
+}
+
+.reservas-stats .stat {
+  font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.7);
 }
 
-.reservas-grid {
+.reservas-desc {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 20px;
+}
+
+.reservas-grid-luxo {
   display: flex;
-  gap: 12px;
+  justify-content: center;
+  gap: 15px;
   flex-wrap: wrap;
 }
 
-.reserva-card {
+.reserva-card-luxo {
+  width: 130px;
+  background: linear-gradient(180deg, #2d1f3d, #1a1a1a);
+  border: 2px solid #a29bfe;
+  border-radius: 15px;
+  padding: 15px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 12px 18px;
-  border-radius: 12px;
-  cursor: pointer;
+  gap: 8px;
   transition: all 0.3s;
 }
 
-.reserva-card:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: #22c55e;
+.reserva-card-luxo:hover {
+  border-color: #bb86fc;
+  transform: translateY(-5px);
 }
 
-.reserva-foto {
-  width: 40px;
-  height: 40px;
+.reserva-card-luxo.vazio {
+  opacity: 0.5;
+  border-style: dashed;
+}
+
+.reserva-pos {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.reserva-foto-luxo {
+  width: 55px;
+  height: 55px;
   border-radius: 50%;
   object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
-.reserva-nome {
+.reserva-nome-luxo {
+  font-size: 0.75rem;
   font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
-.reserva-score {
-  color: #3b82f6;
-  font-weight: 700;
-  margin-left: auto;
+.reserva-preco {
+  font-size: 0.7rem;
+  color: #a29bfe;
+}
+
+.reserva-media {
+  font-size: 0.7rem;
+  color: #00d9ff;
+}
+
+.reserva-vazio {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+.reserva-texto {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-trocar {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border: none;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 5px;
+}
+
+.btn-trocar:hover {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  transform: scale(1.05);
 }
 
 .pos-badge {
