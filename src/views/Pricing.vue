@@ -51,7 +51,7 @@ const plansList = Object.values(plans)
     <!-- Header -->
     <header class="pricing-header">
       <router-link to="/" class="back-link">
-        <img src="/LOGO.webp" alt="ODINENX" class="header-logo" />
+        <img src="/logo.webp" alt="ODINENX" class="header-logo" />
       </router-link>
     </header>
 

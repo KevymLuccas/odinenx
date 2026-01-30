@@ -71,7 +71,7 @@ const handleCancelSubscription = async () => {
     <aside class="sidebar">
       <div class="sidebar-header">
         <router-link to="/">
-          <img src="/LOGO.webp" alt="ODINENX" class="sidebar-logo" />
+          <img src="/logo.webp" alt="ODINENX" class="sidebar-logo" />
         </router-link>
       </div>
 

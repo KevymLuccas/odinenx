@@ -20,7 +20,7 @@ onMounted(() => {
   <div class="home">
     <!-- Logo Animada -->
     <div class="logo-container" :class="{ 'animate-up': animationComplete }">
-      <img src="/LOGO.webp" alt="ODINENX" class="logo" />
+      <img src="/logo.webp" alt="ODINENX" class="logo" />
       <div class="logo-tagline" :class="{ 'fade-out': animationComplete }">
         Inteligência que opera. Você decide.
       </div>
@@ -314,7 +314,7 @@ onMounted(() => {
       <footer class="footer">
         <div class="footer-content">
           <div class="footer-brand">
-            <img src="/LOGO.webp" alt="ODINENX" class="footer-logo" />
+            <img src="/logo.webp" alt="ODINENX" class="footer-logo" />
             <p>Inteligência que opera. Você decide.</p>
           </div>
           <div class="footer-links">

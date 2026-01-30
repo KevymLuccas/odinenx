@@ -52,7 +52,7 @@ const handleRegister = async () => {
       <router-link to="/" class="back-link">← Voltar</router-link>
       
       <div class="auth-header">
-        <img src="/LOGO.webp" alt="ODINENX" class="auth-logo" />
+        <img src="/logo.webp" alt="ODINENX" class="auth-logo" />
         <h1>Criar Conta</h1>
         <p>Comece grátis. Sem cartão de crédito.</p>
       </div>

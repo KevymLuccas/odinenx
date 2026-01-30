@@ -36,7 +36,7 @@ const handleLogin = async () => {
       <router-link to="/" class="back-link">← Voltar</router-link>
       
       <div class="auth-header">
-        <img src="/LOGO.webp" alt="ODINENX" class="auth-logo" />
+        <img src="/logo.webp" alt="ODINENX" class="auth-logo" />
         <h1>Entrar</h1>
         <p>Acesse sua conta ODINENX</p>
       </div>

@@ -31,7 +31,7 @@ const logout = async () => {
   <nav class="navbar" :class="{ 'visible': visible }">
     <div class="nav-container">
       <div class="nav-brand">
-        <img src="/ICONE.webp" alt="ODINENX" class="nav-icon" />
+        <img src="/icone.webp" alt="ODINENX" class="nav-icon" />
       </div>
 
       <div class="nav-links desktop">
