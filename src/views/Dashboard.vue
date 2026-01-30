@@ -76,6 +76,8 @@ const handleCancelSubscription = async () => {
       </div>
 
       <nav class="sidebar-nav">
+        <!-- PRINCIPAL -->
+        <div class="nav-category">Principal</div>
         <router-link to="/dashboard" class="nav-item active">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="7" height="7" rx="1"/>
@@ -85,21 +87,24 @@ const handleCancelSubscription = async () => {
           </svg>
           Dashboard
         </router-link>
+
+        <!-- MÓDULOS -->
+        <div class="nav-category">Módulos</div>
         <router-link to="/bet" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/>
             <path d="M12 6v6l4 2"/>
           </svg>
-          Módulo BET
+          BET
         </router-link>
         <router-link to="/trade" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
             <polyline points="16 7 22 7 22 13"/>
           </svg>
-          Módulo TRADE
+          TRADE
         </router-link>
-        <router-link to="/cartola" class="nav-item cartola">
+        <router-link to="/cartola" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/>
             <path d="M12 2a10 10 0 0 0-7.07 17.07M12 2a10 10 0 0 1 7.07 17.07"/>
@@ -107,6 +112,9 @@ const handleCancelSubscription = async () => {
           </svg>
           Cartola FC
         </router-link>
+
+        <!-- ACOMPANHAMENTO -->
+        <div class="nav-category">Acompanhamento</div>
         <router-link to="/alerts" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -121,6 +129,9 @@ const handleCancelSubscription = async () => {
           </svg>
           Histórico
         </router-link>
+
+        <!-- SISTEMA -->
+        <div class="nav-category">Sistema</div>
         <router-link to="/settings" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
@@ -405,6 +416,19 @@ const handleCancelSubscription = async () => {
   display: flex;
   flex-direction: column;
   gap: 5px;
+}
+
+.nav-category {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.35);
+  padding: 15px 15px 8px;
+  font-weight: 600;
+}
+
+.nav-category:first-child {
+  padding-top: 0;
 }
 
 .nav-item {
