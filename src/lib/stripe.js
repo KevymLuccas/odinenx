@@ -1,0 +1,185 @@
+import { loadStripe } from '@stripe/stripe-js'
+import { supabase } from './supabase'
+
+// Stripe instance
+let stripePromise = null
+
+export const getStripe = () => {
+  if (!stripePromise) {
+    stripePromise = loadStripe('pk_live_51SvLiVD3mufAbT6c8d9o66HLbOmyOsmFdhpqT3GAWXy6ywAkzXHtYW8weaqcKny0f9xRKynkL7o8JasAjmQR95O300z07aKdK6')
+  }
+  return stripePromise
+}
+
+// Planos disponíveis
+export const plans = {
+  free: {
+    id: 'free',
+    name: 'Free',
+    price: 0,
+    interval: 'month',
+    features: [
+      '3 análises por dia',
+      'Dashboard básico',
+      'Histórico 7 dias'
+    ],
+    limits: {
+      analysisPerDay: 3,
+      historyDays: 7
+    }
+  },
+  basic: {
+    id: 'basic',
+    name: 'Basic',
+    price: 79,
+    interval: 'month',
+    stripePriceId: 'price_1SvMedD3mufAbT6c994DmZYw',
+    features: [
+      'Análises ilimitadas',
+      'Dashboard completo',
+      'Histórico 30 dias',
+      'Filtros de risco'
+    ],
+    limits: {
+      analysisPerDay: -1,
+      historyDays: 30
+    }
+  },
+  pro: {
+    id: 'pro',
+    name: 'Pro',
+    price: 199,
+    interval: 'month',
+    stripePriceId: 'price_1SvMehD3mufAbT6cmjXFFHtA',
+    popular: true,
+    features: [
+      'Tudo do Basic',
+      'IA Completa',
+      'Alertas em tempo real',
+      'Paper Trading',
+      'Suporte prioritário'
+    ],
+    limits: {
+      analysisPerDay: -1,
+      historyDays: 90,
+      alerts: true,
+      paperTrading: true
+    }
+  },
+  elite: {
+    id: 'elite',
+    name: 'Elite',
+    price: 399,
+    interval: 'month',
+    stripePriceId: 'price_1SvMemD3mufAbT6cRHEhLdAM',
+    features: [
+      'Tudo do Pro',
+      'Acesso à API',
+      'Webhooks',
+      'Suporte 24/7',
+      'Consultoria mensal'
+    ],
+    limits: {
+      analysisPerDay: -1,
+      historyDays: -1,
+      alerts: true,
+      paperTrading: true,
+      api: true,
+      webhooks: true
+    }
+  }
+}
+
+// Criar checkout session via Supabase Edge Function
+export const createCheckoutSession = async (planId, userId, userEmail) => {
+  try {
+    const plan = plans[planId]
+    if (!plan || !plan.stripePriceId) {
+      throw new Error('Plano inválido')
+    }
+
+    const { data, error } = await supabase.functions.invoke('create-checkout', {
+      body: {
+        priceId: plan.stripePriceId,
+        userId: userId,
+        userEmail: userEmail,
+        planId: planId
+      }
+    })
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Erro ao criar checkout:', error)
+    throw error
+  }
+}
+
+// Redirecionar para checkout do Stripe
+export const redirectToCheckout = async (planId) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      throw new Error('Usuário não autenticado')
+    }
+
+    const { sessionId } = await createCheckoutSession(planId, user.id, user.email)
+    
+    const stripe = await getStripe()
+    const { error } = await stripe.redirectToCheckout({ sessionId })
+    
+    if (error) throw error
+  } catch (error) {
+    console.error('Erro no checkout:', error)
+    throw error
+  }
+}
+
+// Portal do cliente para gerenciar assinatura
+export const createCustomerPortal = async () => {
+  try {
+    const { data, error } = await supabase.functions.invoke('customer-portal', {
+      body: {}
+    })
+
+    if (error) throw error
+    window.location.href = data.url
+  } catch (error) {
+    console.error('Erro ao abrir portal:', error)
+    throw error
+  }
+}
+
+// Verificar status da assinatura do usuário
+export const getSubscriptionStatus = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .single()
+
+    if (error && error.code !== 'PGRST116') throw error
+    return data || { plan: 'free', status: 'active' }
+  } catch (error) {
+    console.error('Erro ao verificar assinatura:', error)
+    return { plan: 'free', status: 'active' }
+  }
+}
+
+// Cancelar assinatura
+export const cancelSubscription = async () => {
+  try {
+    const { data, error } = await supabase.functions.invoke('cancel-subscription', {
+      body: {}
+    })
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Erro ao cancelar:', error)
+    throw error
+  }
+}
