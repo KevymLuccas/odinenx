@@ -33,7 +33,10 @@ onMounted(() => {
     <main class="content" :class="{ 'visible': showContent }">
       <!-- Hero Section -->
       <section class="hero">
-        <div class="hero-badge">⚡ ODINENX Platform</div>
+        <a href="https://fantomstore.com.br" target="_blank" rel="noopener" class="hero-badge">
+          <img src="https://i.imgur.com/vNwaSEm.png" alt="Fantom Store" class="badge-logo" />
+          <span>Uma solução da <strong>Fantom Store</strong></span>
+        </a>
         <h1>Análises precisas para <br><span class="gradient-text">BET</span> e <span class="gradient-text">TRADE</span></h1>
         <p class="subtitle">
           Zero promessas vazias. Dados reais, cálculos precisos e transparência total.
@@ -451,13 +454,38 @@ onMounted(() => {
 }
 
 .hero-badge {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 8px 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 10px 22px;
   border-radius: 50px;
   font-size: 0.85rem;
   margin-bottom: 30px;
-  letter-spacing: 1px;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.3s ease;
+}
+
+.hero-badge:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+
+.badge-logo {
+  height: 22px;
+  width: auto;
+  opacity: 0.8;
+}
+
+.hero-badge:hover .badge-logo {
+  opacity: 1;
+}
+
+.hero-badge strong {
+  color: #fff;
 }
 
 .hero h1 {
