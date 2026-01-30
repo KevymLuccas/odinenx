@@ -77,27 +77,47 @@ const handleCancelSubscription = async () => {
 
       <nav class="sidebar-nav">
         <a href="#" class="nav-item active">
-          <span class="nav-icon">📊</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
           Dashboard
         </a>
         <a href="#" class="nav-item">
-          <span class="nav-icon">⚽</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
           Módulo BET
         </a>
         <a href="#" class="nav-item">
-          <span class="nav-icon">📈</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+            <polyline points="16 7 22 7 22 13"/>
+          </svg>
           Módulo TRADE
         </a>
         <a href="#" class="nav-item">
-          <span class="nav-icon">🔔</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
           Alertas
         </a>
         <a href="#" class="nav-item">
-          <span class="nav-icon">📜</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 8v4l3 3"/>
+            <circle cx="12" cy="12" r="10"/>
+          </svg>
           Histórico
         </a>
         <a href="#" class="nav-item">
-          <span class="nav-icon">⚙️</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
           Configurações
         </a>
       </nav>
@@ -107,6 +127,11 @@ const handleCancelSubscription = async () => {
           {{ currentPlan.name }}
         </div>
         <button @click="logout" class="logout-btn">
+          <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
           Sair
         </button>
       </div>
@@ -143,28 +168,46 @@ const handleCancelSubscription = async () => {
         <!-- Stats Cards -->
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-icon">📊</div>
+            <div class="stat-icon-wrapper">
+              <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 21H3V3"/>
+                <path d="M21 9l-6 6-4-4-6 6"/>
+              </svg>
+            </div>
             <div class="stat-info">
               <span class="stat-value">0</span>
               <span class="stat-label">Análises hoje</span>
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon">✅</div>
+            <div class="stat-icon-wrapper success">
+              <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
             <div class="stat-info">
               <span class="stat-value">0%</span>
               <span class="stat-label">Taxa de acerto</span>
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon">🎯</div>
+            <div class="stat-icon-wrapper warning">
+              <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </div>
             <div class="stat-info">
               <span class="stat-value">0</span>
               <span class="stat-label">Oportunidades</span>
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon">⚡</div>
+            <div class="stat-icon-wrapper primary">
+              <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+            </div>
             <div class="stat-info">
               <span class="stat-value">{{ currentPlan.limits?.analysisPerDay === -1 ? '∞' : currentPlan.limits?.analysisPerDay }}</span>
               <span class="stat-label">Análises restantes</span>
@@ -185,7 +228,12 @@ const handleCancelSubscription = async () => {
                 Faça upgrade para desbloquear mais recursos
               </p>
               <p v-else-if="isCanceledButActive" class="cancel-notice">
-                ⚠️ Assinatura cancelada. Acesso até: {{ subscription?.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString('pt-BR') : 'N/A' }}
+                <svg class="warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                Assinatura cancelada. Acesso até: {{ subscription?.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString('pt-BR') : 'N/A' }}
               </p>
               <p v-else>
                 Próxima cobrança: {{ subscription?.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString('pt-BR') : 'N/A' }}
@@ -215,25 +263,50 @@ const handleCancelSubscription = async () => {
           <h2>Ações Rápidas</h2>
           <div class="actions-grid">
             <div class="action-card">
-              <span class="action-icon">⚽</span>
+              <div class="action-icon-wrapper bet">
+                <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 6v6l4 2"/>
+                </svg>
+              </div>
               <h4>Nova Análise BET</h4>
-              <p>Analise partidas de futebol</p>
+              <p>Analise partidas esportivas</p>
               <button class="action-btn">Iniciar</button>
             </div>
             <div class="action-card">
-              <span class="action-icon">📈</span>
+              <div class="action-icon-wrapper trade">
+                <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+                  <polyline points="16 7 22 7 22 13"/>
+                </svg>
+              </div>
               <h4>Nova Análise TRADE</h4>
               <p>Analise ativos financeiros</p>
               <button class="action-btn">Iniciar</button>
             </div>
             <div class="action-card">
-              <span class="action-icon">📅</span>
+              <div class="action-icon-wrapper calendar">
+                <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+              </div>
               <h4>Calendário</h4>
               <p>Eventos e jogos do dia</p>
               <button class="action-btn">Ver</button>
             </div>
             <div class="action-card">
-              <span class="action-icon">📊</span>
+              <div class="action-icon-wrapper report">
+                <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <polyline points="10 9 9 9 8 9"/>
+                </svg>
+              </div>
               <h4>Relatórios</h4>
               <p>Seu desempenho detalhado</p>
               <button class="action-btn">Ver</button>
@@ -245,7 +318,13 @@ const handleCancelSubscription = async () => {
         <div class="recent-section">
           <h2>Análises Recentes</h2>
           <div class="empty-state">
-            <span class="empty-icon">📭</span>
+            <div class="empty-icon-wrapper">
+              <svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
             <h4>Nenhuma análise ainda</h4>
             <p>Comece fazendo sua primeira análise!</p>
           </div>
@@ -256,7 +335,13 @@ const handleCancelSubscription = async () => {
     <!-- Cancel Modal -->
     <div v-if="showCancelModal" class="modal-overlay" @click.self="showCancelModal = false">
       <div class="modal">
-        <div class="modal-icon">⚠️</div>
+        <div class="modal-icon-wrapper">
+          <svg class="modal-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
         <h3>Cancelar Assinatura?</h3>
         <p>Tem certeza que deseja cancelar sua assinatura do plano <strong>{{ currentPlan.name }}</strong>?</p>
         <ul class="cancel-info">
@@ -323,6 +408,7 @@ const handleCancelSubscription = async () => {
   color: rgba(255, 255, 255, 0.6);
   border-radius: 10px;
   transition: all 0.3s;
+  text-decoration: none;
 }
 
 .nav-item:hover {
@@ -336,7 +422,9 @@ const handleCancelSubscription = async () => {
 }
 
 .nav-icon {
-  font-size: 1.2rem;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 .sidebar-footer {
@@ -357,6 +445,10 @@ const handleCancelSubscription = async () => {
 }
 
 .logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: rgba(255, 255, 255, 0.6);
@@ -369,6 +461,11 @@ const handleCancelSubscription = async () => {
 .logout-btn:hover {
   border-color: #ff6b6b;
   color: #ff6b6b;
+}
+
+.logout-icon {
+  width: 18px;
+  height: 18px;
 }
 
 /* Main Content */
@@ -466,11 +563,43 @@ const handleCancelSubscription = async () => {
   gap: 20px;
 }
 
-.stat-icon {
-  font-size: 2rem;
+.stat-icon-wrapper {
   background: rgba(255, 255, 255, 0.05);
   padding: 15px;
   border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-icon-wrapper.success {
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.stat-icon-wrapper.success .stat-svg {
+  stroke: #22c55e;
+}
+
+.stat-icon-wrapper.warning {
+  background: rgba(234, 179, 8, 0.15);
+}
+
+.stat-icon-wrapper.warning .stat-svg {
+  stroke: #eab308;
+}
+
+.stat-icon-wrapper.primary {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.stat-icon-wrapper.primary .stat-svg {
+  stroke: #3b82f6;
+}
+
+.stat-svg {
+  width: 28px;
+  height: 28px;
+  stroke: #fff;
 }
 
 .stat-info {
@@ -585,10 +714,53 @@ const handleCancelSubscription = async () => {
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-.action-icon {
-  font-size: 2.5rem;
-  display: block;
-  margin-bottom: 15px;
+.action-icon-wrapper {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px;
+}
+
+.action-icon-wrapper.bet {
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.action-icon-wrapper.bet .action-svg {
+  stroke: #22c55e;
+}
+
+.action-icon-wrapper.trade {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.action-icon-wrapper.trade .action-svg {
+  stroke: #3b82f6;
+}
+
+.action-icon-wrapper.calendar {
+  background: rgba(168, 85, 247, 0.15);
+}
+
+.action-icon-wrapper.calendar .action-svg {
+  stroke: #a855f7;
+}
+
+.action-icon-wrapper.report {
+  background: rgba(234, 179, 8, 0.15);
+}
+
+.action-icon-wrapper.report .action-svg {
+  stroke: #eab308;
+}
+
+.action-svg {
+  width: 28px;
+  height: 28px;
+  stroke: #fff;
 }
 
 .action-card h4 {
@@ -632,10 +804,21 @@ const handleCancelSubscription = async () => {
   text-align: center;
 }
 
-.empty-icon {
-  font-size: 3rem;
-  display: block;
-  margin-bottom: 15px;
+.empty-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.empty-svg {
+  width: 40px;
+  height: 40px;
+  stroke: rgba(255, 255, 255, 0.4);
 }
 
 .empty-state h4 {
@@ -774,9 +957,29 @@ const handleCancelSubscription = async () => {
   text-align: center;
 }
 
-.modal-icon {
-  font-size: 3rem;
-  margin-bottom: 20px;
+.modal-icon-wrapper {
+  width: 70px;
+  height: 70px;
+  background: rgba(255, 107, 107, 0.15);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.modal-svg {
+  width: 35px;
+  height: 35px;
+  stroke: #ff6b6b;
+}
+
+.warning-icon {
+  width: 18px;
+  height: 18px;
+  stroke: #eab308;
+  vertical-align: middle;
+  margin-right: 5px;
 }
 
 .modal h3 {
