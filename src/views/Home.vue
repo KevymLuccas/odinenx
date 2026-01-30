@@ -372,11 +372,11 @@ onMounted(() => {
 }
 
 .logo-container.animate-up {
-  height: 80px;
+  height: 85px;
   background: rgba(0, 0, 0, 0.95);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 10px 20px;
+  padding: 12px 20px;
   overflow: visible;
   justify-content: center;
   align-items: center;
@@ -392,7 +392,7 @@ onMounted(() => {
 .logo-container.animate-up .logo {
   max-width: 180px;
   width: auto;
-  height: 60px;
+  height: 58px;
   object-fit: contain;
   margin: 0;
 }
