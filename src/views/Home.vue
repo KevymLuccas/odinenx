@@ -330,8 +330,7 @@ const logout = async () => {
             <ul class="price-features">
               <li>✓ Tudo do Pro</li>
               <li>✓ Histórico ilimitado</li>
-              <li>✓ Acesso à API</li>
-              <li>✓ Webhooks</li>
+              <li>✓ Relatórios avançados</li>
               <li>✓ Suporte prioritário</li>
             </ul>
             <router-link to="/register" class="btn btn-outline">Assinar Elite</router-link>

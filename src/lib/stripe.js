@@ -75,18 +75,15 @@ export const plans = {
     features: [
       'Tudo do Pro',
       'Histórico ilimitado',
-      'Acesso à API',
-      'Webhooks',
+      'Relatórios avançados',
       'Suporte prioritário'
     ],
     limits: {
       analysisPerDay: -1,
       historyDays: -1,
-      alerts: true,
       paperTrading: true,
       cartola: true,
-      api: true,
-      webhooks: true
+      reports: true
     }
   }
 }
