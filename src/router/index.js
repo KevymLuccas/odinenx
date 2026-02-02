@@ -9,6 +9,8 @@ import CheckoutCancel from '../views/CheckoutCancel.vue'
 import BetModule from '../views/modules/BetModule.vue'
 import TradeModule from '../views/modules/TradeModule.vue'
 import CartolaModule from '../views/modules/CartolaModule.vue'
+import PaperTrading from '../views/PaperTrading.vue'
+import Admin from '../views/Admin.vue'
 import Alerts from '../views/Alerts.vue'
 import History from '../views/History.vue'
 import Settings from '../views/Settings.vue'
@@ -58,8 +60,18 @@ const routes = [
     component: CartolaModule,
     meta: { requiresAuth: true }
   },
-  {
-    path: '/alerts',
+  {    path: '/paper-trading',
+    name: 'PaperTrading',
+    component: PaperTrading,
+    meta: { requiresAuth: true }
+  },
+  {    
+    path: '/admin',
+    name: 'Admin',
+    component: Admin,
+    meta: { requiresAuth: true }
+  },
+  {    path: '/alerts',
     name: 'Alerts',
     component: Alerts,
     meta: { requiresAuth: true }
