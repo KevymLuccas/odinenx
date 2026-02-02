@@ -226,36 +226,126 @@ const operacoesFiltradas = computed(() => {
   return ops.sort((a, b) => new Date(b.data) - new Date(a.data))
 })
 
-// ===== CARREGAR/SALVAR DADOS =====
+// ===== CARREGAR/SALVAR DADOS NO SUPABASE =====
 const carregarOperacoes = async () => {
-  const saved = localStorage.getItem(`odinenx_operacoes_${user.value?.id}`)
-  if (saved) {
-    operacoes.value = JSON.parse(saved)
-  } else {
-    // Dados de exemplo para demonstração
-    operacoes.value = [
-      { id: 1, tipo: 'COMPRA', ativo: 'BTC', categoria: 'crypto', preco_entrada: 65000, preco_saida: 67500, quantidade: 0.1, stop_loss: 63000, take_profit: 70000, plataforma: 'Binance', data: new Date(Date.now() - 86400000).toISOString(), status: 'FECHADA', resultado: 250, observacao: 'Rompimento de resistência' },
-      { id: 2, tipo: 'VENDA', ativo: 'ETH', categoria: 'crypto', preco_entrada: 3500, preco_saida: 3420, quantidade: 2, stop_loss: 3600, take_profit: 3300, plataforma: 'Binance', data: new Date(Date.now() - 172800000).toISOString(), status: 'FECHADA', resultado: 160, observacao: 'Divergência bearish no RSI' },
-      { id: 3, tipo: 'COMPRA', ativo: 'PETR4', categoria: 'acoes', preco_entrada: 38.50, preco_saida: 37.80, quantidade: 100, stop_loss: 37.00, take_profit: 41.00, plataforma: 'Clear', data: new Date(Date.now() - 259200000).toISOString(), status: 'FECHADA', resultado: -70, observacao: 'Stop atingido por volatilidade' },
-      { id: 4, tipo: 'COMPRA', ativo: 'SOL', categoria: 'crypto', preco_entrada: 175, quantidade: 5, stop_loss: 165, take_profit: 195, plataforma: 'Bybit', data: new Date().toISOString(), status: 'ABERTA', resultado: 0, observacao: 'Teste de suporte' },
-      { id: 5, tipo: 'COMPRA', ativo: 'EUR/USD', categoria: 'forex', preco_entrada: 1.0820, preco_saida: 1.0880, quantidade: 10000, stop_loss: 1.0780, take_profit: 1.0900, plataforma: 'MetaTrader 5', data: new Date(Date.now() - 345600000).toISOString(), status: 'FECHADA', resultado: 60, observacao: 'Bounce na EMA 200' }
-    ]
+  try {
+    // Tentar carregar do Supabase primeiro
+    const { data, error } = await supabase
+      .from('trade_operacoes')
+      .select('*')
+      .eq('user_id', user.value.id)
+      .order('created_at', { ascending: false })
+    
+    if (error) {
+      console.error('Erro ao carregar operações do Supabase:', error)
+      // Fallback para localStorage
+      const saved = localStorage.getItem(`odinenx_operacoes_${user.value?.id}`)
+      if (saved) {
+        operacoes.value = JSON.parse(saved)
+      } else {
+        operacoes.value = [] // Começa vazio, sem dados de exemplo
+      }
+    } else {
+      operacoes.value = data || []
+    }
+  } catch (e) {
+    console.error('Erro ao carregar operações:', e)
+    operacoes.value = []
   }
 }
 
-const salvarOperacoes = () => {
+const salvarOperacoes = async () => {
+  // Salvar no localStorage como backup
   localStorage.setItem(`odinenx_operacoes_${user.value?.id}`, JSON.stringify(operacoes.value))
 }
 
-const carregarConfigRisco = async () => {
-  const saved = localStorage.getItem(`odinenx_risco_${user.value?.id}`)
-  if (saved) {
-    configRisco.value = JSON.parse(saved)
+const salvarOperacaoSupabase = async (operacao) => {
+  try {
+    const { data, error } = await supabase
+      .from('trade_operacoes')
+      .upsert({
+        ...operacao,
+        user_id: user.value.id,
+        updated_at: new Date().toISOString()
+      })
+      .select()
+    
+    if (error) {
+      console.error('Erro ao salvar no Supabase:', error)
+      // Fallback: salvar no localStorage
+      salvarOperacoes()
+    }
+    return data
+  } catch (e) {
+    console.error('Erro ao salvar operação:', e)
+    salvarOperacoes()
   }
 }
 
-const salvarConfigRisco = () => {
+const deletarOperacaoSupabase = async (id) => {
+  try {
+    const { error } = await supabase
+      .from('trade_operacoes')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.value.id)
+    
+    if (error) {
+      console.error('Erro ao deletar no Supabase:', error)
+    }
+  } catch (e) {
+    console.error('Erro ao deletar operação:', e)
+  }
+}
+
+const carregarConfigRisco = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('trade_config_risco')
+      .select('*')
+      .eq('user_id', user.value.id)
+      .single()
+    
+    if (error || !data) {
+      // Fallback para localStorage ou valores padrão
+      const saved = localStorage.getItem(`odinenx_risco_${user.value?.id}`)
+      if (saved) {
+        configRisco.value = JSON.parse(saved)
+      }
+      // Se não tem nada, usa os valores padrão já definidos
+    } else {
+      configRisco.value = {
+        capital_total: data.capital_total,
+        risco_por_operacao: data.risco_por_operacao,
+        max_operacoes_dia: data.max_operacoes_dia,
+        max_perda_dia: data.max_perda_dia,
+        alavancagem_max: data.alavancagem_max
+      }
+    }
+  } catch (e) {
+    console.error('Erro ao carregar config risco:', e)
+  }
+}
+
+const salvarConfigRisco = async () => {
+  // Salvar no localStorage como backup
   localStorage.setItem(`odinenx_risco_${user.value?.id}`, JSON.stringify(configRisco.value))
+  
+  try {
+    const { error } = await supabase
+      .from('trade_config_risco')
+      .upsert({
+        user_id: user.value.id,
+        ...configRisco.value,
+        updated_at: new Date().toISOString()
+      })
+    
+    if (error) {
+      console.error('Erro ao salvar config no Supabase:', error)
+    }
+  } catch (e) {
+    console.error('Erro ao salvar config risco:', e)
+  }
 }
 
 // ===== CARREGAR DADOS REAIS DA API =====
@@ -509,7 +599,7 @@ const abrirModalNovaOperacao = (ativo = null) => {
   modalNovaOperacao.value = true
 }
 
-const criarOperacao = () => {
+const criarOperacao = async () => {
   if (!novaOperacao.value.ativo || novaOperacao.value.quantidade <= 0) {
     alert('Preencha todos os campos obrigatórios')
     return
@@ -517,15 +607,39 @@ const criarOperacao = () => {
   
   const op = {
     id: Date.now(),
+    user_id: user.value.id,
     ...novaOperacao.value,
+    created_at: new Date().toISOString(),
     data: new Date().toISOString(),
     status: 'ABERTA',
     resultado: 0
   }
+  
+  // Adicionar localmente primeiro (UX rápida)
   operacoes.value.unshift(op)
-  salvarOperacoes()
   modalNovaOperacao.value = false
   
+  // Salvar no Supabase
+  try {
+    const { data, error } = await supabase
+      .from('trade_operacoes')
+      .insert([op])
+      .select()
+    
+    if (error) {
+      console.error('Erro ao salvar no Supabase:', error)
+      salvarOperacoes() // Fallback localStorage
+    } else if (data && data[0]) {
+      // Atualizar com ID do Supabase
+      const idx = operacoes.value.findIndex(o => o.id === op.id)
+      if (idx !== -1) operacoes.value[idx] = data[0]
+    }
+  } catch (e) {
+    console.error('Erro ao criar operação:', e)
+    salvarOperacoes()
+  }
+  
+  // Reset form
   novaOperacao.value = {
     tipo: 'COMPRA',
     ativo: '',
@@ -539,7 +653,7 @@ const criarOperacao = () => {
   }
 }
 
-const fecharOperacao = (op, precoSaida) => {
+const fecharOperacao = async (op, precoSaida) => {
   op.preco_saida = precoSaida
   op.status = 'FECHADA'
   
@@ -549,7 +663,11 @@ const fecharOperacao = (op, precoSaida) => {
     op.resultado = (op.preco_entrada - precoSaida) * op.quantidade
   }
   
-  salvarOperacoes()
+  op.updated_at = new Date().toISOString()
+  
+  // Salvar no Supabase
+  await salvarOperacaoSupabase(op)
+  salvarOperacoes() // Backup localStorage
 }
 
 const fecharOperacaoManual = (op) => {
@@ -559,16 +677,23 @@ const fecharOperacaoManual = (op) => {
   }
 }
 
-const excluirOperacao = (id) => {
+const excluirOperacao = async (id) => {
   if (confirm('Deseja excluir esta operação?')) {
     operacoes.value = operacoes.value.filter(o => o.id !== id)
-    salvarOperacoes()
+    
+    // Deletar do Supabase
+    await deletarOperacaoSupabase(id)
+    salvarOperacoes() // Backup localStorage
   }
 }
 
-const salvarObservacao = (op, obs) => {
+const salvarObservacao = async (op, obs) => {
   op.observacao = obs
-  salvarOperacoes()
+  op.updated_at = new Date().toISOString()
+  
+  // Salvar no Supabase
+  await salvarOperacaoSupabase(op)
+  salvarOperacoes() // Backup localStorage
 }
 
 // ===== CALCULADORA DE POSIÇÃO =====
