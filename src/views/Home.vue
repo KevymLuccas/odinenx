@@ -510,11 +510,13 @@ const logout = async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
 }
 
 .header-brand {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .header-logo {
@@ -531,6 +533,9 @@ const logout = async () => {
   display: flex;
   align-items: center;
   gap: 35px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .nav-link {
