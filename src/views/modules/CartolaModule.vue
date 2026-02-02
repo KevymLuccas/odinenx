@@ -208,12 +208,11 @@ const escalarAutomatico = () => {
     // Excluir apenas: Suspenso (3), Contundido (5), Nulo (6)
     const atletasValidos = atletas.value.filter(a => {
       const status = a.status_id
-      // Excluir suspenso, contundido, nulo
       if (status === 3 || status === 5 || status === 6) return false
       return true
     })
     
-    // Organizar por posição e ordenar por score
+    // Organizar por posição
     const porPosicao = {}
     for (const pos in POSICOES) {
       porPosicao[pos] = atletasValidos
@@ -221,103 +220,87 @@ const escalarAutomatico = () => {
         .sort((a, b) => (b.score || 0) - (a.score || 0))
     }
     
-    // FASE 1: Calcular o mínimo necessário para cada posição (jogador mais barato)
-    const minimosPorPosicao = {}
-    let minimoTotal = 0
-    
-    for (const [posId, qtd] of Object.entries(ESQUEMA)) {
-      const disponiveis = porPosicao[posId] || []
-      // Ordenar por preço para pegar os mais baratos
-      const porPreco = [...disponiveis].sort((a, b) => (a.preco_num || 0) - (b.preco_num || 0))
-      let minPos = 0
-      for (let i = 0; i < qtd && i < porPreco.length; i++) {
-        minPos += porPreco[i]?.preco_num || 0
-      }
-      minimosPorPosicao[posId] = minPos
-      minimoTotal += minPos
-    }
-    
-    // FASE 2: Escalar garantindo que todas as posições sejam preenchidas
+    // PASSO 1: Primeiro garantir o time mínimo com os mais baratos
     const novaEscalacao = []
     const idsUsados = new Set()
-    let orcamentoRestante = cartoletas.value
+    let gastoMinimo = 0
     
-    // Ordem de prioridade: posições com menos opções primeiro
-    const posicoesOrdenadas = Object.entries(ESQUEMA)
-      .map(([posId, qtd]) => ({
-        posId,
-        qtd,
-        opcoes: (porPosicao[posId] || []).length
-      }))
-      .sort((a, b) => a.opcoes - b.opcoes)
-    
-    for (const { posId, qtd } of posicoesOrdenadas) {
-      const disponiveis = (porPosicao[posId] || []).filter(a => !idsUsados.has(a.atleta_id))
+    // Pegar o mais barato de cada posição primeiro para garantir time completo
+    for (const [posId, qtd] of Object.entries(ESQUEMA)) {
+      const disponiveis = (porPosicao[posId] || [])
+        .filter(a => !idsUsados.has(a.atleta_id))
+        .sort((a, b) => (a.preco_num || 0) - (b.preco_num || 0)) // Mais baratos
       
-      // Calcular quanto precisa reservar para outras posições
-      let reservadoOutras = 0
-      for (const [outroPos, outroQtd] of Object.entries(ESQUEMA)) {
-        if (outroPos === posId) continue
-        const escaladosOutro = novaEscalacao.filter(a => a.posicao_id == outroPos).length
-        const faltamOutro = outroQtd - escaladosOutro
-        if (faltamOutro > 0) {
-          const disponiveisOutro = (porPosicao[outroPos] || [])
-            .filter(a => !idsUsados.has(a.atleta_id))
-            .sort((a, b) => (a.preco_num || 0) - (b.preco_num || 0))
-          for (let i = 0; i < faltamOutro && i < disponiveisOutro.length; i++) {
-            reservadoOutras += disponiveisOutro[i]?.preco_num || 0
-          }
-        }
+      for (let i = 0; i < qtd && i < disponiveis.length; i++) {
+        const atleta = disponiveis[i]
+        novaEscalacao.push(atleta)
+        idsUsados.add(atleta.atleta_id)
+        gastoMinimo += atleta.preco_num || 0
       }
-      
-      let adicionados = 0
-      for (const atleta of disponiveis) {
-        if (adicionados >= qtd) break
+    }
+    
+    // PASSO 2: Se sobrou cartoletas, fazer upgrades (trocar por melhores)
+    let orcamentoRestante = cartoletas.value - gastoMinimo
+    
+    if (orcamentoRestante > 0) {
+      // Para cada posição, tentar trocar por jogadores melhores
+      for (const [posId, qtd] of Object.entries(ESQUEMA)) {
+        const escaladosPosicao = novaEscalacao.filter(a => a.posicao_id == posId)
+        const melhoresDisponiveis = (porPosicao[posId] || [])
+          .filter(a => !idsUsados.has(a.atleta_id))
+          .sort((a, b) => (b.score || 0) - (a.score || 0)) // Melhores primeiro
         
-        const preco = atleta.preco_num || 0
-        const orcamentoDisponivel = orcamentoRestante - reservadoOutras
-        
-        if (preco <= orcamentoDisponivel) {
-          novaEscalacao.push(atleta)
-          idsUsados.add(atleta.atleta_id)
-          orcamentoRestante -= preco
-          adicionados++
+        for (const melhor of melhoresDisponiveis) {
+          // Encontrar o pior escalado dessa posição
+          const pior = escaladosPosicao
+            .sort((a, b) => (a.score || 0) - (b.score || 0))[0]
           
-          // Recalcular reservado
-          reservadoOutras = 0
-          for (const [outroPos, outroQtd] of Object.entries(ESQUEMA)) {
-            if (outroPos === posId) continue
-            const escaladosOutro = novaEscalacao.filter(a => a.posicao_id == outroPos).length
-            const faltamOutro = outroQtd - escaladosOutro
-            if (faltamOutro > 0) {
-              const disponiveisOutro = (porPosicao[outroPos] || [])
-                .filter(a => !idsUsados.has(a.atleta_id))
-                .sort((a, b) => (a.preco_num || 0) - (b.preco_num || 0))
-              for (let i = 0; i < faltamOutro && i < disponiveisOutro.length; i++) {
-                reservadoOutras += disponiveisOutro[i]?.preco_num || 0
-              }
+          if (!pior) break
+          
+          const custoDiferenca = (melhor.preco_num || 0) - (pior.preco_num || 0)
+          
+          // Se o melhor tem score maior e cabe no orçamento
+          if ((melhor.score || 0) > (pior.score || 0) && custoDiferenca <= orcamentoRestante) {
+            // Trocar
+            const idx = novaEscalacao.findIndex(a => a.atleta_id === pior.atleta_id)
+            if (idx > -1) {
+              novaEscalacao[idx] = melhor
+              idsUsados.delete(pior.atleta_id)
+              idsUsados.add(melhor.atleta_id)
+              orcamentoRestante -= custoDiferenca
+              
+              // Atualizar lista de escalados da posição
+              const idxPos = escaladosPosicao.findIndex(a => a.atleta_id === pior.atleta_id)
+              if (idxPos > -1) escaladosPosicao[idxPos] = melhor
             }
           }
         }
       }
-      
-      // Se não conseguiu preencher, pegar os mais baratos
-      if (adicionados < qtd) {
-        const maisBaratos = disponiveis
-          .filter(a => !idsUsados.has(a.atleta_id))
-          .sort((a, b) => (a.preco_num || 0) - (b.preco_num || 0))
-        
-        for (const atleta of maisBaratos) {
-          if (adicionados >= qtd) break
-          if ((atleta.preco_num || 0) <= orcamentoRestante) {
-            novaEscalacao.push(atleta)
-            idsUsados.add(atleta.atleta_id)
-            orcamentoRestante -= atleta.preco_num || 0
-            adicionados++
-          }
-        }
+    }
+    
+    escalacao.value = novaEscalacao
+    
+    // Selecionar capitão (maior score)
+    if (novaEscalacao.length > 0) {
+      const melhor = novaEscalacao.reduce((a, b) => (a.score > b.score ? a : b))
+      capitao.value = melhor.atleta_id
+    }
+    
+    // Reservas (5 posições: GOL, LAT, ZAG, MEI, ATA - sem TEC)
+    const reservasTemp = []
+    for (const posId of [1, 2, 3, 4, 5]) {
+      const disponiveis = (porPosicao[posId] || [])
+        .filter(a => !idsUsados.has(a.atleta_id))
+        .sort((a, b) => (b.score || 0) - (a.score || 0))
+      if (disponiveis.length > 0) {
+        reservasTemp.push(disponiveis[0])
       }
     }
+    
+    reservas.value = reservasTemp
+    analisando.value = false
+  }, 1500)
+}
     
     escalacao.value = novaEscalacao
     
