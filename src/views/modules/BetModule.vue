@@ -49,7 +49,7 @@ const currentPlan = computed(() => {
   return plans[planId] || plans.free
 })
 
-// Buscar jogos da Football-Data.org - 100% GRÁTIS
+// Buscar jogos da Football-Data.org via Vercel Serverless (evita CORS)
 const carregarJogos = async () => {
   loading.value = true
   erro.value = null
@@ -58,13 +58,10 @@ const carregarJogos = async () => {
   const liga = LIGAS_CONFIG[ligaSelecionada.value]
   
   try {
-    // Buscar jogos agendados
+    // Buscar jogos via proxy serverless (evita CORS)
     const response = await fetch(
-      `https://api.football-data.org/v4/competitions/${liga.code}/matches?status=SCHEDULED`,
-      {
-        method: 'GET',
-        headers: { 'X-Auth-Token': API_KEY }
-      }
+      `/api/football?competition=${liga.code}&status=SCHEDULED`,
+      { method: 'GET' }
     )
     
     if (!response.ok) {
