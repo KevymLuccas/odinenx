@@ -1650,10 +1650,12 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 .modal-operacao h2, .modal-calc h2 { margin-bottom: 25px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
 .form-group label { display: block; font-size: 0.85rem; color: rgba(255, 255, 255, 0.6); margin-bottom: 8px; }
-.form-group input, .form-group select { width: 100%; padding: 12px 15px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; color: #fff; font-size: 1rem; }
+.form-group input, .form-group select { width: 100%; padding: 12px 15px; background: #1a1a1a; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; color: #fff; font-size: 1rem; }
+.form-group select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23fff' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 15px center; padding-right: 40px; }
+.form-group select option { background: #1a1a1a; color: #fff; padding: 10px; }
 .form-group input:focus, .form-group select:focus { outline: none; border-color: rgba(255, 255, 255, 0.3); }
 .form-group.full { grid-column: span 2; }
-.form-group textarea { width: 100%; padding: 12px 15px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; color: #fff; min-height: 80px; resize: vertical; }
+.form-group textarea { width: 100%; padding: 12px 15px; background: #1a1a1a; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; color: #fff; min-height: 80px; resize: vertical; }
 .btn-criar { width: 100%; padding: 15px; background: #22c55e; border: none; border-radius: 12px; color: #000; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 10px; }
 .btn-criar:hover { background: #16a34a; }
 
