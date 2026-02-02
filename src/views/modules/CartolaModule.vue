@@ -301,30 +301,6 @@ const escalarAutomatico = () => {
     analisando.value = false
   }, 1500)
 }
-    
-    escalacao.value = novaEscalacao
-    
-    // Selecionar capitão (maior score)
-    if (novaEscalacao.length > 0) {
-      const melhor = novaEscalacao.reduce((a, b) => (a.score > b.score ? a : b))
-      capitao.value = melhor.atleta_id
-    }
-    
-    // Reservas (5 posições: GOL, LAT, ZAG, MEI, ATA - sem TEC)
-    const reservasTemp = []
-    for (const posId of [1, 2, 3, 4, 5]) {
-      const disponiveis = (porPosicao[posId] || [])
-        .filter(a => !idsUsados.has(a.atleta_id))
-        .sort((a, b) => (b.score || 0) - (a.score || 0))
-      if (disponiveis.length > 0) {
-        reservasTemp.push(disponiveis[0])
-      }
-    }
-    
-    reservas.value = reservasTemp
-    analisando.value = false
-  }, 1500)
-}
 
 // Adicionar atleta à escalação
 const adicionarAtleta = (atleta) => {
