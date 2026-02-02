@@ -514,9 +514,6 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 </template>
 
 <style scoped>
-/* Importar estilos base */
-@import './Dashboard.vue';
-
 .tabs {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(0, 217, 255, 0.1);

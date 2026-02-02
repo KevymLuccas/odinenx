@@ -1,8 +1,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { supabase } from '../../lib/supabase'
-import { getSubscriptionStatus, plans, hasAccess } from '../../lib/stripe'
+import { supabase } from '../lib/supabase'
+import { getSubscriptionStatus, plans, hasAccess } from '../lib/stripe'
 import { 
   getPaperWallet, 
   getPaperPositions, 
@@ -11,7 +11,7 @@ import {
   executeBuy,
   executeSell,
   updatePositionPrices
-} from '../../lib/paperTrading'
+} from '../lib/paperTrading'
 
 const router = useRouter()
 const user = ref(null)
@@ -475,8 +475,52 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 </template>
 
 <style scoped>
-/* Importar estilos base */
-@import '../Dashboard.vue';
+/* Base styles */
+.dashboard-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a0a0a, #1a1a1a, #2d2d2d);
+  color: white;
+}
+
+.nav-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 2rem;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  margin: 0 1rem;
+  transition: all 0.3s ease;
+}
+
+.nav-item:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.nav-item.active {
+  color: white;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.nav-icon {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 0.5rem;
+}
 
 .stats-grid {
   display: grid;
