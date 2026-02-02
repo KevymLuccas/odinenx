@@ -256,7 +256,7 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
       <header class="page-header">
         <div class="header-left">
           <h1>Módulo BET</h1>
-          <p>Dados reais via Football-Data.org • 100% GRATIS</p>
+          <p>Análise inteligente de apostas esportivas</p>
         </div>
         <div class="header-right">
           <div class="liga-selector">
@@ -282,7 +282,7 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
       <!-- Loading -->
       <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
-        <p>Buscando jogos em Football-Data.org...</p>
+        <p>Carregando jogos...</p>
       </div>
 
       <!-- Erro -->
@@ -297,12 +297,12 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
       <div v-else class="bet-content">
         <div class="api-badge">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          <span>{{ jogos.length }} jogos encontrados • Dados via <strong>Football-Data.org</strong> (100% GRÁTIS)</span>
+          <span>{{ jogos.length }} jogos disponíveis • Análise <strong>ODINENX IA</strong></span>
         </div>
         
         <div class="disclaimer-box">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          <p><strong>Análise:</strong> Probabilidades calculadas pela IA ODINENX baseadas em estatísticas. Aposte com responsabilidade.</p>
+          <p>Probabilidades calculadas pela IA ODINENX. Aposte com responsabilidade.</p>
         </div>
 
         <div class="jogos-grid">
