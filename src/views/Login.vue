@@ -262,4 +262,28 @@ const handleLogin = async () => {
 .auth-footer a:hover {
   text-decoration: underline;
 }
+
+/* Responsivo */
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 25px 20px;
+    border-radius: 16px;
+  }
+  
+  .auth-logo {
+    max-width: 120px;
+  }
+  
+  .auth-header h1 {
+    font-size: 1.6rem;
+  }
+  
+  .form-group input {
+    padding: 14px;
+  }
+  
+  .btn-submit {
+    padding: 14px;
+  }
+}
 </style>

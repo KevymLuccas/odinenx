@@ -72,7 +72,7 @@ const logout = async () => {
 <style scoped>
 .navbar {
   position: fixed;
-  top: 85px;
+  top: 90px;
   left: 50%;
   transform: translateX(-50%) translateY(-20px);
   background: rgba(0, 0, 0, 0.8);
@@ -195,11 +195,11 @@ const logout = async () => {
 @media (max-width: 768px) {
   .navbar {
     top: 85px;
-    left: 20px;
-    right: 20px;
+    left: 16px;
+    right: 16px;
     transform: translateX(0) translateY(-20px);
-    border-radius: 16px;
-    padding: 15px 20px;
+    border-radius: 14px;
+    padding: 12px 16px;
   }
 
   .navbar.visible {
@@ -210,6 +210,10 @@ const logout = async () => {
     justify-content: space-between;
     width: 100%;
   }
+  
+  .nav-icon {
+    height: 28px;
+  }
 
   .desktop {
     display: none;
@@ -217,6 +221,34 @@ const logout = async () => {
 
   .menu-toggle {
     display: flex;
+  }
+  
+  .mobile-menu {
+    padding-top: 16px;
+    gap: 12px;
+  }
+  
+  .mobile-menu .nav-link {
+    padding: 10px;
+    font-size: 1rem;
+  }
+  
+  .mobile-menu .btn-register {
+    margin-top: 8px;
+    padding: 12px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar {
+    top: 75px;
+    left: 12px;
+    right: 12px;
+    padding: 10px 14px;
+  }
+  
+  .nav-icon {
+    height: 24px;
   }
 }
 </style>

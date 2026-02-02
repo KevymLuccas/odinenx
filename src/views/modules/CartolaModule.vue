@@ -23,6 +23,26 @@ const analisando = ref(false)
 const mobileMenuOpen = ref(false)
 const modalJogador = ref(null)
 const modalPosicao = ref(null)
+const jogadoresFixados = ref(new Set()) // Jogadores já escalados no Cartola real
+
+// Funções para o modal de jogador
+const abrirModalJogador = (atleta, origem = 'campo') => {
+  modalJogador.value = { ...atleta, origem }
+}
+
+const fixarJogador = (atletaId) => {
+  if (jogadoresFixados.value.has(atletaId)) {
+    jogadoresFixados.value.delete(atletaId)
+  } else {
+    jogadoresFixados.value.add(atletaId)
+  }
+  // Força reatividade
+  jogadoresFixados.value = new Set(jogadoresFixados.value)
+}
+
+const isFixado = (atletaId) => {
+  return jogadoresFixados.value.has(atletaId)
+}
 
 // Posições
 const POSICOES = {
@@ -83,7 +103,7 @@ const atletasFiltrados = computed(() => {
     const busca = filtroBusca.value.toLowerCase()
     lista = lista.filter(a => 
       a.apelido?.toLowerCase().includes(busca) ||
-      clubes.value[a.clube_id]?.nome?.toLowerCase().includes(busca)
+      clubes.value[a.clube_id]?.nome_fantasia?.toLowerCase().includes(busca)
     )
   }
   
@@ -199,9 +219,20 @@ const calcularScore = (atleta) => {
 // Escalar automaticamente com IA
 const escalarAutomatico = () => {
   analisando.value = true
-  escalacao.value = []
+  
+  // PRESERVAR jogadores fixados
+  const fixados = escalacao.value.filter(a => jogadoresFixados.value.has(a.atleta_id))
+  const idsFixados = new Set(fixados.map(a => a.atleta_id))
+  
+  // Calcular quantos slots ainda precisa preencher por posição
+  const slotsPreenchidosPorFixados = {}
+  const gastoFixados = fixados.reduce((sum, a) => sum + (a.preco_num || 0), 0)
+  
+  for (const pos in POSICOES) {
+    slotsPreenchidosPorFixados[pos] = fixados.filter(a => a.posicao_id == pos).length
+  }
+  
   reservas.value = []
-  capitao.value = null
   
   setTimeout(() => {
     // Aceitar atletas: Provável (7), Dúvida (2), ou sem status definido
@@ -209,6 +240,7 @@ const escalarAutomatico = () => {
     const atletasValidos = atletas.value.filter(a => {
       const status = a.status_id
       if (status === 3 || status === 5 || status === 6) return false
+      if (idsFixados.has(a.atleta_id)) return false // Já está fixado
       return true
     })
     
@@ -220,18 +252,23 @@ const escalarAutomatico = () => {
         .sort((a, b) => (b.score || 0) - (a.score || 0))
     }
     
-    // PASSO 1: Primeiro garantir o time mínimo com os mais baratos
-    const novaEscalacao = []
-    const idsUsados = new Set()
-    let gastoMinimo = 0
+    // PASSO 1: Primeiro garantir o time mínimo com os mais baratos (respeitando fixados)
+    const novaEscalacao = [...fixados] // Começa com os fixados
+    const idsUsados = new Set(idsFixados)
+    let gastoMinimo = gastoFixados
     
     // Pegar o mais barato de cada posição primeiro para garantir time completo
     for (const [posId, qtd] of Object.entries(ESQUEMA)) {
+      const jaPreenchidos = slotsPreenchidosPorFixados[posId] || 0
+      const faltam = qtd - jaPreenchidos
+      
+      if (faltam <= 0) continue // Posição já completa com fixados
+      
       const disponiveis = (porPosicao[posId] || [])
         .filter(a => !idsUsados.has(a.atleta_id))
         .sort((a, b) => (a.preco_num || 0) - (b.preco_num || 0)) // Mais baratos
       
-      for (let i = 0; i < qtd && i < disponiveis.length; i++) {
+      for (let i = 0; i < faltam && i < disponiveis.length; i++) {
         const atleta = disponiveis[i]
         novaEscalacao.push(atleta)
         idsUsados.add(atleta.atleta_id)
@@ -239,19 +276,20 @@ const escalarAutomatico = () => {
       }
     }
     
-    // PASSO 2: Se sobrou cartoletas, fazer upgrades (trocar por melhores)
+    // PASSO 2: Se sobrou cartoletas, fazer upgrades (NÃO mexer nos fixados!)
     let orcamentoRestante = cartoletas.value - gastoMinimo
     
     if (orcamentoRestante > 0) {
-      // Para cada posição, tentar trocar por jogadores melhores
+      // Para cada posição, tentar trocar por jogadores melhores (exceto fixados)
       for (const [posId, qtd] of Object.entries(ESQUEMA)) {
-        const escaladosPosicao = novaEscalacao.filter(a => a.posicao_id == posId)
+        const escaladosPosicao = novaEscalacao
+          .filter(a => a.posicao_id == posId && !jogadoresFixados.value.has(a.atleta_id)) // NÃO MEXER EM FIXADOS
         const melhoresDisponiveis = (porPosicao[posId] || [])
           .filter(a => !idsUsados.has(a.atleta_id))
           .sort((a, b) => (b.score || 0) - (a.score || 0)) // Melhores primeiro
         
         for (const melhor of melhoresDisponiveis) {
-          // Encontrar o pior escalado dessa posição
+          // Encontrar o pior escalado dessa posição (que NÃO seja fixado)
           const pior = escaladosPosicao
             .sort((a, b) => (a.score || 0) - (b.score || 0))[0]
           
@@ -416,6 +454,13 @@ const trocarPorReserva = (titular, reserva) => {
 const encontrarReserva = (posicaoId) => {
   return reservas.value.find(r => r.posicao_id == posicaoId)
 }
+
+// Computed reservas por posição (cacheado para evitar re-render loops)
+const reservaGol = computed(() => reservas.value.find(r => r.posicao_id == 1))
+const reservaLat = computed(() => reservas.value.find(r => r.posicao_id == 2))
+const reservaZag = computed(() => reservas.value.find(r => r.posicao_id == 3))
+const reservaMei = computed(() => reservas.value.find(r => r.posicao_id == 4))
+const reservaAta = computed(() => reservas.value.find(r => r.posicao_id == 5))
 
 // Gastos das reservas
 const gastoReservas = computed(() => {
@@ -677,9 +722,11 @@ const navigateTo = (path) => {
                 <div class="campo-titulo">Técnico</div>
                 <div class="slots-row">
                   <template v-for="i in ESQUEMA[6]" :key="'tec-'+i">
-                    <div v-if="escalacaoPorPosicao[6]?.[i-1]" class="jogador-slot filled" @click="removerAtleta(escalacaoPorPosicao[6][i-1].atleta_id)">
+                    <div v-if="escalacaoPorPosicao[6]?.[i-1]" class="jogador-slot filled" :class="{ fixado: isFixado(escalacaoPorPosicao[6][i-1].atleta_id) }" @click="abrirModalJogador(escalacaoPorPosicao[6][i-1], 'campo')">
+                      <div v-if="isFixado(escalacaoPorPosicao[6][i-1].atleta_id)" class="fixado-badge">📌</div>
                       <img :src="getFoto(escalacaoPorPosicao[6][i-1])" @error="$event.target.src = '/icone.webp'" class="jogador-foto">
                       <span class="jogador-nome">{{ escalacaoPorPosicao[6][i-1].apelido }}</span>
+                      <span class="jogador-time">{{ clubes[escalacaoPorPosicao[6][i-1].clube_id]?.nome_fantasia || 'Time' }}</span>
                       <span class="jogador-score">{{ escalacaoPorPosicao[6][i-1].score }}</span>
                       <button v-if="capitao !== escalacaoPorPosicao[6][i-1].atleta_id" @click.stop="definirCapitao(escalacaoPorPosicao[6][i-1].atleta_id)" class="btn-capitao">C</button>
                       <span v-else class="capitao-badge">C</span>
@@ -697,9 +744,11 @@ const navigateTo = (path) => {
                 <div class="campo-titulo">Atacantes</div>
                 <div class="slots-row">
                   <template v-for="i in ESQUEMA[5]" :key="'ata-'+i">
-                    <div v-if="escalacaoPorPosicao[5]?.[i-1]" class="jogador-slot filled" @click="removerAtleta(escalacaoPorPosicao[5][i-1].atleta_id)">
+                    <div v-if="escalacaoPorPosicao[5]?.[i-1]" class="jogador-slot filled" :class="{ fixado: isFixado(escalacaoPorPosicao[5][i-1].atleta_id) }" @click="abrirModalJogador(escalacaoPorPosicao[5][i-1], 'campo')">
+                      <div v-if="isFixado(escalacaoPorPosicao[5][i-1].atleta_id)" class="fixado-badge">📌</div>
                       <img :src="getFoto(escalacaoPorPosicao[5][i-1])" @error="$event.target.src = '/icone.webp'" class="jogador-foto">
                       <span class="jogador-nome">{{ escalacaoPorPosicao[5][i-1].apelido }}</span>
+                      <span class="jogador-time">{{ clubes[escalacaoPorPosicao[5][i-1].clube_id]?.nome_fantasia || 'Time' }}</span>
                       <span class="jogador-score">{{ escalacaoPorPosicao[5][i-1].score }}</span>
                       <button v-if="capitao !== escalacaoPorPosicao[5][i-1].atleta_id" @click.stop="definirCapitao(escalacaoPorPosicao[5][i-1].atleta_id)" class="btn-capitao">C</button>
                       <span v-else class="capitao-badge">C</span>
@@ -717,9 +766,11 @@ const navigateTo = (path) => {
                 <div class="campo-titulo">Meias</div>
                 <div class="slots-row">
                   <template v-for="i in ESQUEMA[4]" :key="'mei-'+i">
-                    <div v-if="escalacaoPorPosicao[4]?.[i-1]" class="jogador-slot filled" @click="removerAtleta(escalacaoPorPosicao[4][i-1].atleta_id)">
+                    <div v-if="escalacaoPorPosicao[4]?.[i-1]" class="jogador-slot filled" :class="{ fixado: isFixado(escalacaoPorPosicao[4][i-1].atleta_id) }" @click="abrirModalJogador(escalacaoPorPosicao[4][i-1], 'campo')">
+                      <div v-if="isFixado(escalacaoPorPosicao[4][i-1].atleta_id)" class="fixado-badge">📌</div>
                       <img :src="getFoto(escalacaoPorPosicao[4][i-1])" @error="$event.target.src = '/icone.webp'" class="jogador-foto">
                       <span class="jogador-nome">{{ escalacaoPorPosicao[4][i-1].apelido }}</span>
+                      <span class="jogador-time">{{ clubes[escalacaoPorPosicao[4][i-1].clube_id]?.nome_fantasia || 'Time' }}</span>
                       <span class="jogador-score">{{ escalacaoPorPosicao[4][i-1].score }}</span>
                       <button v-if="capitao !== escalacaoPorPosicao[4][i-1].atleta_id" @click.stop="definirCapitao(escalacaoPorPosicao[4][i-1].atleta_id)" class="btn-capitao">C</button>
                       <span v-else class="capitao-badge">C</span>
@@ -737,9 +788,11 @@ const navigateTo = (path) => {
                 <div class="campo-titulo">Defesa</div>
                 <div class="slots-row">
                   <!-- Lateral Esquerdo -->
-                  <div v-if="escalacaoPorPosicao[2]?.[0]" class="jogador-slot filled" @click="removerAtleta(escalacaoPorPosicao[2][0].atleta_id)">
+                  <div v-if="escalacaoPorPosicao[2]?.[0]" class="jogador-slot filled" :class="{ fixado: isFixado(escalacaoPorPosicao[2][0].atleta_id) }" @click="abrirModalJogador(escalacaoPorPosicao[2][0], 'campo')">
+                    <div v-if="isFixado(escalacaoPorPosicao[2][0].atleta_id)" class="fixado-badge">📌</div>
                     <img :src="getFoto(escalacaoPorPosicao[2][0])" @error="$event.target.src = '/icone.webp'" class="jogador-foto">
                     <span class="jogador-nome">{{ escalacaoPorPosicao[2][0].apelido }}</span>
+                    <span class="jogador-time">{{ clubes[escalacaoPorPosicao[2][0].clube_id]?.nome_fantasia || 'Time' }}</span>
                     <span class="jogador-score">{{ escalacaoPorPosicao[2][0].score }}</span>
                     <button v-if="capitao !== escalacaoPorPosicao[2][0].atleta_id" @click.stop="definirCapitao(escalacaoPorPosicao[2][0].atleta_id)" class="btn-capitao">C</button>
                     <span v-else class="capitao-badge">C</span>
@@ -751,9 +804,11 @@ const navigateTo = (path) => {
 
                   <!-- Zagueiros -->
                   <template v-for="i in ESQUEMA[3]" :key="'zag-'+i">
-                    <div v-if="escalacaoPorPosicao[3]?.[i-1]" class="jogador-slot filled" @click="removerAtleta(escalacaoPorPosicao[3][i-1].atleta_id)">
+                    <div v-if="escalacaoPorPosicao[3]?.[i-1]" class="jogador-slot filled" :class="{ fixado: isFixado(escalacaoPorPosicao[3][i-1].atleta_id) }" @click="abrirModalJogador(escalacaoPorPosicao[3][i-1], 'campo')">
+                      <div v-if="isFixado(escalacaoPorPosicao[3][i-1].atleta_id)" class="fixado-badge">📌</div>
                       <img :src="getFoto(escalacaoPorPosicao[3][i-1])" @error="$event.target.src = '/icone.webp'" class="jogador-foto">
                       <span class="jogador-nome">{{ escalacaoPorPosicao[3][i-1].apelido }}</span>
+                      <span class="jogador-time">{{ clubes[escalacaoPorPosicao[3][i-1].clube_id]?.nome_fantasia || 'Time' }}</span>
                       <span class="jogador-score">{{ escalacaoPorPosicao[3][i-1].score }}</span>
                       <button v-if="capitao !== escalacaoPorPosicao[3][i-1].atleta_id" @click.stop="definirCapitao(escalacaoPorPosicao[3][i-1].atleta_id)" class="btn-capitao">C</button>
                       <span v-else class="capitao-badge">C</span>
@@ -765,9 +820,11 @@ const navigateTo = (path) => {
                   </template>
 
                   <!-- Lateral Direito -->
-                  <div v-if="escalacaoPorPosicao[2]?.[1]" class="jogador-slot filled" @click="removerAtleta(escalacaoPorPosicao[2][1].atleta_id)">
+                  <div v-if="escalacaoPorPosicao[2]?.[1]" class="jogador-slot filled" :class="{ fixado: isFixado(escalacaoPorPosicao[2][1].atleta_id) }" @click="abrirModalJogador(escalacaoPorPosicao[2][1], 'campo')">
+                    <div v-if="isFixado(escalacaoPorPosicao[2][1].atleta_id)" class="fixado-badge">📌</div>
                     <img :src="getFoto(escalacaoPorPosicao[2][1])" @error="$event.target.src = '/icone.webp'" class="jogador-foto">
                     <span class="jogador-nome">{{ escalacaoPorPosicao[2][1].apelido }}</span>
+                    <span class="jogador-time">{{ clubes[escalacaoPorPosicao[2][1].clube_id]?.nome_fantasia || 'Time' }}</span>
                     <span class="jogador-score">{{ escalacaoPorPosicao[2][1].score }}</span>
                     <button v-if="capitao !== escalacaoPorPosicao[2][1].atleta_id" @click.stop="definirCapitao(escalacaoPorPosicao[2][1].atleta_id)" class="btn-capitao">C</button>
                     <span v-else class="capitao-badge">C</span>
@@ -784,9 +841,11 @@ const navigateTo = (path) => {
                 <div class="campo-titulo">Goleiro</div>
                 <div class="slots-row">
                   <template v-for="i in ESQUEMA[1]" :key="'gol-'+i">
-                    <div v-if="escalacaoPorPosicao[1]?.[i-1]" class="jogador-slot filled gol" @click="removerAtleta(escalacaoPorPosicao[1][i-1].atleta_id)">
+                    <div v-if="escalacaoPorPosicao[1]?.[i-1]" class="jogador-slot filled gol" :class="{ fixado: isFixado(escalacaoPorPosicao[1][i-1].atleta_id) }" @click="abrirModalJogador(escalacaoPorPosicao[1][i-1], 'campo')">
+                      <div v-if="isFixado(escalacaoPorPosicao[1][i-1].atleta_id)" class="fixado-badge">📌</div>
                       <img :src="getFoto(escalacaoPorPosicao[1][i-1])" @error="$event.target.src = '/icone.webp'" class="jogador-foto">
                       <span class="jogador-nome">{{ escalacaoPorPosicao[1][i-1].apelido }}</span>
+                      <span class="jogador-time">{{ clubes[escalacaoPorPosicao[1][i-1].clube_id]?.nome_fantasia || 'Time' }}</span>
                       <span class="jogador-score">{{ escalacaoPorPosicao[1][i-1].score }}</span>
                       <button v-if="capitao !== escalacaoPorPosicao[1][i-1].atleta_id" @click.stop="definirCapitao(escalacaoPorPosicao[1][i-1].atleta_id)" class="btn-capitao">C</button>
                       <span v-else class="capitao-badge">C</span>
@@ -815,14 +874,14 @@ const navigateTo = (path) => {
             
             <div class="reservas-grid-luxo">
               <!-- GOL Reserva -->
-              <div class="reserva-card-luxo" :class="{ vazio: !encontrarReserva(1) }">
+              <div class="reserva-card-luxo" :class="{ vazio: !reservaGol }" @click="reservaGol && abrirModalJogador(reservaGol, 'reserva')">
                 <div class="reserva-pos" style="background: #f59e0b;">GOL</div>
-                <template v-if="encontrarReserva(1)">
-                  <img :src="getFoto(encontrarReserva(1))" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
-                  <span class="reserva-nome-luxo">{{ encontrarReserva(1).apelido }}</span>
-                  <span class="reserva-preco">C$ {{ encontrarReserva(1).preco_num?.toFixed(1) }}</span>
-                  <span class="reserva-media">{{ encontrarReserva(1).media_num?.toFixed(1) }} pts</span>
-                  <button class="btn-trocar" @click="promoverReserva(encontrarReserva(1))">↑ Escalar</button>
+                <template v-if="reservaGol">
+                  <img :src="getFoto(reservaGol)" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
+                  <span class="reserva-nome-luxo">{{ reservaGol.apelido }}</span>
+                  <span class="reserva-preco">C$ {{ reservaGol.preco_num?.toFixed(1) }}</span>
+                  <span class="reserva-media">{{ reservaGol.media_num?.toFixed(1) }} pts</span>
+                  <button class="btn-trocar" @click.stop="promoverReserva(reservaGol)">↑ Escalar</button>
                 </template>
                 <template v-else>
                   <span class="reserva-vazio">🧤</span>
@@ -831,14 +890,14 @@ const navigateTo = (path) => {
               </div>
 
               <!-- LAT Reserva -->
-              <div class="reserva-card-luxo" :class="{ vazio: !encontrarReserva(2) }">
+              <div class="reserva-card-luxo" :class="{ vazio: !reservaLat }" @click="reservaLat && abrirModalJogador(reservaLat, 'reserva')">
                 <div class="reserva-pos" style="background: #3b82f6;">LAT</div>
-                <template v-if="encontrarReserva(2)">
-                  <img :src="getFoto(encontrarReserva(2))" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
-                  <span class="reserva-nome-luxo">{{ encontrarReserva(2).apelido }}</span>
-                  <span class="reserva-preco">C$ {{ encontrarReserva(2).preco_num?.toFixed(1) }}</span>
-                  <span class="reserva-media">{{ encontrarReserva(2).media_num?.toFixed(1) }} pts</span>
-                  <button class="btn-trocar" @click="promoverReserva(encontrarReserva(2))">↑ Escalar</button>
+                <template v-if="reservaLat">
+                  <img :src="getFoto(reservaLat)" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
+                  <span class="reserva-nome-luxo">{{ reservaLat.apelido }}</span>
+                  <span class="reserva-preco">C$ {{ reservaLat.preco_num?.toFixed(1) }}</span>
+                  <span class="reserva-media">{{ reservaLat.media_num?.toFixed(1) }} pts</span>
+                  <button class="btn-trocar" @click.stop="promoverReserva(reservaLat)">↑ Escalar</button>
                 </template>
                 <template v-else>
                   <span class="reserva-vazio">🏃</span>
@@ -847,14 +906,14 @@ const navigateTo = (path) => {
               </div>
 
               <!-- ZAG Reserva -->
-              <div class="reserva-card-luxo" :class="{ vazio: !encontrarReserva(3) }">
+              <div class="reserva-card-luxo" :class="{ vazio: !reservaZag }" @click="reservaZag && abrirModalJogador(reservaZag, 'reserva')">
                 <div class="reserva-pos" style="background: #10b981;">ZAG</div>
-                <template v-if="encontrarReserva(3)">
-                  <img :src="getFoto(encontrarReserva(3))" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
-                  <span class="reserva-nome-luxo">{{ encontrarReserva(3).apelido }}</span>
-                  <span class="reserva-preco">C$ {{ encontrarReserva(3).preco_num?.toFixed(1) }}</span>
-                  <span class="reserva-media">{{ encontrarReserva(3).media_num?.toFixed(1) }} pts</span>
-                  <button class="btn-trocar" @click="promoverReserva(encontrarReserva(3))">↑ Escalar</button>
+                <template v-if="reservaZag">
+                  <img :src="getFoto(reservaZag)" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
+                  <span class="reserva-nome-luxo">{{ reservaZag.apelido }}</span>
+                  <span class="reserva-preco">C$ {{ reservaZag.preco_num?.toFixed(1) }}</span>
+                  <span class="reserva-media">{{ reservaZag.media_num?.toFixed(1) }} pts</span>
+                  <button class="btn-trocar" @click.stop="promoverReserva(reservaZag)">↑ Escalar</button>
                 </template>
                 <template v-else>
                   <span class="reserva-vazio">🛡️</span>
@@ -863,14 +922,14 @@ const navigateTo = (path) => {
               </div>
 
               <!-- MEI Reserva -->
-              <div class="reserva-card-luxo" :class="{ vazio: !encontrarReserva(4) }">
+              <div class="reserva-card-luxo" :class="{ vazio: !reservaMei }" @click="reservaMei && abrirModalJogador(reservaMei, 'reserva')">
                 <div class="reserva-pos" style="background: #8b5cf6;">MEI</div>
-                <template v-if="encontrarReserva(4)">
-                  <img :src="getFoto(encontrarReserva(4))" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
-                  <span class="reserva-nome-luxo">{{ encontrarReserva(4).apelido }}</span>
-                  <span class="reserva-preco">C$ {{ encontrarReserva(4).preco_num?.toFixed(1) }}</span>
-                  <span class="reserva-media">{{ encontrarReserva(4).media_num?.toFixed(1) }} pts</span>
-                  <button class="btn-trocar" @click="promoverReserva(encontrarReserva(4))">↑ Escalar</button>
+                <template v-if="reservaMei">
+                  <img :src="getFoto(reservaMei)" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
+                  <span class="reserva-nome-luxo">{{ reservaMei.apelido }}</span>
+                  <span class="reserva-preco">C$ {{ reservaMei.preco_num?.toFixed(1) }}</span>
+                  <span class="reserva-media">{{ reservaMei.media_num?.toFixed(1) }} pts</span>
+                  <button class="btn-trocar" @click.stop="promoverReserva(reservaMei)">↑ Escalar</button>
                 </template>
                 <template v-else>
                   <span class="reserva-vazio">⚙️</span>
@@ -879,14 +938,14 @@ const navigateTo = (path) => {
               </div>
 
               <!-- ATA Reserva -->
-              <div class="reserva-card-luxo" :class="{ vazio: !encontrarReserva(5) }">
+              <div class="reserva-card-luxo" :class="{ vazio: !reservaAta }" @click="reservaAta && abrirModalJogador(reservaAta, 'reserva')">
                 <div class="reserva-pos" style="background: #ef4444;">ATA</div>
-                <template v-if="encontrarReserva(5)">
-                  <img :src="getFoto(encontrarReserva(5))" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
-                  <span class="reserva-nome-luxo">{{ encontrarReserva(5).apelido }}</span>
-                  <span class="reserva-preco">C$ {{ encontrarReserva(5).preco_num?.toFixed(1) }}</span>
-                  <span class="reserva-media">{{ encontrarReserva(5).media_num?.toFixed(1) }} pts</span>
-                  <button class="btn-trocar" @click="promoverReserva(encontrarReserva(5))">↑ Escalar</button>
+                <template v-if="reservaAta">
+                  <img :src="getFoto(reservaAta)" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
+                  <span class="reserva-nome-luxo">{{ reservaAta.apelido }}</span>
+                  <span class="reserva-preco">C$ {{ reservaAta.preco_num?.toFixed(1) }}</span>
+                  <span class="reserva-media">{{ reservaAta.media_num?.toFixed(1) }} pts</span>
+                  <button class="btn-trocar" @click.stop="promoverReserva(reservaAta)">↑ Escalar</button>
                 </template>
                 <template v-else>
                   <span class="reserva-vazio">⚽</span>
@@ -933,7 +992,7 @@ const navigateTo = (path) => {
               </div>
               <div class="atleta-info">
                 <h4>{{ atleta.apelido }}</h4>
-                <p>{{ clubes[atleta.clube_id]?.nome || 'Time' }}</p>
+                <p>{{ clubes[atleta.clube_id]?.nome_fantasia || 'Time' }}</p>
               </div>
               <div class="atleta-stats">
                 <div class="stat">
@@ -963,13 +1022,13 @@ const navigateTo = (path) => {
               <div class="confronto-times">
                 <div class="time casa">
                   <img :src="clubes[partida.clube_casa_id]?.escudos?.['60x60']" @error="$event.target.src = '/icone.webp'">
-                  <span class="nome">{{ clubes[partida.clube_casa_id]?.nome || 'Casa' }}</span>
+                  <span class="nome">{{ clubes[partida.clube_casa_id]?.nome_fantasia || 'Casa' }}</span>
                   <span class="potencial">{{ analisarConfronto(partida).potGolsCasa }} gols</span>
                 </div>
                 <div class="versus">VS</div>
                 <div class="time fora">
                   <img :src="clubes[partida.clube_visitante_id]?.escudos?.['60x60']" @error="$event.target.src = '/icone.webp'">
-                  <span class="nome">{{ clubes[partida.clube_visitante_id]?.nome || 'Fora' }}</span>
+                  <span class="nome">{{ clubes[partida.clube_visitante_id]?.nome_fantasia || 'Fora' }}</span>
                   <span class="potencial">{{ analisarConfronto(partida).potGolsFora }} gols</span>
                 </div>
               </div>
@@ -1000,7 +1059,7 @@ const navigateTo = (path) => {
                 <img :src="getFoto(atleta)" @error="$event.target.src = '/icone.webp'" class="modal-foto">
                 <div class="modal-info">
                   <span class="nome">{{ atleta.apelido }}</span>
-                  <span class="time">{{ clubes[atleta.clube_id]?.nome }}</span>
+                  <span class="time">{{ clubes[atleta.clube_id]?.nome_fantasia }}</span>
                 </div>
                 <div class="modal-stats">
                   <span class="score">{{ atleta.score }}</span>
@@ -1008,6 +1067,123 @@ const navigateTo = (path) => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal de Detalhes do Jogador -->
+      <div v-if="modalJogador" class="modal-overlay" @click="fecharModal">
+        <div class="modal-jogador-detalhes" @click.stop>
+          <button @click="fecharModal" class="modal-close-x">&times;</button>
+          
+          <!-- Header com foto e info básica -->
+          <div class="jogador-header">
+            <img :src="getFoto(modalJogador)" @error="$event.target.src = '/icone.webp'" class="jogador-foto-grande">
+            <div class="jogador-info-principal">
+              <h2>{{ modalJogador.apelido }}</h2>
+              <div class="jogador-clube">{{ clubes[modalJogador.clube_id]?.nome_fantasia || 'Time' }}</div>
+              <div class="jogador-posicao" :style="{ background: POSICOES[modalJogador.posicao_id]?.cor }">
+                {{ POSICOES[modalJogador.posicao_id]?.icon }} {{ POSICOES[modalJogador.posicao_id]?.nome }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Status do jogador -->
+          <div v-if="modalJogador.status_id && STATUS[modalJogador.status_id]" class="jogador-status" :style="{ borderColor: STATUS[modalJogador.status_id]?.cor }">
+            <span class="status-emoji">{{ STATUS[modalJogador.status_id]?.emoji }}</span>
+            <span class="status-texto">{{ STATUS[modalJogador.status_id]?.nome }}</span>
+          </div>
+
+          <!-- Estatísticas -->
+          <div class="jogador-stats-grid">
+            <div class="stat-item">
+              <span class="stat-label">Score IA</span>
+              <span class="stat-value verde">{{ (modalJogador.score || 0).toFixed(2) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Preço</span>
+              <span class="stat-value">C$ {{ (modalJogador.preco_num || 0).toFixed(1) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Média</span>
+              <span class="stat-value">{{ (modalJogador.media_num || 0).toFixed(2) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Variação</span>
+              <span class="stat-value" :class="{ verde: modalJogador.variacao_num > 0, vermelho: modalJogador.variacao_num < 0 }">
+                {{ modalJogador.variacao_num > 0 ? '+' : '' }}{{ (modalJogador.variacao_num || 0).toFixed(1) }}
+              </span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Jogos</span>
+              <span class="stat-value">{{ modalJogador.jogos_num || 0 }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Última</span>
+              <span class="stat-value">{{ (modalJogador.pontos_num || 0).toFixed(1) }}</span>
+            </div>
+          </div>
+
+          <!-- Mínimo/Máximo -->
+          <div class="jogador-minmax">
+            <div class="minmax-item">
+              <span class="minmax-label">📉 Mínimo</span>
+              <span class="minmax-value vermelho">{{ (modalJogador.minimo_num || 0).toFixed(1) }}</span>
+            </div>
+            <div class="minmax-item">
+              <span class="minmax-label">📈 Máximo</span>
+              <span class="minmax-value verde">{{ (modalJogador.maximo_num || 0).toFixed(1) }}</span>
+            </div>
+          </div>
+
+          <!-- Ações -->
+          <div class="jogador-acoes">
+            <!-- Se está no campo (escalado) -->
+            <template v-if="modalJogador.origem === 'campo'">
+              <button 
+                @click="fixarJogador(modalJogador.atleta_id)" 
+                class="btn-acao" 
+                :class="{ ativo: isFixado(modalJogador.atleta_id) }"
+              >
+                📌 {{ isFixado(modalJogador.atleta_id) ? 'Desfixar' : 'Fixar Jogador' }}
+              </button>
+              <p class="dica-fixar" v-if="!isFixado(modalJogador.atleta_id)">
+                💡 Fixe se você já escalou no Cartola. A IA não vai mexer nele!
+              </p>
+              <p class="dica-fixar fixado" v-else>
+                ✅ Jogador fixado! Não será alterado ao gerar nova escalação.
+              </p>
+              <button @click="removerAtleta(modalJogador.atleta_id); fecharModal()" class="btn-acao vermelho">
+                🗑️ Remover da Escalação
+              </button>
+            </template>
+
+            <!-- Se está nas reservas -->
+            <template v-else-if="modalJogador.origem === 'reserva'">
+              <button @click="promoverReserva(modalJogador); fecharModal()" class="btn-acao verde">
+                ↑ Escalar como Titular
+              </button>
+            </template>
+
+            <!-- Se está no mercado -->
+            <template v-else>
+              <button @click="adicionarAtleta(modalJogador); fecharModal()" class="btn-acao verde">
+                ➕ Adicionar à Escalação
+              </button>
+            </template>
+          </div>
+
+          <!-- Sugestão de substituição (só para quem está escalado) -->
+          <div v-if="modalJogador.origem === 'campo' && encontrarReserva(modalJogador.posicao_id)" class="sugestao-troca">
+            <h4>💡 Sugestão de Substituição</h4>
+            <div class="troca-info">
+              <span>{{ encontrarReserva(modalJogador.posicao_id)?.apelido }}</span>
+              <span class="troca-score">Score: {{ encontrarReserva(modalJogador.posicao_id)?.score }}</span>
+              <span class="troca-preco">C$ {{ (encontrarReserva(modalJogador.posicao_id)?.preco_num || 0).toFixed(1) }}</span>
+            </div>
+            <button @click="trocarPorReserva(modalJogador, encontrarReserva(modalJogador.posicao_id)); fecharModal()" class="btn-trocar">
+              🔄 Trocar
+            </button>
           </div>
         </div>
       </div>
@@ -1594,6 +1770,14 @@ const navigateTo = (path) => {
   max-width: 80px;
 }
 
+.jogador-time {
+  font-size: 0.55rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  font-weight: 500;
+  margin-top: -2px;
+}
+
 .jogador-score {
   font-size: 0.7rem;
   color: #22c55e;
@@ -2107,6 +2291,286 @@ const navigateTo = (path) => {
   color: #22c55e;
 }
 
+/* ===== MODAL DETALHES JOGADOR ===== */
+.modal-jogador-detalhes {
+  background: linear-gradient(145deg, #0a0a0a 0%, #111 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 25px;
+  position: relative;
+}
+
+.modal-close-x {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.modal-close-x:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.jogador-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.jogador-foto-grande {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+.jogador-info-principal h2 {
+  font-size: 1.4rem;
+  margin: 0 0 5px 0;
+}
+
+.jogador-clube {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.jogador-posicao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.jogador-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border-left: 4px solid;
+  margin-bottom: 20px;
+}
+
+.status-emoji {
+  font-size: 1.3rem;
+}
+
+.status-texto {
+  font-weight: 500;
+}
+
+.jogador-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat-item {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 14px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.stat-value.verde { color: #22c55e; }
+.stat-value.vermelho { color: #ef4444; }
+
+.jogador-minmax {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.minmax-item {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 14px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.minmax-label {
+  display: block;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 6px;
+}
+
+.minmax-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.minmax-value.verde { color: #22c55e; }
+.minmax-value.vermelho { color: #ef4444; }
+
+.jogador-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.btn-acao {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-acao:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.btn-acao.ativo {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-color: #3b82f6;
+}
+
+.btn-acao.verde {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border-color: #22c55e;
+}
+
+.btn-acao.vermelho {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.btn-acao.vermelho:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+.dica-fixar {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  margin: 0;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+}
+
+.dica-fixar.fixado {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.sugestao-troca {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.sugestao-troca h4 {
+  margin: 0 0 12px 0;
+  font-size: 0.9rem;
+}
+
+.troca-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+}
+
+.troca-score {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.troca-preco {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.btn-trocar {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-trocar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+}
+
+/* ===== INDICADOR DE FIXADO ===== */
+.jogador-slot.fixado {
+  border: 2px solid #3b82f6 !important;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+}
+
+.fixado-badge {
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  font-size: 0.8rem;
+  background: #3b82f6;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
   .sidebar {
@@ -2219,6 +2683,110 @@ const navigateTo = (path) => {
   
   .confrontos-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .reservas-grid-luxo {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  
+  .reserva-card-luxo {
+    padding: 15px 10px;
+  }
+  
+  .reserva-nome-luxo {
+    font-size: 0.75rem;
+  }
+  
+  .tabs {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .tab-btn {
+    padding: 10px 15px;
+    font-size: 0.85rem;
+    flex: 1;
+    min-width: 80px;
+    text-align: center;
+  }
+  
+  .modal-detalhes {
+    padding: 20px;
+    max-height: 85vh;
+  }
+  
+  .modal-header-jogador h2 {
+    font-size: 1.3rem;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .jogador-slot {
+    width: 60px;
+    height: 80px;
+  }
+  
+  .jogador-foto {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .jogador-nome {
+    font-size: 0.5rem;
+    max-width: 55px;
+  }
+  
+  .jogador-time {
+    font-size: 0.45rem;
+  }
+  
+  .jogador-preco {
+    font-size: 0.5rem;
+    padding: 2px 5px;
+  }
+  
+  .slots-row {
+    gap: 5px;
+  }
+  
+  .campo-container {
+    min-height: 500px;
+    padding: 10px;
+  }
+  
+  .reservas-grid-luxo {
+    grid-template-columns: 1fr;
+  }
+  
+  .orcamento-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  
+  .atletas-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .mercado-filtros {
+    flex-direction: column;
+  }
+  
+  .filtro-posicao, .filtro-busca {
+    width: 100%;
+  }
+  
+  .header-left h1 {
+    font-size: 1.2rem;
+  }
+  
+  .header-left p {
+    font-size: 0.8rem;
   }
 }
 </style>

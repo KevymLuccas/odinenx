@@ -457,6 +457,8 @@ const navigateTo = (path) => {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .nav-category {
