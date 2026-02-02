@@ -1673,34 +1673,250 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
   .mobile-menu-btn { display: flex; }
   .mobile-overlay { display: block; }
   .mobile-menu { display: block; }
-  .main-content { margin-left: 0; padding: 20px; padding-bottom: 100px; }
-  .page-header { flex-direction: column; align-items: flex-start; }
-  .header-actions { width: 100%; }
-  .abas-principais { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .main-content { margin-left: 0; padding: 20px; padding-bottom: 120px; }
+  .page-header { flex-direction: column; align-items: center; text-align: center; }
+  .header-left { text-align: center; width: 100%; }
+  .header-left h1 { font-size: 1.6rem; }
+  .api-status-row { justify-content: center; }
+  .header-actions { width: 100%; justify-content: center; flex-wrap: wrap; }
+  .header-actions button { flex: 1; min-width: 120px; justify-content: center; }
+  
+  /* Abas principais - scroll horizontal suave */
+  .abas-principais { 
+    overflow-x: auto; 
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 8px;
+    gap: 8px;
+  }
+  .abas-principais::-webkit-scrollbar { display: none; }
+  .abas-principais button { 
+    padding: 10px 16px; 
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+  .abas-principais button svg { width: 16px; height: 16px; }
+  
+  /* Categoria tabs */
+  .categoria-tabs { 
+    display: flex; 
+    flex-wrap: wrap; 
+    justify-content: center; 
+    gap: 8px; 
+  }
+  .categoria-tabs button { 
+    flex: 1; 
+    min-width: 100px; 
+    justify-content: center; 
+    padding: 10px 15px;
+    font-size: 0.85rem;
+  }
+  
+  /* Stats grid */
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
   .stat-card.principal { grid-column: span 2; }
-  .dashboard-row { grid-template-columns: 1fr; }
-  .ativos-grid { grid-template-columns: 1fr; }
-  .form-grid { grid-template-columns: 1fr; }
+  .stat-card { padding: 15px; }
+  .stat-valor { font-size: 1.3rem; }
+  
+  /* Dashboard */
+  .dashboard-row { grid-template-columns: 1fr; gap: 15px; }
+  .dashboard-content { padding: 0; }
+  .card-section { padding: 20px; }
+  .card-section h3 { font-size: 1rem; }
+  
+  /* Ativos grid */
+  .ativos-grid { grid-template-columns: 1fr; gap: 15px; }
+  .ativo-card { padding: 15px; }
+  .ativo-header { flex-wrap: wrap; gap: 10px; }
+  .ativo-indicadores { flex-wrap: wrap; gap: 8px; }
+  .indicador { flex: 1; min-width: 80px; }
+  .ativo-actions { flex-direction: column; }
+  .ativo-actions button { width: 100%; justify-content: center; }
+  
+  /* Operações */
+  .operacoes-filtros { 
+    display: flex; 
+    flex-wrap: wrap; 
+    justify-content: center; 
+    gap: 8px; 
+    margin-bottom: 15px;
+  }
+  .operacoes-filtros button { 
+    padding: 8px 14px; 
+    font-size: 0.8rem;
+    flex: 0 1 auto;
+  }
+  .operacao-card { padding: 15px; }
+  .op-header { flex-direction: column; gap: 10px; align-items: flex-start; }
+  .op-detalhes { flex-direction: column; gap: 8px; }
+  .op-detalhe.resultado { margin-left: 0; }
+  .op-actions { flex-wrap: wrap; justify-content: center; }
+  
+  /* Risco */
+  .risco-resumo { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .risco-card { padding: 15px; }
+  .config-grid { grid-template-columns: 1fr; gap: 15px; }
+  
+  /* Forms e Modais */
+  .form-grid { grid-template-columns: 1fr; gap: 12px; }
   .form-group.full { grid-column: span 1; }
-  .calc-form { grid-template-columns: 1fr; }
+  .calc-form { grid-template-columns: 1fr; gap: 12px; }
   .indicadores-grid { grid-template-columns: 1fr; }
-  .niveis-grid { grid-template-columns: 1fr; }
+  .niveis-grid { grid-template-columns: 1fr; gap: 10px; }
   .streaks-grid { grid-template-columns: 1fr; }
   .plataformas-grid { grid-template-columns: repeat(2, 1fr); }
+  
+  /* Modais responsivos */
+  .modal-overlay { padding: 15px; align-items: flex-end; }
+  .modal-analise, .modal-operacao, .modal-calc { 
+    max-height: 85vh; 
+    border-radius: 20px 20px 0 0;
+    padding: 20px;
+  }
+  
+  /* Resumo dia */
+  .resumo-dia { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .resumo-item { padding: 12px; }
+  
+  /* Diário */
+  .diario-linha { flex-direction: column; align-items: flex-start; gap: 8px; }
 }
 
 @media (max-width: 480px) {
+  .main-content { padding: 15px; padding-bottom: 130px; }
+  .page-header { margin-bottom: 15px; }
+  .header-left h1 { font-size: 1.4rem; }
+  .header-actions { flex-direction: column; }
+  .header-actions button { width: 100%; }
+  
+  .abas-principais button { padding: 10px 12px; font-size: 0.8rem; }
+  .abas-principais button span { display: none; } /* Esconde texto, mostra só ícone */
+  
   .categoria-tabs { flex-direction: column; }
-  .categoria-tabs button { width: 100%; justify-content: center; }
-  .stats-grid { grid-template-columns: 1fr; }
+  .categoria-tabs button { width: 100%; }
+  
+  .stats-grid { grid-template-columns: 1fr; gap: 10px; }
   .stat-card.principal { grid-column: span 1; }
+  .stat-card { padding: 12px; }
+  .stat-valor { font-size: 1.2rem; }
+  
   .resumo-dia { grid-template-columns: 1fr; }
-  .op-detalhes { flex-direction: column; gap: 10px; }
-  .op-detalhe.resultado { margin-left: 0; }
-  .risco-resumo { grid-template-columns: 1fr 1fr; }
-  .operacoes-filtros { gap: 5px; }
-  .operacoes-filtros button { padding: 6px 12px; font-size: 0.8rem; }
+  .risco-resumo { grid-template-columns: 1fr; }
+  
+  .operacoes-filtros { flex-direction: column; }
+  .operacoes-filtros button { width: 100%; justify-content: center; }
+  
+  .disclaimer-box { flex-direction: column; text-align: center; padding: 15px; }
+  .disclaimer-box svg { margin-bottom: 8px; }
+  
+  .preco { font-size: 1.3rem; }
+  .ativo-indicadores { flex-direction: column; }
+  .indicador { width: 100%; }
+  
+  .calc-item { flex-direction: column; gap: 5px; text-align: center; }
+  
+  /* API Status mobile */
+  .api-status-row { flex-direction: column; gap: 8px; }
+  .last-update { text-align: center; }
+}
+
+/* ===== SAFARI FIXES ===== */
+/* Fix para flexbox no Safari */
+.dashboard { 
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+}
+
+.sidebar-nav,
+.mobile-nav,
+.header-actions,
+.abas-principais,
+.categoria-tabs,
+.ativo-actions,
+.operacoes-filtros,
+.op-actions {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+}
+
+/* Fix gap para Safari antigo */
+@supports not (gap: 10px) {
+  .header-actions > * { margin-right: 10px; }
+  .header-actions > *:last-child { margin-right: 0; }
+  .abas-principais > * { margin-right: 5px; }
+  .abas-principais > *:last-child { margin-right: 0; }
+  .categoria-tabs > * { margin-right: 10px; }
+  .categoria-tabs > *:last-child { margin-right: 0; }
+}
+
+/* Fix para inputs no Safari */
+input, select, textarea, button {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border-radius: 10px;
+}
+
+/* Fix para scroll suave Safari */
+.abas-principais,
+.operacoes-filtros {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Fix para transform no Safari */
+.ativo-card:hover {
+  -webkit-transform: translateY(-5px);
+  transform: translateY(-5px);
+}
+
+.spinner {
+  -webkit-animation: spin 1s linear infinite;
+  animation: spin 1s linear infinite;
+}
+
+.pulse-dot {
+  -webkit-animation: pulse 2s infinite;
+  animation: pulse 2s infinite;
+}
+
+.loading-dot {
+  -webkit-animation: blink 1s infinite;
+  animation: blink 1s infinite;
+}
+
+.btn-refresh svg.spinning {
+  -webkit-animation: spin 1s linear infinite;
+  animation: spin 1s linear infinite;
+}
+
+/* Fix para safe area (notch do iPhone) */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .main-content {
+    padding-top: calc(30px + env(safe-area-inset-top));
+    padding-bottom: calc(120px + env(safe-area-inset-bottom));
+    padding-left: calc(20px + env(safe-area-inset-left));
+    padding-right: calc(20px + env(safe-area-inset-right));
+  }
+  
+  .mobile-menu {
+    padding-bottom: calc(25px + env(safe-area-inset-bottom));
+  }
+  
+  .mobile-menu-btn {
+    top: calc(20px + env(safe-area-inset-top));
+    right: calc(20px + env(safe-area-inset-right));
+  }
+}
+
+/* Fix backdrop-filter Safari */
+.sidebar,
+.mobile-menu {
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
 }
 
 /* Status API Real */

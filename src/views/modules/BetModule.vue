@@ -624,19 +624,131 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
   .mobile-menu-btn { display: flex; }
   .mobile-overlay { display: block; }
   .mobile-menu { display: block; }
-  .main-content { margin-left: 0; padding: 20px; padding-bottom: 100px; }
-  .jogos-grid { grid-template-columns: 1fr; }
-  .page-header { flex-direction: column; align-items: flex-start; }
-  .header-right { width: 100%; }
-  .liga-selector { flex: 1; }
-  .liga-selector select { width: 100%; }
+  .main-content { margin-left: 0; padding: 20px; padding-bottom: 120px; }
+  .jogos-grid { grid-template-columns: 1fr; gap: 15px; }
+  .page-header { flex-direction: column; align-items: center; text-align: center; gap: 15px; }
+  .header-left { text-align: center; width: 100%; }
+  .header-left h1 { font-size: 1.6rem; }
+  .header-right { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .liga-selector { width: 100%; max-width: 350px; }
+  .liga-selector select { width: 100%; text-align: center; }
+  .api-fonte { justify-content: center; }
+  
+  .jogo-card { padding: 18px; }
+  .jogo-times { gap: 10px; }
+  .time img { width: 45px; height: 45px; }
+  .time-nome { font-size: 0.85rem; }
+  
+  .modal-overlay { padding: 15px; align-items: flex-end; }
+  .modal-analise { 
+    max-height: 85vh; 
+    border-radius: 20px 20px 0 0;
+    padding: 20px;
+  }
+  .odds-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .odd-card { padding: 12px 8px; }
+  .odd-value { font-size: 1.1rem; }
+  .mercados-grid { grid-template-columns: 1fr; gap: 10px; }
 }
 
 @media (max-width: 480px) {
+  .main-content { padding: 15px; padding-bottom: 130px; }
+  .header-left h1 { font-size: 1.4rem; }
+  
   .jogo-times { flex-direction: column; gap: 15px; }
+  .time { flex-direction: row; width: 100%; justify-content: flex-start; gap: 12px; }
   .time img { width: 40px; height: 40px; }
-  .odds-grid { grid-template-columns: 1fr; }
-  .mercados-grid { grid-template-columns: 1fr; }
+  .time-nome { text-align: left; }
+  .versus { padding: 10px 0; }
+  
+  .probabilidades-bar { height: 35px; }
+  .prob { font-size: 0.7rem; min-width: 30px; }
+  
+  .odds-grid { grid-template-columns: 1fr; gap: 10px; }
+  .odd-card { display: flex; justify-content: space-between; align-items: center; padding: 15px; }
+  .odd-label { margin-bottom: 0; }
+  .odd-value { margin-bottom: 0; }
+  
   .modal-header-jogo { flex-direction: column; gap: 20px; }
+  .time-modal { flex-direction: row; gap: 12px; }
+  .time-modal img { width: 50px; height: 50px; }
+  .time-modal h3 { font-size: 1rem; text-align: left; }
+  
+  .recomendacao-texto { font-size: 1.2rem; }
+  
+  .jogo-footer { flex-direction: column; align-items: flex-start; }
+  .melhor-aposta { width: 100%; }
+}
+
+/* ===== SAFARI FIXES ===== */
+.dashboard { 
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+}
+
+.sidebar-nav,
+.mobile-nav,
+.header-right,
+.jogo-footer {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+}
+
+/* Fix gap para Safari antigo */
+@supports not (gap: 10px) {
+  .jogos-grid > * { margin-bottom: 15px; }
+  .jogo-times > * { margin-right: 10px; }
+}
+
+/* Fix para inputs no Safari */
+input, select, textarea, button {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border-radius: 10px;
+}
+
+/* Fix scroll Safari */
+.main-content {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix para transform no Safari */
+.jogo-card:hover {
+  -webkit-transform: translateY(-5px);
+  transform: translateY(-5px);
+}
+
+.spinner {
+  -webkit-animation: spin 1s linear infinite;
+  animation: spin 1s linear infinite;
+}
+
+/* Fix para safe area (notch do iPhone) */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .main-content {
+    padding-top: calc(30px + env(safe-area-inset-top));
+    padding-bottom: calc(120px + env(safe-area-inset-bottom));
+    padding-left: calc(20px + env(safe-area-inset-left));
+    padding-right: calc(20px + env(safe-area-inset-right));
+  }
+  
+  .mobile-menu {
+    padding-bottom: calc(25px + env(safe-area-inset-bottom));
+  }
+  
+  .mobile-menu-btn {
+    top: calc(20px + env(safe-area-inset-top));
+    right: calc(20px + env(safe-area-inset-right));
+  }
+}
+
+/* Fix backdrop-filter Safari */
+.sidebar,
+.mobile-menu {
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
 }
 </style>
