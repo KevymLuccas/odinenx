@@ -40,7 +40,9 @@ onMounted(async () => {
   subscription.value = await getSubscriptionStatus(session.user.id)
   
   // Verificar acesso aos Alertas (Pro/Elite)
-  if (!hasAccess(subscription.value, 'alerts')) {
+  const hasAlertsAccess = await hasAccess(subscription.value, 'alerts', session.user.id)
+  if (!hasAlertsAccess) {
+    alert('❌ Acesso Negado!\n\nSistema de Alertas está disponível apenas para os planos Pro e Elite.')
     router.push('/pricing')
     return
   }

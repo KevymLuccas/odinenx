@@ -101,9 +101,18 @@ export const priceIdToPlan = {
 }
 
 // Verificar se usuário tem acesso a um recurso específico
-export const hasAccess = (subscription, feature) => {
+export const hasAccess = async (subscription, feature, userId = null) => {
   const planId = subscription?.plan || 'free'
   const plan = plans[planId] || plans.free
+  
+  // Para usuários free, verificar se trial expirou
+  if (planId === 'free' && userId) {
+    const trialStatus = await getTrialStatus(userId)
+    if (trialStatus.expired) {
+      // Trial expirado: só pode acessar páginas básicas
+      return ['bet'].includes(feature)
+    }
+  }
   
   // Verificar limites específicos
   switch (feature) {
@@ -130,10 +139,134 @@ export const hasAccess = (subscription, feature) => {
   }
 }
 
+// Versão síncrona para compatibilidade (sem verificação de trial)
+export const hasAccessSync = (subscription, feature) => {
+  const planId = subscription?.plan || 'free'
+  const plan = plans[planId] || plans.free
+  
+  switch (feature) {
+    case 'bet':
+      return true
+    case 'trade':
+      return ['pro', 'elite'].includes(planId)
+    case 'cartola':
+      return plan.limits?.cartola === true
+    case 'alerts':
+      return plan.limits?.alerts === true
+    case 'paperTrading':
+      return plan.limits?.paperTrading === true
+    case 'admin':
+      return plan.limits?.admin === true
+    case 'analysisUnlimited':
+      return plan.limits?.analysisPerDay === -1
+    case 'fullHistory':
+      return plan.limits?.historyDays === -1
+    case 'iaAvancada':
+      return ['pro', 'elite'].includes(planId)
+    default:
+      return false
+  }
+}
+
+// Verificar status do trial de 3 dias
+export const getTrialStatus = async (userId) => {
+  try {
+    // Buscar dados do trial na tabela profiles
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('trial_start, trial_used_days, trial_expired, created_at')
+      .eq('id', userId)
+      .single()
+    
+    if (error && error.code === 'PGRST116') {
+      // Profile não existe, criar um novo
+      const { data: newProfile, error: insertError } = await supabase
+        .from('profiles')
+        .insert([{
+          id: userId,
+          trial_start: new Date().toISOString().split('T')[0],
+          trial_used_days: 0,
+          trial_expired: false
+        }])
+        .select()
+        .single()
+      
+      if (insertError) {
+        console.error('Erro ao criar profile:', insertError)
+        return { daysRemaining: 3, expired: false, startDate: new Date().toISOString() }
+      }
+      
+      return {
+        daysRemaining: 3,
+        expired: false,
+        startDate: newProfile.trial_start,
+        daysUsed: 0
+      }
+    }
+    
+    if (error) {
+      console.error('Erro ao buscar profile:', error)
+      return { daysRemaining: 0, expired: true, startDate: null }
+    }
+    
+    // Calcular dias baseado nos dados do banco
+    const startDate = new Date(profile.trial_start)
+    const currentDate = new Date()
+    const diffTime = currentDate.getTime() - startDate.getTime()
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+    
+    const daysRemaining = Math.max(0, 3 - diffDays)
+    const expired = profile.trial_expired || diffDays >= 3
+    
+    return {
+      daysRemaining,
+      expired,
+      startDate: profile.trial_start,
+      daysUsed: Math.min(diffDays, 3)
+    }
+    
+  } catch (error) {
+    console.error('Erro ao verificar trial:', error)
+    return { daysRemaining: 0, expired: true, startDate: null }
+  }
+}
+
+// Calcular dias restantes do trial
+const calculateTrialDays = (createdAt) => {
+  const startDate = new Date(createdAt)
+  const currentDate = new Date()
+  const diffTime = currentDate.getTime() - startDate.getTime()
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  
+  const daysRemaining = Math.max(0, 3 - diffDays)
+  const expired = diffDays >= 3
+  
+  return {
+    daysRemaining,
+    expired,
+    startDate: createdAt,
+    daysUsed: Math.min(diffDays, 3)
+  }
+}
+
 // Verificar limite de análises por dia
 export const checkAnalysisLimit = async (userId, subscription) => {
   const planId = subscription?.plan || 'free'
   const plan = plans[planId] || plans.free
+  
+  // Verificar trial para usuários free
+  if (planId === 'free') {
+    const trialStatus = await getTrialStatus(userId)
+    if (trialStatus.expired) {
+      return {
+        allowed: false,
+        remaining: 0,
+        limit: 0,
+        trialExpired: true,
+        message: 'Trial de 3 dias expirado. Assine um plano para continuar.'
+      }
+    }
+  }
   
   if (plan.limits.analysisPerDay === -1) {
     return { allowed: true, remaining: -1 }

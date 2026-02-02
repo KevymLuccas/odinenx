@@ -50,7 +50,9 @@ onMounted(async () => {
   subscription.value = await getSubscriptionStatus(session.user.id)
   
   // Verificar acesso ao Paper Trading
-  if (!hasAccess(subscription.value, 'paperTrading')) {
+  const hasPaperAccess = await hasAccess(subscription.value, 'paperTrading', session.user.id)
+  if (!hasPaperAccess) {
+    alert('❌ Acesso Negado!\n\nPaper Trading está disponível apenas para os planos Pro e Elite.')
     router.push('/pricing')
     return
   }

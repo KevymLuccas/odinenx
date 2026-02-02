@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
-import { getSubscriptionStatus, createCustomerPortal, cancelSubscription, plans } from '../lib/stripe'
+import { getSubscriptionStatus, createCustomerPortal, cancelSubscription, plans, getTrialStatus } from '../lib/stripe'
 
 const router = useRouter()
 const user = ref(null)
@@ -10,6 +10,7 @@ const subscription = ref(null)
 const loading = ref(true)
 const showCancelModal = ref(false)
 const canceling = ref(false)
+const trialStatus = ref(null)
 
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
@@ -21,6 +22,12 @@ onMounted(async () => {
   
   user.value = session.user
   subscription.value = await getSubscriptionStatus(session.user.id)
+  
+  // Verificar status do trial para usuários free
+  if (!subscription.value?.plan || subscription.value.plan === 'free') {
+    trialStatus.value = await getTrialStatus(session.user.id)
+  }
+  
   loading.value = false
 })
 
@@ -35,6 +42,14 @@ const isPaidPlan = computed(() => {
 
 const isCanceledButActive = computed(() => {
   return subscription.value?.cancel_at_period_end === true
+})
+
+const isTrialExpired = computed(() => {
+  return trialStatus.value?.expired === true
+})
+
+const trialDaysRemaining = computed(() => {
+  return trialStatus.value?.daysRemaining || 0
 })
 
 const logout = async () => {
@@ -225,6 +240,51 @@ const navigateTo = (path) => {
 
       <!-- Content -->
       <div v-else class="dashboard-content">
+        
+        <!-- 🚨 ALERTA TRIAL EXPIRADO -->
+        <div v-if="isTrialExpired && !isPaidPlan" class="trial-expired-alert">
+          <div class="alert-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+          </div>
+          <div class="alert-content">
+            <h3>🔒 Trial Expirado</h3>
+            <p>Seu período gratuito de 3 dias terminou. Assine um plano para continuar usando todas as funcionalidades.</p>
+            <router-link to="/pricing" class="btn-upgrade">
+              Assinar Agora
+            </router-link>
+          </div>
+        </div>
+
+        <!-- ⏰ CONTADOR TRIAL (apenas para usuários free com trial ativo) -->
+        <div v-if="!isPaidPlan && !isTrialExpired && trialStatus" class="trial-counter">
+          <div class="trial-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12,6 12,12 16,14"/>
+            </svg>
+          </div>
+          <div class="trial-info">
+            <h3>⏰ Trial Gratuito</h3>
+            <p class="trial-days">
+              <strong>{{ trialDaysRemaining }}</strong> 
+              {{ trialDaysRemaining === 1 ? 'dia restante' : 'dias restantes' }}
+            </p>
+            <div class="trial-progress">
+              <div class="progress-bar">
+                <div class="progress-fill" :style="{ width: `${((3 - trialDaysRemaining) / 3) * 100}%` }"></div>
+              </div>
+              <span class="progress-text">{{ 3 - trialDaysRemaining }}/3 dias utilizados</span>
+            </div>
+            <router-link to="/pricing" class="btn-trial">
+              Assinar Antes que Expire
+            </router-link>
+          </div>
+        </div>
+
         <!-- Stats Cards -->
         <div class="stats-grid">
           <div class="stat-card">
@@ -1257,6 +1317,168 @@ const navigateTo = (path) => {
   
   .modal {
     padding: 30px 20px;
+  }
+}
+
+/* ============================================= */
+/* TRIAL COUNTER & EXPIRED ALERT STYLES */
+/* ============================================= */
+
+.trial-expired-alert {
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.15) 0%, rgba(255, 107, 107, 0.05) 100%);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+  0%, 100% { border-color: rgba(255, 107, 107, 0.3); }
+  50% { border-color: rgba(255, 107, 107, 0.6); }
+}
+
+.trial-expired-alert .alert-icon {
+  background: rgba(255, 107, 107, 0.2);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trial-expired-alert .alert-icon svg {
+  width: 24px;
+  height: 24px;
+  color: #ff6b6b;
+}
+
+.trial-expired-alert .alert-content h3 {
+  color: #ff6b6b;
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.trial-expired-alert .alert-content p {
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 16px 0;
+  font-size: 0.95rem;
+}
+
+.trial-counter {
+  background: linear-gradient(135deg, rgba(0, 217, 255, 0.15) 0%, rgba(0, 217, 255, 0.05) 100%);
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.trial-counter .trial-icon {
+  background: rgba(0, 217, 255, 0.2);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trial-counter .trial-icon svg {
+  width: 24px;
+  height: 24px;
+  color: #00d9ff;
+}
+
+.trial-info {
+  flex: 1;
+}
+
+.trial-info h3 {
+  color: #00d9ff;
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.trial-days {
+  color: white;
+  margin: 0 0 12px 0;
+  font-size: 1.1rem;
+}
+
+.trial-days strong {
+  color: #00d9ff;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.trial-progress {
+  margin-bottom: 16px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00d9ff, #0099cc);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.progress-text {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+}
+
+.btn-trial, .btn-upgrade {
+  background: linear-gradient(135deg, #00d9ff, #0099cc);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.3s;
+  font-size: 0.9rem;
+}
+
+.btn-trial:hover, .btn-upgrade:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 217, 255, 0.3);
+}
+
+.btn-upgrade {
+  background: linear-gradient(135deg, #ff6b6b, #cc4444);
+}
+
+.btn-upgrade:hover {
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .trial-counter, .trial-expired-alert {
+    flex-direction: column;
+    text-align: center;
+    gap: 16px;
+  }
+  
+  .trial-info, .alert-content {
+    text-align: center;
   }
 }
 </style>

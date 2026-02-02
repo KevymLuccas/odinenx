@@ -31,7 +31,8 @@ onMounted(async () => {
   subscription.value = await getSubscriptionStatus(session.user.id)
   
   // 🔒 CONTROLE DE ACESSO: Apenas Elite pode acessar Admin
-  if (!hasAccess(subscription.value, 'admin')) {
+  const hasAdminAccess = await hasAccess(subscription.value, 'admin', session.user.id)
+  if (!hasAdminAccess) {
     alert('❌ Acesso Negado!\n\nApenas usuários do plano Elite podem acessar o Painel Administrativo.')
     router.push('/dashboard')
     return
