@@ -179,7 +179,7 @@ const calcularScore = (atleta) => {
   const preco = Math.max(atleta.preco_num || 1, 0.1)
   const variacao = atleta.variacao_num || 0
   const jogos = atleta.jogos_num || 0
-  const status = atleta.status_id || 0
+  const status = atleta.status_id
   
   const custoBeneficio = (media / preco) * 2
   const momentum = variacao > 0 ? 1 + (variacao * 0.1) : 1 - (Math.abs(variacao) * 0.05)
@@ -187,8 +187,11 @@ const calcularScore = (atleta) => {
   
   let score = (media * 1.5 + custoBeneficio * 2) * momentum * (0.7 + exp * 0.3)
   
-  if (status === 2) score *= 0.7
-  else if (status !== 7) score *= 0.5
+  // Penalização por status
+  if (status === 3 || status === 5) score *= 0.2  // Suspenso ou Contundido
+  else if (status === 6) score *= 0.3             // Nulo
+  else if (status === 2) score *= 0.75            // Dúvida
+  // status 7 (Provável) ou undefined: sem penalização
   
   return Math.round(score * 100) / 100
 }
@@ -201,10 +204,17 @@ const escalarAutomatico = () => {
   capitao.value = null
   
   setTimeout(() => {
-    const atletasValidos = atletas.value.filter(a => 
-      a.status_id === 7 && 
-      (a.preco_num || 0) <= cartoletas.value
-    )
+    // Aceitar atletas: Provável (7), Dúvida (2), ou sem status definido
+    // Excluir apenas: Suspenso (3), Contundido (5), Nulo (6)
+    const atletasValidos = atletas.value.filter(a => {
+      const status = a.status_id
+      const preco = a.preco_num || 0
+      // Excluir suspenso, contundido, nulo
+      if (status === 3 || status === 5 || status === 6) return false
+      // Verificar se cabe no orçamento
+      if (preco > cartoletas.value) return false
+      return true
+    })
     
     const porPosicao = {}
     for (const pos in POSICOES) {
