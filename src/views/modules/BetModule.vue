@@ -620,64 +620,145 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 .no-odds-modal p { color: rgba(255, 255, 255, 0.6); }
 
 @media (max-width: 968px) {
-  .sidebar { display: none; }
-  .mobile-menu-btn { display: flex; }
+  /* Sidebar e Menu Mobile */
+  .sidebar { display: none !important; }
+  
+  .mobile-menu-btn { 
+    display: flex !important;
+    position: fixed !important;
+    top: 15px !important;
+    right: 15px !important;
+    width: 48px !important;
+    height: 48px !important;
+    z-index: 1001 !important;
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    color: white !important;
+    font-size: 1.5rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4) !important;
+  }
+  
   .mobile-overlay { display: block; }
   .mobile-menu { display: block; }
-  .main-content { margin-left: 0; padding: 20px; padding-bottom: 120px; }
-  .jogos-grid { grid-template-columns: 1fr; gap: 15px; }
-  .page-header { flex-direction: column; align-items: center; text-align: center; gap: 15px; }
-  .header-left { text-align: center; width: 100%; }
-  .header-left h1 { font-size: 1.6rem; }
-  .header-right { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-  .liga-selector { width: 100%; max-width: 350px; }
-  .liga-selector select { width: 100%; text-align: center; }
-  .api-fonte { justify-content: center; }
   
-  .jogo-card { padding: 18px; }
-  .jogo-times { gap: 10px; }
-  .time img { width: 45px; height: 45px; }
-  .time-nome { font-size: 0.85rem; }
-  
-  .modal-overlay { padding: 15px; align-items: flex-end; }
-  .modal-analise { 
-    max-height: 85vh; 
-    border-radius: 20px 20px 0 0;
-    padding: 20px;
+  /* Conteúdo Principal */
+  .main-content { 
+    margin-left: 0 !important; 
+    padding: 70px 15px 120px 15px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
   }
-  .odds-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .odd-card { padding: 12px 8px; }
-  .odd-value { font-size: 1.1rem; }
-  .mercados-grid { grid-template-columns: 1fr; gap: 10px; }
+  
+  /* Grid de Jogos */
+  .jogos-grid { 
+    grid-template-columns: 1fr !important; 
+    gap: 15px !important; 
+    width: 100% !important;
+  }
+  
+  /* Header da Página */
+  .page-header { 
+    flex-direction: column !important; 
+    align-items: center !important; 
+    text-align: center !important; 
+    gap: 15px !important;
+    width: 100% !important;
+  }
+  .header-left { text-align: center !important; width: 100% !important; }
+  .header-left h1 { font-size: 1.4rem !important; }
+  .header-right { 
+    width: 100% !important; 
+    display: flex !important; 
+    flex-direction: column !important; 
+    align-items: center !important; 
+    gap: 10px !important; 
+  }
+  .liga-selector { width: 100% !important; max-width: 100% !important; }
+  .liga-selector select { width: 100% !important; text-align: center !important; }
+  .api-fonte { justify-content: center !important; }
+  
+  /* Cards de Jogos */
+  .jogo-card { 
+    padding: 15px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .jogo-times { gap: 8px !important; }
+  .time img { width: 40px !important; height: 40px !important; }
+  .time-nome { font-size: 0.8rem !important; }
+  
+  /* Modal */
+  .modal-overlay { padding: 10px !important; align-items: flex-end !important; }
+  .modal-analise { 
+    max-height: 85vh !important; 
+    border-radius: 20px 20px 0 0 !important;
+    padding: 15px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .odds-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; }
+  .odd-card { padding: 10px 6px !important; }
+  .odd-value { font-size: 1rem !important; }
+  .mercados-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
 }
 
 @media (max-width: 480px) {
-  .main-content { padding: 15px; padding-bottom: 130px; }
-  .header-left h1 { font-size: 1.4rem; }
+  .main-content { 
+    padding: 70px 12px 130px 12px !important;
+  }
+  .header-left h1 { font-size: 1.3rem !important; }
   
-  .jogo-times { flex-direction: column; gap: 15px; }
-  .time { flex-direction: row; width: 100%; justify-content: flex-start; gap: 12px; }
-  .time img { width: 40px; height: 40px; }
-  .time-nome { text-align: left; }
-  .versus { padding: 10px 0; }
+  /* Times em coluna no mobile pequeno */
+  .jogo-times { 
+    flex-direction: column !important; 
+    gap: 12px !important; 
+  }
+  .time { 
+    flex-direction: row !important; 
+    width: 100% !important; 
+    justify-content: flex-start !important; 
+    gap: 10px !important; 
+  }
+  .time img { width: 36px !important; height: 36px !important; }
+  .time-nome { text-align: left !important; font-size: 0.85rem !important; }
+  .versus { padding: 8px 0 !important; font-size: 0.75rem !important; }
   
-  .probabilidades-bar { height: 35px; }
-  .prob { font-size: 0.7rem; min-width: 30px; }
+  /* Barra de Probabilidades */
+  .probabilidades-bar { height: 30px !important; }
+  .prob { font-size: 0.65rem !important; min-width: 25px !important; }
   
-  .odds-grid { grid-template-columns: 1fr; gap: 10px; }
-  .odd-card { display: flex; justify-content: space-between; align-items: center; padding: 15px; }
-  .odd-label { margin-bottom: 0; }
-  .odd-value { margin-bottom: 0; }
+  /* Odds em coluna */
+  .odds-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
+  .odd-card { 
+    display: flex !important; 
+    justify-content: space-between !important; 
+    align-items: center !important; 
+    padding: 12px !important; 
+  }
+  .odd-label { margin-bottom: 0 !important; font-size: 0.8rem !important; }
+  .odd-value { margin-bottom: 0 !important; font-size: 1rem !important; }
   
-  .modal-header-jogo { flex-direction: column; gap: 20px; }
-  .time-modal { flex-direction: row; gap: 12px; }
-  .time-modal img { width: 50px; height: 50px; }
-  .time-modal h3 { font-size: 1rem; text-align: left; }
+  /* Modal Header */
+  .modal-header-jogo { flex-direction: column !important; gap: 15px !important; }
+  .time-modal { flex-direction: row !important; gap: 10px !important; }
+  .time-modal img { width: 45px !important; height: 45px !important; }
+  .time-modal h3 { font-size: 0.95rem !important; text-align: left !important; }
   
-  .recomendacao-texto { font-size: 1.2rem; }
+  .recomendacao-texto { font-size: 1.1rem !important; }
   
-  .jogo-footer { flex-direction: column; align-items: flex-start; }
-  .melhor-aposta { width: 100%; }
+  .jogo-footer { 
+    flex-direction: column !important; 
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+  .melhor-aposta { width: 100% !important; }
 }
 
 /* ===== SAFARI FIXES ===== */
