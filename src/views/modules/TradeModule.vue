@@ -73,6 +73,13 @@ const plataformas = [
 // Intervalo de atualização
 let atualizacaoInterval = null
 
+// Status da API
+const apiStatus = ref({
+  crypto: { loading: false, error: null, lastUpdate: null },
+  acoes: { loading: false, error: null, lastUpdate: null },
+  forex: { loading: false, error: null, lastUpdate: null }
+})
+
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) { router.push('/login'); return }
@@ -81,13 +88,13 @@ onMounted(async () => {
   
   await carregarOperacoes()
   await carregarConfigRisco()
-  gerarDadosAtivos()
+  await carregarDadosReais() // Agora carrega dados REAIS!
   loading.value = false
   
-  // Atualizar preços a cada 5 segundos
+  // Atualizar preços a cada 30 segundos (para não sobrecarregar APIs gratuitas)
   atualizacaoInterval = setInterval(() => {
-    atualizarPrecos()
-  }, 5000)
+    carregarDadosReais()
+  }, 30000)
 })
 
 onUnmounted(() => {
@@ -251,68 +258,183 @@ const salvarConfigRisco = () => {
   localStorage.setItem(`odinenx_risco_${user.value?.id}`, JSON.stringify(configRisco.value))
 }
 
-// ===== GERAR DADOS DE ATIVOS =====
-const gerarDadosAtivos = () => {
+// ===== CARREGAR DADOS REAIS DA API =====
+const carregarDadosReais = async () => {
+  await Promise.all([
+    carregarCryptoReal(),
+    carregarAcoesReal(),
+    carregarForexReal()
+  ])
+  calcularIndicadores()
+}
+
+const carregarCryptoReal = async () => {
+  apiStatus.value.crypto.loading = true
+  apiStatus.value.crypto.error = null
+  
+  try {
+    const response = await fetch('/api/market?type=crypto')
+    const result = await response.json()
+    
+    if (result.success && result.data) {
+      ativos.value.crypto = result.data.map(coin => ({
+        simbolo: coin.simbolo,
+        nome: coin.nome,
+        preco: coin.preco,
+        variacao: coin.variacao,
+        volume: coin.volume,
+        marketCap: coin.marketCap,
+        high24h: coin.high24h,
+        low24h: coin.low24h,
+        imagem: coin.imagem,
+        icone: coin.simbolo.charAt(0),
+        cor: getCorCrypto(coin.simbolo)
+      }))
+      apiStatus.value.crypto.lastUpdate = new Date()
+    } else {
+      throw new Error(result.error || 'Erro ao carregar crypto')
+    }
+  } catch (error) {
+    console.error('Erro Crypto API:', error)
+    apiStatus.value.crypto.error = error.message
+    // Fallback para dados simulados se API falhar
+    gerarCryptoFallback()
+  }
+  
+  apiStatus.value.crypto.loading = false
+}
+
+const carregarAcoesReal = async () => {
+  apiStatus.value.acoes.loading = true
+  apiStatus.value.acoes.error = null
+  
+  try {
+    const response = await fetch('/api/market?type=acoes')
+    const result = await response.json()
+    
+    if (result.success && result.data) {
+      ativos.value.acoes = result.data.map(acao => ({
+        simbolo: acao.simbolo,
+        nome: acao.nome,
+        preco: acao.preco,
+        variacao: acao.variacao,
+        volume: acao.volume,
+        high: acao.high,
+        low: acao.low,
+        abertura: acao.abertura,
+        setor: getSetorAcao(acao.simbolo)
+      }))
+      apiStatus.value.acoes.lastUpdate = new Date()
+    } else {
+      throw new Error(result.error || 'Erro ao carregar ações')
+    }
+  } catch (error) {
+    console.error('Erro Ações API:', error)
+    apiStatus.value.acoes.error = error.message
+    gerarAcoesFallback()
+  }
+  
+  apiStatus.value.acoes.loading = false
+}
+
+const carregarForexReal = async () => {
+  apiStatus.value.forex.loading = true
+  apiStatus.value.forex.error = null
+  
+  try {
+    const response = await fetch('/api/market?type=forex')
+    const result = await response.json()
+    
+    if (result.success && result.data) {
+      ativos.value.forex = result.data.map(par => ({
+        simbolo: par.simbolo,
+        nome: par.nome,
+        preco: par.preco,
+        variacao: par.variacao,
+        pip: par.simbolo.includes('JPY') ? 0.01 : 0.0001
+      }))
+      apiStatus.value.forex.lastUpdate = new Date()
+    } else {
+      throw new Error(result.error || 'Erro ao carregar forex')
+    }
+  } catch (error) {
+    console.error('Erro Forex API:', error)
+    apiStatus.value.forex.error = error.message
+    gerarForexFallback()
+  }
+  
+  apiStatus.value.forex.loading = false
+}
+
+// Cores personalizadas para cryptos
+const getCorCrypto = (simbolo) => {
+  const cores = {
+    'BTC': '#F7931A',
+    'ETH': '#627EEA',
+    'BNB': '#F3BA2F',
+    'SOL': '#00FFA3',
+    'XRP': '#23292F',
+    'ADA': '#0033AD',
+    'DOGE': '#C3A634',
+    'DOT': '#E6007A',
+    'AVAX': '#E84142',
+    'MATIC': '#8247E5',
+    'TRX': '#FF0013',
+    'LINK': '#2A5ADA',
+    'TON': '#0098EA',
+    'SHIB': '#FFA409',
+    'LTC': '#BFBBBB'
+  }
+  return cores[simbolo] || '#6366f1'
+}
+
+// Setores das ações
+const getSetorAcao = (simbolo) => {
+  const setores = {
+    'PETR4': 'Petróleo',
+    'VALE3': 'Mineração',
+    'ITUB4': 'Bancos',
+    'BBDC4': 'Bancos',
+    'ABEV3': 'Bebidas',
+    'MGLU3': 'Varejo',
+    'WEGE3': 'Industrial',
+    'RENT3': 'Locação',
+    'BBAS3': 'Bancos',
+    'SUZB3': 'Papel',
+    'B3SA3': 'Financeiro',
+    'ELET3': 'Energia'
+  }
+  return setores[simbolo] || 'Outros'
+}
+
+// ===== FALLBACK (se API falhar) =====
+const gerarCryptoFallback = () => {
   ativos.value.crypto = [
     { simbolo: 'BTC', nome: 'Bitcoin', preco: 67500, variacao: 0.27, icone: '₿', cor: '#F7931A' },
     { simbolo: 'ETH', nome: 'Ethereum', preco: 3420, variacao: -0.89, icone: 'Ξ', cor: '#627EEA' },
     { simbolo: 'BNB', nome: 'Binance Coin', preco: 605, variacao: 5.09, icone: 'B', cor: '#F3BA2F' },
     { simbolo: 'SOL', nome: 'Solana', preco: 178, variacao: 1.70, icone: 'S', cor: '#00FFA3' },
-    { simbolo: 'XRP', nome: 'Ripple', preco: 0.52, variacao: 2.63, icone: 'X', cor: '#23292F' },
-    { simbolo: 'ADA', nome: 'Cardano', preco: 0.45, variacao: -3.50, icone: 'A', cor: '#0033AD' },
-    { simbolo: 'DOGE', nome: 'Dogecoin', preco: 0.12, variacao: 3.60, icone: 'D', cor: '#C3A634' },
-    { simbolo: 'DOT', nome: 'Polkadot', preco: 7.20, variacao: -3.76, icone: 'P', cor: '#E6007A' },
-    { simbolo: 'AVAX', nome: 'Avalanche', preco: 35.40, variacao: 2.15, icone: 'A', cor: '#E84142' },
-    { simbolo: 'MATIC', nome: 'Polygon', preco: 0.85, variacao: -1.20, icone: 'M', cor: '#8247E5' }
+    { simbolo: 'XRP', nome: 'Ripple', preco: 0.52, variacao: 2.63, icone: 'X', cor: '#23292F' }
   ]
-  
+}
+
+const gerarAcoesFallback = () => {
   ativos.value.acoes = [
     { simbolo: 'PETR4', nome: 'Petrobras PN', preco: 38.45, variacao: 1.23, setor: 'Petróleo' },
     { simbolo: 'VALE3', nome: 'Vale ON', preco: 62.30, variacao: -0.85, setor: 'Mineração' },
     { simbolo: 'ITUB4', nome: 'Itaú Unibanco PN', preco: 32.15, variacao: 0.47, setor: 'Bancos' },
     { simbolo: 'BBDC4', nome: 'Bradesco PN', preco: 14.80, variacao: -1.32, setor: 'Bancos' },
-    { simbolo: 'ABEV3', nome: 'Ambev ON', preco: 12.45, variacao: 0.89, setor: 'Bebidas' },
-    { simbolo: 'MGLU3', nome: 'Magazine Luiza ON', preco: 2.15, variacao: 4.85, setor: 'Varejo' },
-    { simbolo: 'WEGE3', nome: 'WEG ON', preco: 45.60, variacao: 1.56, setor: 'Industrial' },
-    { simbolo: 'RENT3', nome: 'Localiza ON', preco: 48.90, variacao: -0.61, setor: 'Locação' },
-    { simbolo: 'BBAS3', nome: 'Banco do Brasil ON', preco: 54.20, variacao: 0.35, setor: 'Bancos' },
-    { simbolo: 'SUZB3', nome: 'Suzano ON', preco: 58.75, variacao: 2.10, setor: 'Papel' }
+    { simbolo: 'ABEV3', nome: 'Ambev ON', preco: 12.45, variacao: 0.89, setor: 'Bebidas' }
   ]
-  
+}
+
+const gerarForexFallback = () => {
   ativos.value.forex = [
     { simbolo: 'EUR/USD', nome: 'Euro/Dólar', preco: 1.0845, variacao: 0.15, pip: 0.0001 },
     { simbolo: 'USD/BRL', nome: 'Dólar/Real', preco: 4.9650, variacao: -0.32, pip: 0.0001 },
     { simbolo: 'GBP/USD', nome: 'Libra/Dólar', preco: 1.2680, variacao: 0.28, pip: 0.0001 },
-    { simbolo: 'USD/JPY', nome: 'Dólar/Iene', preco: 148.25, variacao: 0.45, pip: 0.01 },
-    { simbolo: 'EUR/BRL', nome: 'Euro/Real', preco: 5.3820, variacao: -0.18, pip: 0.0001 },
-    { simbolo: 'AUD/USD', nome: 'Aussie/Dólar', preco: 0.6545, variacao: -0.52, pip: 0.0001 },
-    { simbolo: 'USD/CHF', nome: 'Dólar/Franco', preco: 0.8745, variacao: 0.12, pip: 0.0001 },
-    { simbolo: 'GBP/JPY', nome: 'Libra/Iene', preco: 187.85, variacao: 0.65, pip: 0.01 }
+    { simbolo: 'USD/JPY', nome: 'Dólar/Iene', preco: 148.25, variacao: 0.45, pip: 0.01 }
   ]
-  
-  calcularIndicadores()
-}
-
-const atualizarPrecos = () => {
-  ativos.value.crypto.forEach(a => {
-    const variacao = (Math.random() - 0.5) * 2
-    a.preco = a.preco * (1 + variacao / 100)
-    a.variacao = variacao
-  })
-  
-  ativos.value.acoes.forEach(a => {
-    const variacao = (Math.random() - 0.5) * 1.5
-    a.preco = a.preco * (1 + variacao / 100)
-    a.variacao = variacao
-  })
-  
-  ativos.value.forex.forEach(a => {
-    const variacao = (Math.random() - 0.5) * 0.5
-    a.preco = a.preco * (1 + variacao / 100)
-    a.variacao = variacao
-  })
-  
-  calcularIndicadores()
 }
 
 const calcularIndicadores = () => {
@@ -563,8 +685,26 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
         <div class="header-left">
           <h1>Módulo TRADE</h1>
           <p>Sistema completo para Day Traders</p>
+          <!-- Indicador de dados reais -->
+          <div class="api-status-row">
+            <span class="api-badge real" v-if="apiStatus.crypto.lastUpdate || apiStatus.acoes.lastUpdate || apiStatus.forex.lastUpdate">
+              <span class="pulse-dot"></span>
+              DADOS REAIS
+            </span>
+            <span class="api-badge loading" v-else-if="apiStatus.crypto.loading || apiStatus.acoes.loading || apiStatus.forex.loading">
+              <span class="loading-dot"></span>
+              Carregando...
+            </span>
+            <span v-if="apiStatus[categoriaAtiva]?.lastUpdate" class="last-update">
+              Atualizado: {{ new Date(apiStatus[categoriaAtiva].lastUpdate).toLocaleTimeString('pt-BR') }}
+            </span>
+          </div>
         </div>
         <div class="header-actions">
+          <button @click="carregarDadosReais" class="btn-refresh" :disabled="apiStatus.crypto.loading">
+            <svg :class="{ spinning: apiStatus.crypto.loading }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            Atualizar
+          </button>
           <button @click="modalCalculadora = true" class="btn-calc">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="16" y2="18"/></svg>
             Calculadora
@@ -1434,5 +1574,109 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
   .risco-resumo { grid-template-columns: 1fr 1fr; }
   .operacoes-filtros { gap: 5px; }
   .operacoes-filtros button { padding: 6px 12px; font-size: 0.8rem; }
+}
+
+/* Status API Real */
+.api-status-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.api-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.api-badge.real {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.2));
+  border: 1px solid rgba(34, 197, 94, 0.5);
+  color: #22c55e;
+}
+
+.api-badge.loading {
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: #22c55e;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+  box-shadow: 0 0 8px #22c55e;
+}
+
+.loading-dot {
+  width: 8px;
+  height: 8px;
+  background: #fbbf24;
+  border-radius: 50%;
+  animation: blink 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.last-update {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.btn-refresh {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 12px;
+  color: #3b82f6;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-refresh:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.btn-refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-refresh svg {
+  width: 18px;
+  height: 18px;
+}
+
+.btn-refresh svg.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style>
