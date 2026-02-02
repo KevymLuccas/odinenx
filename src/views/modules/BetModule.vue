@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../../lib/supabase'
-import { getSubscriptionStatus, plans } from '../../lib/stripe'
+import { getSubscriptionStatus, plans, hasAccess } from '../../lib/stripe'
 
 const router = useRouter()
 const user = ref(null)
@@ -11,6 +11,7 @@ const mobileMenuOpen = ref(false)
 const loading = ref(true)
 const jogoSelecionado = ref(null)
 const erro = ref(null)
+const lastUpdate = ref(null)
 
 // Football-Data.org - 100% GRÁTIS, sem limite mensal
 // Registre em: https://www.football-data.org/client/register
@@ -98,6 +99,7 @@ const carregarJogos = async () => {
     })
     
     jogos.value = jogosProcessados
+    lastUpdate.value = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     
   } catch (error) {
     console.error('Erro ao carregar jogos:', error)
@@ -106,6 +108,9 @@ const carregarJogos = async () => {
     loading.value = false
   }
 }
+
+// Verificar acesso do plano a funcionalidades avançadas
+const temAcessoIA = computed(() => hasAccess(subscription.value, 'iaAvancada'))
 
 // Gerar logo placeholder baseado no nome do time
 const getTeamLogo = (teamName) => {
@@ -257,8 +262,22 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
         <div class="header-left">
           <h1>Módulo BET</h1>
           <p>Análise inteligente de apostas esportivas</p>
+          <div class="api-status-row">
+            <span class="api-badge real" v-if="!loading && jogos.length > 0">
+              <span class="pulse-dot"></span>
+              DADOS REAIS
+            </span>
+            <span class="api-badge loading" v-else-if="loading">
+              <span class="loading-dot"></span>
+              CARREGANDO...
+            </span>
+            <span class="last-update" v-if="lastUpdate">Atualizado: {{ lastUpdate }}</span>
+          </div>
         </div>
         <div class="header-right">
+          <div class="api-fonte">
+            <span class="fonte-badge">⚽ Football-Data.org</span>
+          </div>
           <div class="liga-selector">
             <select v-model="ligaSelecionada">
               <option value="brasileirao">🇧🇷 Brasileirão Série A</option>
@@ -505,10 +524,24 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 .main-content { flex: 1; margin-left: 260px; padding: 30px; }
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 20px; }
 .header-left h1 { font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
-.header-left p { color: rgba(255, 255, 255, 0.5); }
-.header-right { display: flex; gap: 10px; align-items: center; }
+.header-left p { color: rgba(255, 255, 255, 0.5); margin-bottom: 8px; }
+.header-right { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .liga-selector select { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; padding: 12px 20px; color: #fff; font-size: 1rem; cursor: pointer; }
-.liga-selector select option { background: #111; }
+.liga-selector select option { background: #1a1a1a; color: #fff; }
+
+/* API Status */
+.api-status-row { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+.api-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.api-badge.real { background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.2)); border: 1px solid rgba(34, 197, 94, 0.5); color: #22c55e; }
+.api-badge.loading { background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.4); color: #fbbf24; }
+.pulse-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite; box-shadow: 0 0 8px #22c55e; }
+.loading-dot { width: 8px; height: 8px; background: #fbbf24; border-radius: 50%; animation: blink 1s infinite; }
+.last-update { font-size: 0.75rem; color: rgba(255, 255, 255, 0.4); }
+.api-fonte { display: flex; align-items: center; gap: 8px; }
+.fonte-badge { background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; }
+
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 .btn-refresh { width: 48px; height: 48px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
 .btn-refresh:hover { background: rgba(255, 255, 255, 0.2); }
 .btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }

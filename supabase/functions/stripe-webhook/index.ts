@@ -28,6 +28,17 @@ serve(async (req) => {
 
     console.log('Webhook event:', event.type)
 
+    // Mapeamento de price_id para plan_id
+    const priceIdToPlan: { [key: string]: string } = {
+      'price_1SvMedD3mufAbT6c994DmZYw': 'basic',
+      'price_1SvMehD3mufAbT6cmjXFFHtA': 'pro',
+      'price_1SvMemD3mufAbT6cRHEhLdAM': 'elite'
+    }
+
+    const getPlanFromPriceId = (priceId: string): string => {
+      return priceIdToPlan[priceId] || 'basic'
+    }
+
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
@@ -37,6 +48,8 @@ serve(async (req) => {
 
         if (userId && session.subscription) {
           const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
+          const priceId = subscription.items.data[0].price.id
+          const plan = getPlanFromPriceId(priceId)
           
           await supabase
             .from('subscriptions')
@@ -45,7 +58,8 @@ serve(async (req) => {
               stripe_subscription_id: subscription.id,
               stripe_customer_id: session.customer as string,
               status: subscription.status,
-              price_id: subscription.items.data[0].price.id,
+              plan: plan,
+              price_id: priceId,
               current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
               current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
               cancel_at_period_end: subscription.cancel_at_period_end,
@@ -57,13 +71,16 @@ serve(async (req) => {
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription
         const userId = subscription.metadata.supabase_user_id
+        const priceId = subscription.items.data[0].price.id
+        const plan = getPlanFromPriceId(priceId)
 
         if (userId) {
           await supabase
             .from('subscriptions')
             .update({
               status: subscription.status,
-              price_id: subscription.items.data[0].price.id,
+              plan: plan,
+              price_id: priceId,
               current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
               current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
               cancel_at_period_end: subscription.cancel_at_period_end,

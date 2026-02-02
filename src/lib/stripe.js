@@ -86,10 +86,79 @@ export const plans = {
       historyDays: -1,
       alerts: true,
       paperTrading: true,
+      cartola: true,
       api: true,
       webhooks: true
     }
   }
+}
+
+// Mapeamento de price_id para plan_id
+export const priceIdToPlan = {
+  'price_1SvMedD3mufAbT6c994DmZYw': 'basic',
+  'price_1SvMehD3mufAbT6cmjXFFHtA': 'pro',
+  'price_1SvMemD3mufAbT6cRHEhLdAM': 'elite'
+}
+
+// Verificar se usuário tem acesso a um recurso específico
+export const hasAccess = (subscription, feature) => {
+  const planId = subscription?.plan || 'free'
+  const plan = plans[planId] || plans.free
+  
+  // Verificar limites específicos
+  switch (feature) {
+    case 'bet':
+      return true // Todos podem acessar BET básico
+    case 'trade':
+      return true // Todos podem acessar TRADE básico
+    case 'cartola':
+      return plan.limits?.cartola === true // Só Pro/Elite
+    case 'alerts':
+      return plan.limits?.alerts === true // Só Pro/Elite
+    case 'paperTrading':
+      return plan.limits?.paperTrading === true // Só Pro/Elite
+    case 'api':
+      return plan.limits?.api === true // Só Elite
+    case 'webhooks':
+      return plan.limits?.webhooks === true // Só Elite
+    case 'analysisUnlimited':
+      return plan.limits?.analysisPerDay === -1 // Basic+
+    case 'fullHistory':
+      return plan.limits?.historyDays === -1 // Elite
+    case 'iaAvancada':
+      return ['pro', 'elite'].includes(planId)
+    default:
+      return false
+  }
+}
+
+// Verificar limite de análises por dia
+export const checkAnalysisLimit = async (userId, subscription) => {
+  const planId = subscription?.plan || 'free'
+  const plan = plans[planId] || plans.free
+  
+  if (plan.limits.analysisPerDay === -1) {
+    return { allowed: true, remaining: -1 }
+  }
+  
+  // Para plano Free, verificar uso do dia
+  const today = new Date().toISOString().split('T')[0]
+  const storageKey = `analysis_count_${userId}_${today}`
+  const count = parseInt(localStorage.getItem(storageKey) || '0')
+  
+  return {
+    allowed: count < plan.limits.analysisPerDay,
+    remaining: plan.limits.analysisPerDay - count,
+    limit: plan.limits.analysisPerDay
+  }
+}
+
+// Incrementar contagem de análises
+export const incrementAnalysisCount = (userId) => {
+  const today = new Date().toISOString().split('T')[0]
+  const storageKey = `analysis_count_${userId}_${today}`
+  const count = parseInt(localStorage.getItem(storageKey) || '0')
+  localStorage.setItem(storageKey, (count + 1).toString())
 }
 
 // Criar checkout session via Supabase Edge Function
