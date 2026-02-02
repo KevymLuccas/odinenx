@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../../lib/supabase'
-import { getSubscriptionStatus, plans } from '../../lib/stripe'
+import { getSubscriptionStatus, plans, getTrialStatus } from '../../lib/stripe'
 
 const router = useRouter()
 const user = ref(null)
@@ -85,6 +85,15 @@ onMounted(async () => {
   if (!session) { router.push('/login'); return }
   user.value = session.user
   subscription.value = await getSubscriptionStatus(session.user.id)
+  
+  // Verificar se trial expirou para usuários free
+  if (!subscription.value?.plan || subscription.value.plan === 'free') {
+    const trialStatus = await getTrialStatus(session.user.id)
+    if (trialStatus?.expired) {
+      router.push('/trial-expired')
+      return
+    }
+  }
   
   await carregarOperacoes()
   await carregarConfigRisco()

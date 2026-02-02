@@ -1,0 +1,29 @@
+name: Check Trial Expiration Daily
+
+on:
+  schedule:
+    # Executa todo dia às 00:00 UTC (21:00 Brasil)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Permite execução manual
+
+jobs:
+  check-trials:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check Trial Expiration
+        run: |
+          echo "🔍 Verificando trials expirados..."
+          
+          # Chamar Edge Function do Supabase
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            https://mzamszcpbverpadjelck.supabase.co/functions/v1/check-trial
+          
+          echo "✅ Verificação concluída!"
+
+      - name: Log Results
+        run: |
+          echo "📊 Trial check executado em $(date)"
+          echo "🌐 Logs disponíveis no Supabase Dashboard"

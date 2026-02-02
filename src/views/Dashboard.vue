@@ -26,6 +26,12 @@ onMounted(async () => {
   // Verificar status do trial para usuários free
   if (!subscription.value?.plan || subscription.value.plan === 'free') {
     trialStatus.value = await getTrialStatus(session.user.id)
+    
+    // 🚨 BLOQUEIO EFETIVO: Se trial expirou, redirecionar para página específica
+    if (trialStatus.value?.expired) {
+      router.push('/trial-expired')
+      return
+    }
   }
   
   loading.value = false

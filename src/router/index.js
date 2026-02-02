@@ -14,6 +14,7 @@ import Admin from '../views/Admin.vue'
 import Alerts from '../views/Alerts.vue'
 import History from '../views/History.vue'
 import Settings from '../views/Settings.vue'
+import TrialExpired from '../views/TrialExpired.vue'
 
 const routes = [
   {
@@ -65,13 +66,14 @@ const routes = [
     component: PaperTrading,
     meta: { requiresAuth: true }
   },
-  {    
+  {
     path: '/admin',
     name: 'Admin',
     component: Admin,
     meta: { requiresAuth: true }
   },
-  {    path: '/alerts',
+  {
+    path: '/alerts',
     name: 'Alerts',
     component: Alerts,
     meta: { requiresAuth: true }
@@ -86,6 +88,12 @@ const routes = [
     path: '/settings',
     name: 'Settings',
     component: Settings,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/trial-expired',
+    name: 'TrialExpired',
+    component: TrialExpired,
     meta: { requiresAuth: true }
   },
   {
