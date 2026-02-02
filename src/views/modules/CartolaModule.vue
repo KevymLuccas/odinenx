@@ -208,14 +208,12 @@ const escalarAutomatico = () => {
     // Excluir apenas: Suspenso (3), Contundido (5), Nulo (6)
     const atletasValidos = atletas.value.filter(a => {
       const status = a.status_id
-      const preco = a.preco_num || 0
       // Excluir suspenso, contundido, nulo
       if (status === 3 || status === 5 || status === 6) return false
-      // Verificar se cabe no orçamento
-      if (preco > cartoletas.value) return false
       return true
     })
     
+    // Organizar por posição e ordenar por score
     const porPosicao = {}
     for (const pos in POSICOES) {
       porPosicao[pos] = atletasValidos
@@ -223,20 +221,100 @@ const escalarAutomatico = () => {
         .sort((a, b) => (b.score || 0) - (a.score || 0))
     }
     
-    const novaEscalacao = []
-    let gastoAtual = 0
+    // FASE 1: Calcular o mínimo necessário para cada posição (jogador mais barato)
+    const minimosPorPosicao = {}
+    let minimoTotal = 0
     
-    // Preencher por posição
     for (const [posId, qtd] of Object.entries(ESQUEMA)) {
       const disponiveis = porPosicao[posId] || []
-      let adicionados = 0
+      // Ordenar por preço para pegar os mais baratos
+      const porPreco = [...disponiveis].sort((a, b) => (a.preco_num || 0) - (b.preco_num || 0))
+      let minPos = 0
+      for (let i = 0; i < qtd && i < porPreco.length; i++) {
+        minPos += porPreco[i]?.preco_num || 0
+      }
+      minimosPorPosicao[posId] = minPos
+      minimoTotal += minPos
+    }
+    
+    // FASE 2: Escalar garantindo que todas as posições sejam preenchidas
+    const novaEscalacao = []
+    const idsUsados = new Set()
+    let orcamentoRestante = cartoletas.value
+    
+    // Ordem de prioridade: posições com menos opções primeiro
+    const posicoesOrdenadas = Object.entries(ESQUEMA)
+      .map(([posId, qtd]) => ({
+        posId,
+        qtd,
+        opcoes: (porPosicao[posId] || []).length
+      }))
+      .sort((a, b) => a.opcoes - b.opcoes)
+    
+    for (const { posId, qtd } of posicoesOrdenadas) {
+      const disponiveis = (porPosicao[posId] || []).filter(a => !idsUsados.has(a.atleta_id))
       
+      // Calcular quanto precisa reservar para outras posições
+      let reservadoOutras = 0
+      for (const [outroPos, outroQtd] of Object.entries(ESQUEMA)) {
+        if (outroPos === posId) continue
+        const escaladosOutro = novaEscalacao.filter(a => a.posicao_id == outroPos).length
+        const faltamOutro = outroQtd - escaladosOutro
+        if (faltamOutro > 0) {
+          const disponiveisOutro = (porPosicao[outroPos] || [])
+            .filter(a => !idsUsados.has(a.atleta_id))
+            .sort((a, b) => (a.preco_num || 0) - (b.preco_num || 0))
+          for (let i = 0; i < faltamOutro && i < disponiveisOutro.length; i++) {
+            reservadoOutras += disponiveisOutro[i]?.preco_num || 0
+          }
+        }
+      }
+      
+      let adicionados = 0
       for (const atleta of disponiveis) {
         if (adicionados >= qtd) break
-        if (gastoAtual + atleta.preco_num <= cartoletas.value) {
+        
+        const preco = atleta.preco_num || 0
+        const orcamentoDisponivel = orcamentoRestante - reservadoOutras
+        
+        if (preco <= orcamentoDisponivel) {
           novaEscalacao.push(atleta)
-          gastoAtual += atleta.preco_num
+          idsUsados.add(atleta.atleta_id)
+          orcamentoRestante -= preco
           adicionados++
+          
+          // Recalcular reservado
+          reservadoOutras = 0
+          for (const [outroPos, outroQtd] of Object.entries(ESQUEMA)) {
+            if (outroPos === posId) continue
+            const escaladosOutro = novaEscalacao.filter(a => a.posicao_id == outroPos).length
+            const faltamOutro = outroQtd - escaladosOutro
+            if (faltamOutro > 0) {
+              const disponiveisOutro = (porPosicao[outroPos] || [])
+                .filter(a => !idsUsados.has(a.atleta_id))
+                .sort((a, b) => (a.preco_num || 0) - (b.preco_num || 0))
+              for (let i = 0; i < faltamOutro && i < disponiveisOutro.length; i++) {
+                reservadoOutras += disponiveisOutro[i]?.preco_num || 0
+              }
+            }
+          }
+        }
+      }
+      
+      // Se não conseguiu preencher, pegar os mais baratos
+      if (adicionados < qtd) {
+        const maisBaratos = disponiveis
+          .filter(a => !idsUsados.has(a.atleta_id))
+          .sort((a, b) => (a.preco_num || 0) - (b.preco_num || 0))
+        
+        for (const atleta of maisBaratos) {
+          if (adicionados >= qtd) break
+          if ((atleta.preco_num || 0) <= orcamentoRestante) {
+            novaEscalacao.push(atleta)
+            idsUsados.add(atleta.atleta_id)
+            orcamentoRestante -= atleta.preco_num || 0
+            adicionados++
+          }
         }
       }
     }
@@ -249,12 +327,12 @@ const escalarAutomatico = () => {
       capitao.value = melhor.atleta_id
     }
     
-    // Reservas
+    // Reservas (5 posições: GOL, LAT, ZAG, MEI, ATA - sem TEC)
     const reservasTemp = []
-    const idsEscalados = new Set(novaEscalacao.map(a => a.atleta_id))
-    
     for (const posId of [1, 2, 3, 4, 5]) {
-      const disponiveis = porPosicao[posId]?.filter(a => !idsEscalados.has(a.atleta_id)) || []
+      const disponiveis = (porPosicao[posId] || [])
+        .filter(a => !idsUsados.has(a.atleta_id))
+        .sort((a, b) => (b.score || 0) - (a.score || 0))
       if (disponiveis.length > 0) {
         reservasTemp.push(disponiveis[0])
       }
