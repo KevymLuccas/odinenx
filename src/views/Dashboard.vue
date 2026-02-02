@@ -63,6 +63,17 @@ const handleCancelSubscription = async () => {
     canceling.value = false
   }
 }
+
+const mobileMenuOpen = ref(false)
+
+const toggleMobileMenu = () => {
+  mobileMenuOpen.value = !mobileMenuOpen.value
+}
+
+const navigateTo = (path) => {
+  router.push(path)
+  mobileMenuOpen.value = false
+}
 </script>
 
 <template>
@@ -155,6 +166,36 @@ const handleCancelSubscription = async () => {
         </button>
       </div>
     </aside>
+
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" @click="toggleMobileMenu">
+      <svg v-if="!mobileMenuOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+      <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+
+    <!-- Mobile Menu Overlay -->
+    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false"></div>
+    
+    <!-- Mobile Menu -->
+    <nav class="mobile-menu" :class="{ open: mobileMenuOpen }">
+      <div class="mobile-menu-header">
+        <img src="/logo.webp" alt="ODINENX" class="mobile-logo" />
+      </div>
+      <div class="mobile-nav">
+        <button @click="navigateTo('/dashboard')" class="mobile-nav-item active">Dashboard</button>
+        <button @click="navigateTo('/bet')" class="mobile-nav-item">BET</button>
+        <button @click="navigateTo('/trade')" class="mobile-nav-item">TRADE</button>
+        <button @click="navigateTo('/cartola')" class="mobile-nav-item">Cartola FC</button>
+        <button @click="navigateTo('/alerts')" class="mobile-nav-item">Alertas</button>
+        <button @click="navigateTo('/history')" class="mobile-nav-item">Histórico</button>
+        <button @click="navigateTo('/settings')" class="mobile-nav-item">Configurações</button>
+      </div>
+      <button @click="logout" class="mobile-logout">Sair</button>
+    </nav>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -869,6 +910,102 @@ const handleCancelSubscription = async () => {
   color: rgba(255, 255, 255, 0.5);
 }
 
+/* ===== MOBILE MENU ===== */
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border: none;
+  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-menu-btn svg {
+  width: 28px;
+  height: 28px;
+  stroke: #000;
+}
+
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 998;
+}
+
+.mobile-menu {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #0a0a0a;
+  border-top-left-radius: 25px;
+  border-top-right-radius: 25px;
+  padding: 25px;
+  z-index: 999;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+}
+
+.mobile-menu.open {
+  transform: translateY(0);
+}
+
+.mobile-menu-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.mobile-logo {
+  height: 35px;
+}
+
+.mobile-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-nav-item {
+  padding: 15px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: left;
+}
+
+.mobile-nav-item:hover,
+.mobile-nav-item.active {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.mobile-logout {
+  width: 100%;
+  margin-top: 15px;
+  padding: 15px;
+  background: transparent;
+  border: 1px solid #ef4444;
+  border-radius: 12px;
+  color: #ef4444;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* Responsive */
 @media (max-width: 1200px) {
   .stats-grid,
@@ -880,6 +1017,18 @@ const handleCancelSubscription = async () => {
 @media (max-width: 968px) {
   .sidebar {
     display: none;
+  }
+  
+  .mobile-menu-btn {
+    display: flex;
+  }
+  
+  .mobile-overlay {
+    display: block;
+  }
+  
+  .mobile-menu {
+    display: block;
   }
   
   .main-content {
@@ -911,6 +1060,7 @@ const handleCancelSubscription = async () => {
   
   .main-content {
     padding: 20px;
+    padding-bottom: 100px;
   }
 }
 
