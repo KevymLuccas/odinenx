@@ -57,13 +57,15 @@ export const plans = {
       'Cartola FC',
       'Histórico 90 dias',
       'Paper Trading',
+      'Sistema de Alertas',
       'Suporte prioritário'
     ],
     limits: {
       analysisPerDay: -1,
       historyDays: 90,
       paperTrading: true,
-      cartola: true
+      cartola: true,
+      alerts: true
     }
   },
   elite: {
@@ -75,6 +77,7 @@ export const plans = {
     features: [
       'Tudo do Pro',
       'Histórico ilimitado',
+      'Painel Administrativo',
       'Relatórios avançados',
       'Suporte prioritário'
     ],
@@ -83,6 +86,8 @@ export const plans = {
       historyDays: -1,
       paperTrading: true,
       cartola: true,
+      alerts: true,
+      admin: true,
       reports: true
     }
   }
@@ -105,17 +110,15 @@ export const hasAccess = (subscription, feature) => {
     case 'bet':
       return true // Todos podem acessar BET básico
     case 'trade':
-      return true // Todos podem acessar TRADE básico
+      return ['pro', 'elite'].includes(planId) // Só Pro/Elite
     case 'cartola':
       return plan.limits?.cartola === true // Só Pro/Elite
     case 'alerts':
       return plan.limits?.alerts === true // Só Pro/Elite
     case 'paperTrading':
       return plan.limits?.paperTrading === true // Só Pro/Elite
-    case 'api':
-      return plan.limits?.api === true // Só Elite
-    case 'webhooks':
-      return plan.limits?.webhooks === true // Só Elite
+    case 'admin':
+      return plan.limits?.admin === true // Só Elite
     case 'analysisUnlimited':
       return plan.limits?.analysisPerDay === -1 // Basic+
     case 'fullHistory':

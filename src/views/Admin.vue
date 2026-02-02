@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
-import { getSubscriptionStatus, plans } from '../lib/stripe'
+import { getSubscriptionStatus, plans, hasAccess } from '../lib/stripe'
 
 const router = useRouter()
 const user = ref(null)
@@ -30,8 +30,12 @@ onMounted(async () => {
   user.value = session.user
   subscription.value = await getSubscriptionStatus(session.user.id)
   
-  // Verificar se é admin (por enquanto, qualquer usuário autenticado pode acessar)
-  // TODO: Implementar verificação de role admin real
+  // 🔒 CONTROLE DE ACESSO: Apenas Elite pode acessar Admin
+  if (!hasAccess(subscription.value, 'admin')) {
+    alert('❌ Acesso Negado!\n\nApenas usuários do plano Elite podem acessar o Painel Administrativo.')
+    router.push('/dashboard')
+    return
+  }
   
   await loadAdminData()
   loading.value = false
