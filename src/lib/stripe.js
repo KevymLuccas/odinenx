@@ -54,16 +54,14 @@ export const plans = {
     popular: true,
     features: [
       'Tudo do Basic',
-      'IA Completa',
-      'Alertas em tempo real',
+      'Cartola FC',
+      'Histórico 90 dias',
       'Paper Trading',
-      'Cartola FC com IA',
       'Suporte prioritário'
     ],
     limits: {
       analysisPerDay: -1,
       historyDays: 90,
-      alerts: true,
       paperTrading: true,
       cartola: true
     }
@@ -76,10 +74,10 @@ export const plans = {
     stripePriceId: 'price_1SvMemD3mufAbT6cRHEhLdAM',
     features: [
       'Tudo do Pro',
+      'Histórico ilimitado',
       'Acesso à API',
       'Webhooks',
-      'Suporte 24/7',
-      'Consultoria mensal'
+      'Suporte prioritário'
     ],
     limits: {
       analysisPerDay: -1,

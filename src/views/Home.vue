@@ -120,20 +120,20 @@ const logout = async () => {
           </div>
           <div class="stat-divider"></div>
           <div class="stat">
-            <span class="stat-number">IA</span>
-            <span class="stat-label">Análise Inteligente</span>
+            <span class="stat-number">10+</span>
+            <span class="stat-label">Ligas Monitoradas</span>
           </div>
           <div class="stat-divider"></div>
           <div class="stat">
             <span class="stat-number">Live</span>
-            <span class="stat-label">Dados em Tempo Real</span>
+            <span class="stat-label">APIs em Tempo Real</span>
           </div>
         </div>
       </section>
 
       <!-- Módulos Section -->
       <section id="modules" class="modules">
-        <h2 class="section-title">Dois mundos. <span class="gradient-text">Uma inteligência.</span></h2>
+        <h2 class="section-title">Dois mundos. <span class="gradient-text">Uma plataforma.</span></h2>
         
         <div class="modules-grid">
           <!-- Módulo BET -->
@@ -141,14 +141,14 @@ const logout = async () => {
             <div class="module-icon"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2a10 10 0 0110 10M12 2a10 10 0 00-10 10M12 2v20M2 12h20" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
             <div class="module-badge">MÓDULO BET</div>
             <h3>Apostas Esportivas</h3>
-            <p>Análises completas de futebol com IA que calcula probabilidades reais.</p>
+            <p>Análises de futebol com dados reais e cálculo estatístico de probabilidades.</p>
             
             <ul class="module-features">
-              <li>✓ Resultado final, Over/Under, BTTS</li>
-              <li>✓ Escanteios e Cartões</li>
-              <li>✓ Handicap Asiático</li>
-              <li>✓ Histórico de confrontos</li>
-              <li>✓ Desfalques e lesões</li>
+              <li>✓ Probabilidades: Casa, Empate, Fora</li>
+              <li>✓ Análise Over/Under 2.5</li>
+              <li>✓ Odds de múltiplas casas</li>
+              <li>✓ Dados de 10+ ligas</li>
+              <li>✓ Atualização em tempo real</li>
             </ul>
             
             <div class="module-leagues">
@@ -166,11 +166,11 @@ const logout = async () => {
             <p>Sinais precisos com entrada, alvo e stop. Análise técnica automatizada.</p>
             
             <ul class="module-features">
-              <li>✓ Mini Índice (WIN) e Mini Dólar (WDO)</li>
-              <li>✓ Ações B3 e Criptomoedas</li>
-              <li>✓ RSI, MACD, Médias Móveis</li>
-              <li>✓ Leitura de Fluxo</li>
-              <li>✓ Scanner de Oportunidades</li>
+              <li>✓ Criptomoedas (Bitcoin, ETH, etc)</li>
+              <li>✓ Ações B3 (PETR4, VALE3, etc)</li>
+              <li>✓ Forex (USD/BRL, EUR/BRL)</li>
+              <li>✓ Preços em tempo real</li>
+              <li>✓ Registro de operações</li>
             </ul>
             
             <div class="module-markets">
@@ -182,40 +182,40 @@ const logout = async () => {
         </div>
       </section>
 
-      <!-- IA Section -->
+      <!-- Como Funciona Section -->
       <section class="ia-section">
         <div class="ia-content">
           <div class="ia-text">
-            <h2>Inteligência Artificial <span class="gradient-text">de verdade</span></h2>
-            <p>Não é achismo. É matemática, estatística e machine learning trabalhando juntos.</p>
+            <h2>Como <span class="gradient-text">funciona</span></h2>
+            <p>Dados de APIs reais, cálculos estatísticos e transparência total.</p>
             
             <div class="ia-features">
               <div class="ia-feature">
                 <div class="ia-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
                 <div>
-                  <h4>Probabilidade Real</h4>
-                  <p>Cálculo preciso baseado em milhares de dados</p>
+                  <h4>Dados em Tempo Real</h4>
+                  <p>APIs de Football-Data, CoinGecko e BRAPI</p>
                 </div>
               </div>
               <div class="ia-feature">
                 <div class="ia-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
                 <div>
-                  <h4>Identificação de Padrões</h4>
-                  <p>A IA encontra o que o olho humano não vê</p>
+                  <h4>Cálculo Estatístico</h4>
+                  <p>Probabilidades baseadas em posição e forma</p>
                 </div>
               </div>
               <div class="ia-feature">
                 <div class="ia-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></div>
                 <div>
-                  <h4>Backtesting</h4>
-                  <p>Estratégias testadas em dados históricos</p>
+                  <h4>Registro de Operações</h4>
+                  <p>Histórico completo das suas operações</p>
                 </div>
               </div>
               <div class="ia-feature">
                 <div class="ia-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
                 <div>
-                  <h4>Aprendizado Contínuo</h4>
-                  <p>A IA evolui a cada operação</p>
+                  <h4>Sem Promessas</h4>
+                  <p>Você decide, nós informamos</p>
                 </div>
               </div>
             </div>
@@ -225,19 +225,24 @@ const logout = async () => {
             <div class="ia-card">
               <div class="ia-card-header">
                 <span class="live-dot"></span>
-                ANÁLISE AO VIVO
+                FONTES DE DADOS
               </div>
               <div class="ia-card-body">
                 <div class="analysis-item">
-                  <span>Flamengo x Palmeiras</span>
-                  <span class="confidence high">87% confiança</span>
+                  <span>Football-Data.org</span>
+                  <span class="confidence high">Futebol</span>
                 </div>
-                <div class="analysis-result">
-                  <span class="result-label">Over 2.5 Gols</span>
-                  <span class="result-odd">@1.95</span>
+                <div class="analysis-item">
+                  <span>CoinGecko API</span>
+                  <span class="confidence high">Crypto</span>
                 </div>
-                <div class="analysis-bar">
-                  <div class="bar-fill" style="width: 87%"></div>
+                <div class="analysis-item">
+                  <span>BRAPI</span>
+                  <span class="confidence high">Ações BR</span>
+                </div>
+                <div class="analysis-item">
+                  <span>ExchangeRate API</span>
+                  <span class="confidence high">Forex</span>
                 </div>
               </div>
             </div>
@@ -304,8 +309,8 @@ const logout = async () => {
             </div>
             <ul class="price-features">
               <li>✓ Tudo do Basic</li>
-              <li>✓ IA Completa</li>
-              <li>✓ Alertas em tempo real</li>
+              <li>✓ Cartola FC</li>
+              <li>✓ Histórico 90 dias</li>
               <li>✓ Paper Trading</li>
               <li>✓ Suporte prioritário</li>
             </ul>
@@ -324,10 +329,10 @@ const logout = async () => {
             </div>
             <ul class="price-features">
               <li>✓ Tudo do Pro</li>
+              <li>✓ Histórico ilimitado</li>
               <li>✓ Acesso à API</li>
               <li>✓ Webhooks</li>
-              <li>✓ Suporte 24/7</li>
-              <li>✓ Consultoria mensal</li>
+              <li>✓ Suporte prioritário</li>
             </ul>
             <router-link to="/register" class="btn btn-outline">Assinar Elite</router-link>
           </div>
