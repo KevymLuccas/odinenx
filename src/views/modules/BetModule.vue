@@ -2,11 +2,12 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../../lib/supabase'
-import { getSubscriptionStatus, plans, hasAccess } from '../../lib/stripe'
+import { getSubscriptionStatus, plans, hasAccess, isAdmin as checkIsAdmin } from '../../lib/stripe'
 
 const router = useRouter()
 const user = ref(null)
 const subscription = ref(null)
+const userIsAdmin = ref(false)
 const mobileMenuOpen = ref(false)
 const loading = ref(true)
 const jogoSelecionado = ref(null)
@@ -41,6 +42,9 @@ onMounted(async () => {
   if (!session) { router.push('/login'); return }
   user.value = session.user
   subscription.value = await getSubscriptionStatus(session.user.id)
+  
+  // Verificar se é admin
+  userIsAdmin.value = await checkIsAdmin(session.user.id)
   
   // Calcular info do trial
   calcularTrialInfo()
@@ -156,8 +160,15 @@ const carregarJogos = async () => {
       throw new Error('Nenhum jogo agendado para esta liga no momento')
     }
     
-    // Processar jogos
-    const jogosProcessados = data.matches.slice(0, 15).map(match => {
+    // Processar jogos com limite baseado no plano
+    const planId = subscription.value?.plan || 'free'
+    let limiteJogos = 15 // Free e Basic
+    
+    // Admin e Elite = limite máximo
+    if (userIsAdmin.value || planId === 'elite') limiteJogos = 50
+    else if (planId === 'pro') limiteJogos = 30
+    
+    const jogosProcessados = data.matches.slice(0, limiteJogos).map(match => {
       const analise = calcularAnalise(match)
       
       return {
