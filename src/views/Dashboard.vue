@@ -32,8 +32,8 @@ onMounted(async () => {
   // Check if user is admin
   userIsAdmin.value = await checkIsAdmin(session.user.id)
   
-  // Verificar status do trial para usuários free
-  if (!subscription.value?.plan || subscription.value.plan === 'free') {
+  // Verificar status do trial para usuários free (ADMIN IGNORA)
+  if (!userIsAdmin.value && (!subscription.value?.plan || subscription.value.plan === 'free')) {
     trialStatus.value = await getTrialStatus(session.user.id)
     
     // 🚨 BLOQUEIO EFETIVO: Se trial expirou, redirecionar para página específica

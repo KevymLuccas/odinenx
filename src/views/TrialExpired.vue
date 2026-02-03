@@ -65,16 +65,26 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
-import { getTrialStatus } from '../lib/stripe'
+import { getTrialStatus, isAdmin } from '../lib/stripe'
 
 const router = useRouter()
 const trialData = ref(null)
+const userIsAdmin = ref(false)
 
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
   
   if (!session) {
     router.push('/login')
+    return
+  }
+  
+  // Verificar se é admin
+  userIsAdmin.value = await isAdmin(session.user.id)
+  
+  // Se for admin, redirecionar direto para dashboard
+  if (userIsAdmin.value) {
+    router.push('/dashboard')
     return
   }
   
