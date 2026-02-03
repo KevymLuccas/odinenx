@@ -73,7 +73,7 @@ const loadAlerts = async () => {
   try {
     // Carregar configurações de alertas
     const { data: alertsData, error: alertsError } = await supabase
-      .from('alerts_config')
+      .from('alerts')
       .select('*')
       .eq('user_id', user.value.id)
       .order('created_at', { ascending: false })
@@ -177,7 +177,7 @@ const deleteAlert = async (alertId) => {
   
   try {
     const { error } = await supabase
-      .from('alerts_config')
+      .from('alerts')
       .delete()
       .eq('id', alertId)
     
@@ -549,6 +549,13 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
   padding: 2rem;
 }
 
+/* Base nav-icon styles */
+.nav-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
 .alerts-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -770,6 +777,49 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
   
   .modal {
     width: 95%;
+  }
+  
+  /* Fix mobile navigation icons */
+  .nav-icon {
+    width: 20px;
+    height: 20px;
+  }
+  
+  /* Fix mobile menu layout */
+  .mobile-menu {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #0a0a0a;
+    border-top-left-radius: 25px;
+    border-top-right-radius: 25px;
+    padding: 25px;
+    z-index: 999;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .mobile-menu.open {
+    transform: translateY(0);
+  }
+  
+  .mobile-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .mobile-nav-item {
+    padding: 15px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #fff;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: left;
   }
 }
 </style>
