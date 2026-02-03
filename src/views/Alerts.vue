@@ -83,7 +83,7 @@ const loadAlerts = async () => {
     
     // Carregar histórico
     const { data: historyData, error: historyError } = await supabase
-      .from('alerts_history')
+      .from('usage_history')
       .select('*')
       .eq('user_id', user.value.id)
       .order('created_at', { ascending: false })
@@ -192,7 +192,7 @@ const deleteAlert = async (alertId) => {
 const markAsRead = async (historyId) => {
   try {
     const { error } = await supabase
-      .from('alerts_history')
+      .from('usage_history')
       .update({ is_read: true })
       .eq('id', historyId)
     
