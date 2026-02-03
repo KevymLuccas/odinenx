@@ -27,8 +27,6 @@ const editForm = ref({
 const saving = ref(false)
 
 onMounted(async () => {
-  console.log('🔍 Admin.vue: Iniciando verificação...')
-  
   const { data: { session } } = await supabase.auth.getSession()
   
   if (!session) { 

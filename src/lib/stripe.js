@@ -267,16 +267,11 @@ export const isAdmin = async (userId) => {
     
     // Verificar pelo email atual
     const { data: { user } } = await supabase.auth.getUser()
-    console.log('🔐 isAdmin - Email do usuário:', user?.email)
-    console.log('🔐 isAdmin - Emails admin:', adminEmails)
     
     if (user?.email) {
       const emailLower = user.email.toLowerCase()
-      console.log('🔐 isAdmin - Email lowercase:', emailLower)
-      console.log('🔐 isAdmin - Está na lista?', adminEmails.includes(emailLower))
       
       if (adminEmails.includes(emailLower)) {
-        console.log('✅ isAdmin - APROVADO por email!')
         return true
       }
     }
@@ -289,15 +284,11 @@ export const isAdmin = async (userId) => {
         .eq('id', userId)
         .single()
       
-      console.log('🔐 isAdmin - Profile encontrado:', profile)
-      
       if (profile?.is_admin || profile?.role === 'admin') {
-        console.log('✅ isAdmin - APROVADO por profile!')
         return true
       }
     }
     
-    console.log('❌ isAdmin - NÃO aprovado')
     return false
   } catch (error) {
     console.error('Erro ao verificar admin:', error)
