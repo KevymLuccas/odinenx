@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+# Sitemap
+Sitemap: https://odinenx.vercel.app/sitemap.xml
+
+# Crawl delay
+Crawl-delay: 1
+
+# Google Specific
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+# Bing Specific  
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1

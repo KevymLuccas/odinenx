@@ -21,7 +21,7 @@ const handleLogin = async () => {
 
     if (authError) throw authError
 
-    router.push('/dashboard')
+    router.push('/dashboard?login=success')
   } catch (err) {
     error.value = err.message
   } finally {
@@ -83,11 +83,23 @@ const handleLogin = async () => {
 <style scoped>
 .auth-page {
   min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
   background: #000;
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
   justify-content: center;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
   align-items: center;
   padding: 20px;
+  padding-top: calc(20px + env(safe-area-inset-top));
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  padding-left: calc(20px + env(safe-area-inset-left));
+  padding-right: calc(20px + env(safe-area-inset-right));
 }
 
 .auth-container {
@@ -97,13 +109,17 @@ const handleLogin = async () => {
   padding: 40px;
   width: 100%;
   max-width: 420px;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .back-link {
   color: rgba(255, 255, 255, 0.5);
   text-decoration: none;
   font-size: 0.9rem;
+  -webkit-transition: color 0.3s;
   transition: color 0.3s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .back-link:hover {
@@ -132,13 +148,23 @@ const handleLogin = async () => {
 }
 
 .auth-form {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
   flex-direction: column;
   gap: 20px;
 }
 
 .form-group {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
   flex-direction: column;
   gap: 8px;
 }
@@ -155,8 +181,12 @@ const handleLogin = async () => {
   border-radius: 10px;
   padding: 15px;
   color: #fff;
-  font-size: 1rem;
+  font-size: 16px; /* Previne zoom no iOS */
+  -webkit-transition: all 0.3s;
   transition: all 0.3s;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .form-group input:focus {
@@ -187,10 +217,15 @@ const handleLogin = async () => {
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
+  -webkit-transition: all 0.3s;
   transition: all 0.3s;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btn-submit:hover:not(:disabled) {
+  -webkit-transform: translateY(-2px);
   transform: translateY(-2px);
   box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2);
 }
@@ -201,7 +236,11 @@ const handleLogin = async () => {
 }
 
 .divider {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
   align-items: center;
   margin: 25px 0;
 }
@@ -209,6 +248,8 @@ const handleLogin = async () => {
 .divider::before,
 .divider::after {
   content: '';
+  -webkit-box-flex: 1;
+  -webkit-flex: 1;
   flex: 1;
   height: 1px;
   background: rgba(255, 255, 255, 0.1);
@@ -221,8 +262,14 @@ const handleLogin = async () => {
 }
 
 .btn-google {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
   align-items: center;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
   justify-content: center;
   gap: 12px;
   width: 100%;
@@ -234,7 +281,9 @@ const handleLogin = async () => {
   font-weight: 500;
   color: #fff;
   cursor: pointer;
+  -webkit-transition: all 0.3s;
   transition: all 0.3s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btn-google:hover:not(:disabled) {
@@ -257,6 +306,7 @@ const handleLogin = async () => {
   color: #fff;
   text-decoration: none;
   font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .auth-footer a:hover {
@@ -280,6 +330,7 @@ const handleLogin = async () => {
   
   .form-group input {
     padding: 14px;
+    font-size: 16px; /* Mantém 16px para evitar zoom no iOS */
   }
   
   .btn-submit {

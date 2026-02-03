@@ -1,16 +1,22 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, computed, inject } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { supabase } from '../lib/supabase'
 import { getSubscriptionStatus, createCustomerPortal, cancelSubscription, plans, getTrialStatus } from '../lib/stripe'
+import ViewerCounter from '../components/ViewerCounter.vue'
 
 const router = useRouter()
+const route = useRoute()
 const user = ref(null)
 const subscription = ref(null)
 const loading = ref(true)
 const showCancelModal = ref(false)
 const canceling = ref(false)
 const trialStatus = ref(null)
+const isAdmin = ref(false)
+
+// Toast function from App.vue
+const showToast = inject('showToast', () => {})
 
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
@@ -23,6 +29,10 @@ onMounted(async () => {
   user.value = session.user
   subscription.value = await getSubscriptionStatus(session.user.id)
   
+  // Check if user is admin
+  isAdmin.value = session.user.email === 'admin@odinenx.com' || 
+                  session.user.user_metadata?.role === 'admin'
+  
   // Verificar status do trial para usuários free
   if (!subscription.value?.plan || subscription.value.plan === 'free') {
     trialStatus.value = await getTrialStatus(session.user.id)
@@ -32,6 +42,15 @@ onMounted(async () => {
       router.push('/trial-expired')
       return
     }
+  }
+  
+  // Show toast for login success
+  if (route.query.login === 'success') {
+    showToast('welcome', 'Bem-vindo de volta! 👋', 'Bom te ver novamente. Confira os palpites do dia!')
+  }
+  
+  if (route.query.payment === 'success') {
+    showToast('payment', 'Pagamento confirmado! 💳', 'Seu plano foi ativado. Acesso completo liberado!')
   }
   
   loading.value = false
@@ -99,6 +118,9 @@ const navigateTo = (path) => {
 
 <template>
   <div class="dashboard">
+    <!-- Admin Viewer Counter -->
+    <ViewerCounter v-if="isAdmin" :isAdmin="true" class="admin-viewer-counter" />
+    
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-header">
@@ -490,9 +512,22 @@ const navigateTo = (path) => {
 <style scoped>
 .dashboard {
   display: flex;
+  display: -webkit-box;
+  display: -webkit-flex;
   min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
   background: #000;
   color: #fff;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Admin Viewer Counter */
+.admin-viewer-counter {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
 }
 
 /* Sidebar */
@@ -501,11 +536,21 @@ const navigateTo = (path) => {
   background: rgba(255, 255, 255, 0.02);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
+  display: -webkit-box;
+  display: -webkit-flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
   flex-direction: column;
   position: fixed;
   height: 100vh;
+  height: 100dvh;
+  height: -webkit-fill-available;
   left: 0;
   top: 0;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .sidebar-header {
@@ -518,13 +563,19 @@ const navigateTo = (path) => {
 }
 
 .sidebar-nav {
+  -webkit-box-flex: 1;
   flex: 1;
   padding: 20px 15px;
   display: flex;
+  display: -webkit-box;
+  display: -webkit-flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
   flex-direction: column;
   gap: 5px;
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .nav-category {
@@ -610,15 +661,23 @@ const navigateTo = (path) => {
 
 /* Main Content */
 .main-content {
+  -webkit-box-flex: 1;
   flex: 1;
   margin-left: 260px;
   padding: 30px;
+  padding-top: calc(30px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(30px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Header */
 .dashboard-header {
   display: flex;
+  display: -webkit-box;
+  display: -webkit-flex;
+  -webkit-box-pack: justify;
   justify-content: space-between;
+  -webkit-box-align: center;
   align-items: center;
   margin-bottom: 40px;
 }
@@ -982,8 +1041,8 @@ const navigateTo = (path) => {
 .mobile-menu-btn {
   display: none;
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: calc(20px + env(safe-area-inset-top));
+  right: calc(20px + env(safe-area-inset-right));
   width: 50px;
   height: 50px;
   border-radius: 12px;
@@ -992,8 +1051,12 @@ const navigateTo = (path) => {
   box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
   z-index: 1000;
   cursor: pointer;
+  -webkit-box-align: center;
   align-items: center;
+  -webkit-box-pack: center;
   justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
 }
 
 .mobile-menu-btn svg {
@@ -1008,6 +1071,8 @@ const navigateTo = (path) => {
   inset: 0;
   background: rgba(0, 0, 0, 0.7);
   z-index: 998;
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
 }
 
 .mobile-menu {
@@ -1020,12 +1085,20 @@ const navigateTo = (path) => {
   border-top-left-radius: 25px;
   border-top-right-radius: 25px;
   padding: 25px;
+  padding-bottom: calc(25px + env(safe-area-inset-bottom));
   z-index: 999;
+  -webkit-transform: translateY(100%);
   transform: translateY(100%);
+  -webkit-transition: -webkit-transform 0.3s ease;
   transition: transform 0.3s ease;
+  max-height: 80vh;
+  max-height: 80dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .mobile-menu.open {
+  -webkit-transform: translateY(0);
   transform: translateY(0);
 }
 
@@ -1039,7 +1112,12 @@ const navigateTo = (path) => {
 }
 
 .mobile-nav {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
   flex-direction: column;
   gap: 8px;
 }
@@ -1052,8 +1130,11 @@ const navigateTo = (path) => {
   color: #fff;
   font-weight: 500;
   cursor: pointer;
+  -webkit-transition: all 0.3s;
   transition: all 0.3s;
   text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
 }
 
 .mobile-nav-item:hover,
@@ -1072,6 +1153,7 @@ const navigateTo = (path) => {
   color: #ef4444;
   font-weight: 600;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Responsive */
@@ -1088,6 +1170,8 @@ const navigateTo = (path) => {
   }
   
   .mobile-menu-btn {
+    display: -webkit-box;
+    display: -webkit-flex;
     display: flex;
   }
   
@@ -1101,21 +1185,32 @@ const navigateTo = (path) => {
   
   .main-content {
     margin-left: 0;
+    padding-left: calc(20px + env(safe-area-inset-left));
+    padding-right: calc(20px + env(safe-area-inset-right));
   }
   
   .dashboard-header {
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+    -webkit-flex-direction: column;
     flex-direction: column;
     gap: 20px;
     text-align: center;
   }
   
   .plan-card-dashboard {
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+    -webkit-flex-direction: column;
     flex-direction: column;
     text-align: center;
     gap: 25px;
   }
   
   .plan-actions-dash {
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+    -webkit-flex-direction: column;
     flex-direction: column;
   }
 }
@@ -1128,7 +1223,9 @@ const navigateTo = (path) => {
   
   .main-content {
     padding: 20px;
-    padding-bottom: 100px;
+    padding-left: calc(20px + env(safe-area-inset-left));
+    padding-right: calc(20px + env(safe-area-inset-right));
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
   }
 }
 

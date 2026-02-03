@@ -1203,8 +1203,12 @@ const navigateTo = (path) => {
 <style scoped>
 /* ===== LAYOUT PRINCIPAL ===== */
 .dashboard {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
   background: #000;
   color: #fff;
 }
@@ -1214,11 +1218,21 @@ const navigateTo = (path) => {
   width: 260px;
   background: rgba(10, 10, 10, 0.95);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
   flex-direction: column;
   position: fixed;
   height: 100vh;
+  height: 100dvh;
   z-index: 100;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
 }
 
 .sidebar-header {
@@ -1232,12 +1246,20 @@ const navigateTo = (path) => {
 }
 
 .sidebar-nav {
+  -webkit-box-flex: 1;
+  -webkit-flex: 1;
   flex: 1;
   padding: 20px 15px;
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
   flex-direction: column;
   gap: 5px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .nav-category {
@@ -1254,15 +1276,21 @@ const navigateTo = (path) => {
 }
 
 .nav-item {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
   align-items: center;
   gap: 12px;
   padding: 12px 15px;
   border-radius: 10px;
   color: rgba(255, 255, 255, 0.6);
   text-decoration: none;
+  -webkit-transition: all 0.3s;
   transition: all 0.3s;
   font-weight: 500;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .nav-item:hover {
@@ -1297,8 +1325,14 @@ const navigateTo = (path) => {
 
 .logout-btn {
   width: 100%;
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
   align-items: center;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
   justify-content: center;
   gap: 10px;
   padding: 12px;
@@ -1307,7 +1341,9 @@ const navigateTo = (path) => {
   border-radius: 10px;
   color: rgba(255, 255, 255, 0.6);
   cursor: pointer;
+  -webkit-transition: all 0.3s;
   transition: all 0.3s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .logout-btn:hover {
@@ -1324,8 +1360,8 @@ const navigateTo = (path) => {
 .mobile-menu-btn {
   display: none;
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: calc(20px + env(safe-area-inset-top));
+  right: calc(20px + env(safe-area-inset-right));
   width: 50px;
   height: 50px;
   border-radius: 12px;
@@ -1334,8 +1370,12 @@ const navigateTo = (path) => {
   box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
   z-index: 1000;
   cursor: pointer;
+  -webkit-box-align: center;
   align-items: center;
+  -webkit-box-pack: center;
   justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
 }
 
 .mobile-menu-btn svg {
@@ -1350,6 +1390,8 @@ const navigateTo = (path) => {
   inset: 0;
   background: rgba(0, 0, 0, 0.7);
   z-index: 998;
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
 }
 
 .mobile-menu {
@@ -1362,12 +1404,22 @@ const navigateTo = (path) => {
   border-top-left-radius: 25px;
   border-top-right-radius: 25px;
   padding: 25px;
+  padding-bottom: calc(25px + env(safe-area-inset-bottom));
   z-index: 999;
+  -webkit-transform: translateY(100%);
   transform: translateY(100%);
+  -webkit-transition: -webkit-transform 0.3s ease;
   transition: transform 0.3s ease;
+  max-height: 80vh;
+  max-height: 80dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
 }
 
 .mobile-menu.open {
+  -webkit-transform: translateY(0);
   transform: translateY(0);
 }
 
@@ -1381,7 +1433,12 @@ const navigateTo = (path) => {
 }
 
 .mobile-nav {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
   flex-direction: column;
   gap: 8px;
 }
@@ -1394,8 +1451,10 @@ const navigateTo = (path) => {
   color: #fff;
   font-weight: 500;
   cursor: pointer;
+  -webkit-transition: all 0.3s;
   transition: all 0.3s;
   text-align: left;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .mobile-nav-item:hover,
@@ -1414,29 +1473,46 @@ const navigateTo = (path) => {
   color: #ef4444;
   font-weight: 600;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ===== MAIN CONTENT ===== */
 .main-content {
+  -webkit-box-flex: 1;
+  -webkit-flex: 1;
   flex: 1;
   margin-left: 260px;
   padding: 30px;
+  padding-top: calc(30px + env(safe-area-inset-top));
+  padding-bottom: calc(30px + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ===== HEADER ===== */
 .dashboard-header {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
   justify-content: space-between;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
   align-items: center;
   margin-bottom: 30px;
   padding-bottom: 25px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  -webkit-flex-wrap: wrap;
   flex-wrap: wrap;
   gap: 15px;
 }
 
 .header-left h1 {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
   align-items: center;
   gap: 12px;
   font-size: 1.8rem;
@@ -1454,6 +1530,8 @@ const navigateTo = (path) => {
 }
 
 .header-stats {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
   gap: 15px;
 }
@@ -1463,8 +1541,15 @@ const navigateTo = (path) => {
   border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 10px 18px;
   border-radius: 12px;
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
   flex-direction: column;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
   align-items: center;
   gap: 3px;
 }

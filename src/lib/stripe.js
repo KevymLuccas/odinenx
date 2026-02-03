@@ -19,13 +19,18 @@ export const plans = {
     price: 0,
     interval: 'month',
     features: [
-      '3 análises por dia',
-      'Dashboard básico',
+      'Todos os palpites do dia',
+      'Probabilidades básicas',
+      'Odds estimadas',
       'Histórico 7 dias'
     ],
     limits: {
-      analysisPerDay: 3,
-      historyDays: 7
+      palpitesPerDay: -1, // Ilimitado
+      palpitesVisiveis: -1, // Todos visíveis
+      historyDays: 7,
+      palpiteCompleto: false, // Não vê análise H2H
+      oddsMultiplas: false,
+      estatisticasH2H: false
     }
   },
   basic: {
@@ -35,14 +40,19 @@ export const plans = {
     interval: 'month',
     stripePriceId: 'price_1SvMedD3mufAbT6c994DmZYw',
     features: [
-      'Análises ilimitadas',
-      'Dashboard completo',
+      'Palpites ilimitados',
+      'Análise completa dos jogos',
+      'Estatísticas H2H',
       'Histórico 30 dias',
-      'Filtros de risco'
+      'Odds de múltiplas casas'
     ],
     limits: {
-      analysisPerDay: -1,
-      historyDays: 30
+      palpitesPerDay: -1,
+      palpitesVisiveis: -1,
+      historyDays: 30,
+      palpiteCompleto: true,
+      oddsMultiplas: true,
+      estatisticasH2H: true
     }
   },
   pro: {
@@ -54,16 +64,20 @@ export const plans = {
     popular: true,
     features: [
       'Tudo do Basic',
+      'Módulo TRADE completo',
       'Cartola FC',
       'Histórico 90 dias',
-      'Paper Trading',
       'Sistema de Alertas',
       'Suporte prioritário'
     ],
     limits: {
-      analysisPerDay: -1,
+      palpitesPerDay: -1,
+      palpitesVisiveis: -1,
       historyDays: 90,
-      paperTrading: true,
+      palpiteCompleto: true,
+      oddsMultiplas: true,
+      estatisticasH2H: true,
+      trade: true,
       cartola: true,
       alerts: true
     }
@@ -77,14 +91,17 @@ export const plans = {
     features: [
       'Tudo do Pro',
       'Histórico ilimitado',
-      'Painel Administrativo',
       'Relatórios avançados',
-      'Suporte prioritário'
+      'Suporte VIP 24/7'
     ],
     limits: {
-      analysisPerDay: -1,
+      palpitesPerDay: -1,
+      palpitesVisiveis: -1,
       historyDays: -1,
-      paperTrading: true,
+      palpiteCompleto: true,
+      oddsMultiplas: true,
+      estatisticasH2H: true,
+      trade: true,
       cartola: true,
       alerts: true,
       admin: true,
@@ -102,6 +119,11 @@ export const priceIdToPlan = {
 
 // Verificar se usuário tem acesso a um recurso específico
 export const hasAccess = async (subscription, feature, userId = null) => {
+  // Verificar se é admin primeiro
+  if (userId && await isAdmin(userId)) {
+    return true // Admins têm acesso a tudo
+  }
+
   const planId = subscription?.plan || 'free'
   const plan = plans[planId] || plans.free
   
@@ -231,8 +253,98 @@ export const getTrialStatus = async (userId) => {
   }
 }
 
-// Calcular dias restantes do trial
-const calculateTrialDays = (createdAt) => {
+// Verificar se usuário é administrador
+export const isAdmin = async (userId) => {
+  try {
+    // Lista de emails de administradores
+    const adminEmails = [
+      'administrador@fantomstore.com.br',
+      'admin@fantomstore.com.br',
+      'odinenx@fantomstore.com.br',
+      'kevynhoooz@gmail.com',
+      'admin@odinenx.com'
+    ]
+    
+    // Verificar pelo email atual
+    const { data: { user } } = await supabase.auth.getUser()
+    console.log('🔐 isAdmin - Email do usuário:', user?.email)
+    console.log('🔐 isAdmin - Emails admin:', adminEmails)
+    
+    if (user?.email) {
+      const emailLower = user.email.toLowerCase()
+      console.log('🔐 isAdmin - Email lowercase:', emailLower)
+      console.log('🔐 isAdmin - Está na lista?', adminEmails.includes(emailLower))
+      
+      if (adminEmails.includes(emailLower)) {
+        console.log('✅ isAdmin - APROVADO por email!')
+        return true
+      }
+    }
+    
+    // Verificar também na tabela profiles se is_admin = true
+    if (userId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin, role')
+        .eq('id', userId)
+        .single()
+      
+      console.log('🔐 isAdmin - Profile encontrado:', profile)
+      
+      if (profile?.is_admin || profile?.role === 'admin') {
+        console.log('✅ isAdmin - APROVADO por profile!')
+        return true
+      }
+    }
+    
+    console.log('❌ isAdmin - NÃO aprovado')
+    return false
+  } catch (error) {
+    console.error('Erro ao verificar admin:', error)
+    return false
+  }
+}
+
+// Obter plano efetivo (considerando planos concedidos)
+export const getEffectivePlan = async (userId) => {
+  try {
+    // Verificar se é admin primeiro
+    if (await isAdmin(userId)) {
+      return 'elite' // Admins têm acesso total
+    }
+
+    // Buscar subscription ativa
+    const { data: subscription } = await supabase
+      .from('subscriptions')
+      .select('price_id, status')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .single()
+
+    if (subscription?.price_id) {
+      const planMap = {
+        'price_1SvMedD3mufAbT6c994DmZYw': 'basic',
+        'price_1SMuL9D3mufAbT6cTJzOykjV': 'basic',
+        'price_1SMuOzD3mufAbT6cOKHNZPsT': 'pro',
+        'price_1SMuPwD3mufAbT6c5v8vxzLj': 'elite'
+      }
+      return planMap[subscription.price_id] || 'free'
+    }
+
+    return 'free'
+    
+  } catch (error) {
+    console.error('Erro ao obter plano efetivo:', error)
+    return 'free'
+  }
+}
+
+// Calcular status do trial
+export const calculateTrialStatus = (createdAt) => {
+  if (!createdAt) {
+    return { daysRemaining: 0, expired: true, startDate: null, daysUsed: 0 }
+  }
+  
   const startDate = new Date(createdAt)
   const currentDate = new Date()
   const diffTime = currentDate.getTime() - startDate.getTime()

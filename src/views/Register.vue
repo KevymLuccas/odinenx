@@ -62,7 +62,7 @@ const handleRegister = async () => {
         <div class="success-icon">✓</div>
         <h3>Conta criada!</h3>
         <p>Verifique seu email para confirmar.</p>
-        <router-link to="/login" class="btn-submit">Ir para Login</router-link>
+        <router-link to="/login?register=success" class="btn-submit">Ir para Login</router-link>
       </div>
 
       <!-- Formulário -->
@@ -136,11 +136,25 @@ const handleRegister = async () => {
 <style scoped>
 .auth-page {
   min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
   background: #000;
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
   justify-content: center;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
   align-items: center;
   padding: 20px;
+  padding-top: calc(20px + env(safe-area-inset-top));
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  padding-left: calc(20px + env(safe-area-inset-left));
+  padding-right: calc(20px + env(safe-area-inset-right));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .auth-container {
@@ -150,13 +164,17 @@ const handleRegister = async () => {
   padding: 40px;
   width: 100%;
   max-width: 420px;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .back-link {
   color: rgba(255, 255, 255, 0.5);
   text-decoration: none;
   font-size: 0.9rem;
+  -webkit-transition: color 0.3s;
   transition: color 0.3s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .back-link:hover {
@@ -195,9 +213,14 @@ const handleRegister = async () => {
   background: #fff;
   color: #000;
   border-radius: 50%;
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
   align-items: center;
-  justify-content: center;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
   font-size: 2rem;
   margin: 0 auto 20px;
 }
@@ -213,13 +236,23 @@ const handleRegister = async () => {
 }
 
 .auth-form {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
   flex-direction: column;
   gap: 18px;
 }
 
 .form-group {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
   flex-direction: column;
   gap: 8px;
 }
@@ -236,8 +269,12 @@ const handleRegister = async () => {
   border-radius: 10px;
   padding: 14px;
   color: #fff;
-  font-size: 1rem;
+  font-size: 16px; /* Previne zoom no iOS */
+  -webkit-transition: all 0.3s;
   transition: all 0.3s;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .form-group input:focus {
@@ -268,13 +305,18 @@ const handleRegister = async () => {
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
+  -webkit-transition: all 0.3s;
   transition: all 0.3s;
   text-decoration: none;
   text-align: center;
   display: block;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btn-submit:hover:not(:disabled) {
+  -webkit-transform: translateY(-2px);
   transform: translateY(-2px);
   box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2);
 }
@@ -285,7 +327,11 @@ const handleRegister = async () => {
 }
 
 .divider {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
   align-items: center;
   margin: 22px 0;
 }
@@ -293,6 +339,8 @@ const handleRegister = async () => {
 .divider::before,
 .divider::after {
   content: '';
+  -webkit-box-flex: 1;
+  -webkit-flex: 1;
   flex: 1;
   height: 1px;
   background: rgba(255, 255, 255, 0.1);
@@ -305,8 +353,14 @@ const handleRegister = async () => {
 }
 
 .btn-google {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
   align-items: center;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
   justify-content: center;
   gap: 12px;
   width: 100%;
@@ -318,7 +372,9 @@ const handleRegister = async () => {
   font-weight: 500;
   color: #fff;
   cursor: pointer;
+  -webkit-transition: all 0.3s;
   transition: all 0.3s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btn-google:hover:not(:disabled) {
@@ -341,6 +397,7 @@ const handleRegister = async () => {
   color: #fff;
   text-decoration: none;
   font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .auth-footer a:hover {
@@ -357,6 +414,7 @@ const handleRegister = async () => {
 .terms a {
   color: rgba(255, 255, 255, 0.6);
   text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .terms a:hover {
@@ -380,6 +438,7 @@ const handleRegister = async () => {
   
   .form-group input {
     padding: 14px;
+    font-size: 16px; /* Mantém 16px para evitar zoom no iOS */
   }
   
   .btn-submit {

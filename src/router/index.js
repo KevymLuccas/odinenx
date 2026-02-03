@@ -10,17 +10,23 @@ import BetModule from '../views/modules/BetModule.vue'
 import TradeModule from '../views/modules/TradeModule.vue'
 import CartolaModule from '../views/modules/CartolaModule.vue'
 import PaperTrading from '../views/PaperTrading.vue'
-import Admin from '../views/Admin.vue'
+import Admin from '../views/AdminSimple.vue'
 import Alerts from '../views/Alerts.vue'
 import History from '../views/History.vue'
 import Settings from '../views/Settings.vue'
 import TrialExpired from '../views/TrialExpired.vue'
+import Palpites from '../views/Palpites.vue'
 
 const routes = [
   {
     path: '/',
     name: 'Home',
     component: Home
+  },
+  {
+    path: '/palpites',
+    name: 'Palpites',
+    component: Palpites
   },
   {
     path: '/login',

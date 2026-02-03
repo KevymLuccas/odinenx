@@ -1,11 +1,18 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
 
+const router = useRouter()
 const animationComplete = ref(false)
 const showContent = ref(false)
 const menuOpen = ref(false)
 const user = ref(null)
+
+// Palpites do dia
+const palpitesLoading = ref(true)
+const palpitesDoDia = ref([])
+const palpiteSelecionado = ref(null)
 
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
@@ -17,7 +24,17 @@ onMounted(async () => {
   
   setTimeout(() => {
     showContent.value = true
+    // Scroll automático para a seção de palpites
+    setTimeout(() => {
+      const palpitesSection = document.getElementById('palpites')
+      if (palpitesSection) {
+        palpitesSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }, 300)
   }, 2500)
+  
+  // Carregar palpites do dia
+  await carregarPalpites()
 })
 
 const toggleMenu = () => {
@@ -27,6 +44,104 @@ const toggleMenu = () => {
 const logout = async () => {
   await supabase.auth.signOut()
   menuOpen.value = false
+}
+
+// Buscar jogos para palpites
+const carregarPalpites = async () => {
+  palpitesLoading.value = true
+  try {
+    // Buscar jogos do Brasileirão via API
+    const response = await fetch('/api/football?competition=BSA&status=SCHEDULED')
+    if (response.ok) {
+      const data = await response.json()
+      if (data.matches && data.matches.length > 0) {
+        // Processar os primeiros 6 jogos
+        palpitesDoDia.value = data.matches.slice(0, 6).map((match, index) => {
+          const analise = calcularPalpite(match)
+          return {
+            id: match.id,
+            index: index,
+            casa: match.homeTeam.shortName || match.homeTeam.name,
+            casaLogo: match.homeTeam.crest,
+            fora: match.awayTeam.shortName || match.awayTeam.name,
+            foraLogo: match.awayTeam.crest,
+            data: new Date(match.utcDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+            hora: new Date(match.utcDate).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            liga: 'Brasileirão Série A',
+            rodada: match.matchday ? `Rodada ${match.matchday}` : '',
+            bloqueado: false, // Todos os palpites liberados
+            ...analise
+          }
+        })
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao carregar palpites:', error)
+    // Palpites mock se a API falhar
+    palpitesDoDia.value = gerarPalpitesMock()
+  }
+  palpitesLoading.value = false
+}
+
+// Calcular palpite baseado nos dados
+const calcularPalpite = (match) => {
+  const homePos = match.homeTeam?.position || 10
+  const awayPos = match.awayTeam?.position || 10
+  const fatorCasa = 1.3
+  
+  const forcaCasa = (21 - homePos) * fatorCasa
+  const forcaFora = (21 - awayPos)
+  const total = forcaCasa + forcaFora + 5
+  
+  const probCasa = Math.round((forcaCasa / total) * 100)
+  const probFora = Math.round((forcaFora / total) * 100)
+  const probEmpate = 100 - probCasa - probFora
+  
+  const oddCasa = probCasa > 0 ? (100 / probCasa).toFixed(2) : '-'
+  const oddEmpate = probEmpate > 0 ? (100 / probEmpate).toFixed(2) : '-'
+  const oddFora = probFora > 0 ? (100 / probFora).toFixed(2) : '-'
+  
+  let palpite = 'Empate'
+  let confianca = probEmpate
+  if (probCasa > probFora && probCasa > probEmpate) {
+    palpite = match.homeTeam.shortName || match.homeTeam.name
+    confianca = probCasa
+  } else if (probFora > probCasa && probFora > probEmpate) {
+    palpite = match.awayTeam.shortName || match.awayTeam.name
+    confianca = probFora
+  }
+  
+  return {
+    palpite,
+    confianca: Math.min(85, confianca),
+    probCasa,
+    probEmpate,
+    probFora,
+    oddCasa,
+    oddEmpate,
+    oddFora
+  }
+}
+
+// Palpites mock de fallback
+const gerarPalpitesMock = () => {
+  return [
+    { id: 1, index: 0, casa: 'Flamengo', fora: 'Internacional', data: '04/02', hora: '19:00', liga: 'Brasileirão', palpite: 'Flamengo', confianca: 58, probCasa: 58, probEmpate: 22, probFora: 20, oddCasa: '1.45', oddEmpate: '4.50', oddFora: '7.50', bloqueado: false },
+    { id: 2, index: 1, casa: 'Santos', fora: 'São Paulo', data: '04/02', hora: '20:00', liga: 'Brasileirão', palpite: 'São Paulo', confianca: 52, probCasa: 28, probEmpate: 25, probFora: 47, oddCasa: '3.50', oddEmpate: '4.00', oddFora: '2.10', bloqueado: false },
+    { id: 3, index: 2, casa: 'Palmeiras', fora: 'Vitória', data: '04/02', hora: '21:30', liga: 'Brasileirão', palpite: 'Palmeiras', confianca: 72, probCasa: 72, probEmpate: 18, probFora: 10, oddCasa: '1.28', oddEmpate: '5.50', oddFora: '10.00', bloqueado: false },
+    { id: 4, index: 3, casa: 'Grêmio', fora: 'Botafogo', data: '04/02', hora: '21:30', liga: 'Brasileirão', palpite: 'Botafogo', confianca: 48, probCasa: 32, probEmpate: 28, probFora: 40, oddCasa: '2.80', oddEmpate: '3.50', oddFora: '2.50', bloqueado: false },
+    { id: 5, index: 4, casa: 'Bragantino', fora: 'Atlético-MG', data: '04/02', hora: '19:00', liga: 'Brasileirão', palpite: 'Atlético-MG', confianca: 45, probCasa: 35, probEmpate: 25, probFora: 40, oddCasa: '2.60', oddEmpate: '4.00', oddFora: '2.80', bloqueado: false },
+    { id: 6, index: 5, casa: 'Corinthians', fora: 'Fluminense', data: '05/02', hora: '19:00', liga: 'Brasileirão', palpite: 'Corinthians', confianca: 55, probCasa: 55, probEmpate: 25, probFora: 20, oddCasa: '1.80', oddEmpate: '4.00', oddFora: '5.00', bloqueado: false }
+  ]
+}
+
+const abrirPalpite = (palpite) => {
+  // Redireciona para a página de palpites
+  router.push('/palpites')
+}
+
+const fecharModal = () => {
+  palpiteSelecionado.value = null
 }
 </script>
 
@@ -49,6 +164,7 @@ const logout = async () => {
         </router-link>
         
         <nav class="header-nav desktop-nav">
+          <router-link to="/palpites" class="nav-link nav-palpites">Palpites</router-link>
           <a href="#modules" class="nav-link">Módulos</a>
           <a href="#pricing" class="nav-link">Preços</a>
           <a href="#about" class="nav-link">Sobre</a>
@@ -250,10 +366,111 @@ const logout = async () => {
         </div>
       </section>
 
+      <!-- Palpites do Dia Section -->
+      <section id="palpites" class="palpites-section">
+        <h2 class="section-title">Palpites do <span class="gradient-text">Dia</span></h2>
+        <p class="section-subtitle">Veja todos os palpites. Análise completa: 3 por dia grátis!</p>
+        
+        <div v-if="palpitesLoading" class="palpites-loading">
+          <div class="spinner"></div>
+          <p>Carregando palpites...</p>
+        </div>
+        
+        <div v-else class="palpites-grid">
+          <div 
+            v-for="palpite in palpitesDoDia" 
+            :key="palpite.id" 
+            class="palpite-card"
+            :class="{ 'bloqueado': palpite.bloqueado }"
+            @click="abrirPalpite(palpite)"
+          >
+            <!-- Badge de status -->
+            <div v-if="!palpite.bloqueado" class="palpite-badge gratis">GRÁTIS</div>
+            <div v-else class="palpite-badge premium">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              PREMIUM
+            </div>
+            
+            <!-- Times -->
+            <div class="palpite-times">
+              <div class="time-info">
+                <img v-if="palpite.casaLogo" :src="palpite.casaLogo" :alt="palpite.casa" class="time-logo" />
+                <div v-else class="time-logo-placeholder">{{ palpite.casa.substring(0, 3) }}</div>
+                <span class="time-nome">{{ palpite.casa }}</span>
+              </div>
+              <div class="vs-info">
+                <span class="vs-text">VS</span>
+                <span class="jogo-hora">{{ palpite.hora }}</span>
+                <span class="jogo-data">{{ palpite.data }}</span>
+              </div>
+              <div class="time-info">
+                <img v-if="palpite.foraLogo" :src="palpite.foraLogo" :alt="palpite.fora" class="time-logo" />
+                <div v-else class="time-logo-placeholder">{{ palpite.fora.substring(0, 3) }}</div>
+                <span class="time-nome">{{ palpite.fora }}</span>
+              </div>
+            </div>
+            
+            <!-- Palpite (só mostra se não bloqueado) -->
+            <div v-if="!palpite.bloqueado" class="palpite-resultado">
+              <div class="palpite-recomendacao">
+                <span class="label">Palpite ODIN:</span>
+                <span class="valor">{{ palpite.palpite }} vence</span>
+              </div>
+              <div class="confianca-bar">
+                <div class="confianca-fill" :style="{ width: palpite.confianca + '%' }"></div>
+              </div>
+              <span class="confianca-label">{{ palpite.confianca }}% de confiança</span>
+            </div>
+            
+            <!-- Bloqueado overlay -->
+            <div v-else class="palpite-bloqueado">
+              <div class="blur-content">
+                <span class="blur-text">████ vence</span>
+                <div class="blur-bar"></div>
+              </div>
+              <div class="unlock-cta">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                <span>Clique para desbloquear</span>
+              </div>
+            </div>
+            
+            <!-- Odds preview -->
+            <div class="palpite-odds" :class="{ 'blur-odds': palpite.bloqueado }">
+              <div class="odd-item">
+                <span class="odd-label">Casa</span>
+                <span class="odd-value">{{ palpite.bloqueado ? '?.??' : palpite.oddCasa }}</span>
+              </div>
+              <div class="odd-item">
+                <span class="odd-label">Empate</span>
+                <span class="odd-value">{{ palpite.bloqueado ? '?.??' : palpite.oddEmpate }}</span>
+              </div>
+              <div class="odd-item">
+                <span class="odd-label">Fora</span>
+                <span class="odd-value">{{ palpite.bloqueado ? '?.??' : palpite.oddFora }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="palpites-cta">
+          <p>Quer <strong>análise completa</strong> com H2H e estatísticas avançadas?</p>
+          <router-link to="/register" class="btn btn-primary">
+            Ver Planos
+            <span class="btn-arrow">→</span>
+          </router-link>
+        </div>
+      </section>
+
       <!-- Preços Section -->
       <section id="pricing" class="pricing">
         <h2 class="section-title">Escolha seu <span class="gradient-text">plano</span></h2>
-        <p class="section-subtitle">Comece grátis. Evolua quando quiser.</p>
+        <p class="section-subtitle">Palpites grátis para todos. Upgrade para análise completa.</p>
         
         <div class="pricing-grid">
           <!-- Free -->
@@ -267,11 +484,11 @@ const logout = async () => {
               </div>
             </div>
             <ul class="price-features">
-              <li>✓ 3 análises por dia</li>
-              <li>✓ Dashboard básico</li>
-              <li>✓ Histórico 7 dias</li>
-              <li class="disabled">✗ Alertas</li>
-              <li class="disabled">✗ API</li>
+              <li>✓ Todos os palpites do dia</li>
+              <li>✓ Probabilidades básicas</li>
+              <li>✓ Odds estimadas</li>
+              <li class="disabled">✗ Análise H2H completa</li>
+              <li class="disabled">✗ Estatísticas avançadas</li>
             </ul>
             <router-link to="/register" class="btn btn-outline">Começar Grátis</router-link>
           </div>
@@ -287,11 +504,11 @@ const logout = async () => {
               </div>
             </div>
             <ul class="price-features">
-              <li>✓ Análises ilimitadas</li>
-              <li>✓ Dashboard completo</li>
+              <li>✓ Palpites ilimitados</li>
+              <li>✓ Análise completa dos jogos</li>
+              <li>✓ Estatísticas H2H</li>
+              <li>✓ Odds de múltiplas casas</li>
               <li>✓ Histórico 30 dias</li>
-              <li>✓ Filtros de risco</li>
-              <li class="disabled">✗ API</li>
             </ul>
             <router-link to="/register" class="btn btn-outline">Assinar Basic</router-link>
           </div>
@@ -309,9 +526,9 @@ const logout = async () => {
             </div>
             <ul class="price-features">
               <li>✓ Tudo do Basic</li>
+              <li>✓ Módulo TRADE completo</li>
               <li>✓ Cartola FC</li>
-              <li>✓ Histórico 90 dias</li>
-              <li>✓ Paper Trading</li>
+              <li>✓ Sistema de Alertas</li>
               <li>✓ Suporte prioritário</li>
             </ul>
             <router-link to="/register" class="btn btn-primary">Assinar Pro</router-link>
@@ -331,7 +548,7 @@ const logout = async () => {
               <li>✓ Tudo do Pro</li>
               <li>✓ Histórico ilimitado</li>
               <li>✓ Relatórios avançados</li>
-              <li>✓ Suporte prioritário</li>
+              <li>✓ Suporte VIP 24/7</li>
             </ul>
             <router-link to="/register" class="btn btn-outline">Assinar Elite</router-link>
           </div>
@@ -420,6 +637,7 @@ const logout = async () => {
   background: #000;
   color: #fff;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ===== SPLASH SCREEN ===== */
@@ -429,13 +647,18 @@ const logout = async () => {
   left: 0;
   width: 100%;
   height: 100vh;
+  height: 100dvh;
+  height: -webkit-fill-available;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   z-index: 200;
   background: #000;
+  -webkit-transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
   transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .splash-screen.hide {
@@ -489,21 +712,28 @@ const logout = async () => {
 .main-header {
   position: fixed;
   top: 20px;
+  top: calc(20px + env(safe-area-inset-top, 0px));
   left: 50%;
+  -webkit-transform: translateX(-50%) translateY(-100px);
   transform: translateX(-50%) translateY(-100px);
   width: calc(100% - 48px);
   max-width: 1200px;
   z-index: 100;
   background: rgba(10, 10, 10, 0.9);
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   opacity: 0;
+  -webkit-transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
 }
 
 .main-header.visible {
   opacity: 1;
+  -webkit-transform: translateX(-50%) translateY(0);
   transform: translateX(-50%) translateY(0);
 }
 
@@ -725,13 +955,17 @@ const logout = async () => {
 /* Content */
 .content {
   padding-top: 100px;
+  padding-top: calc(100px + env(safe-area-inset-top, 0px));
   opacity: 0;
+  -webkit-transform: translateY(30px);
   transform: translateY(30px);
+  -webkit-transition: all 0.8s ease-out;
   transition: all 0.8s ease-out;
 }
 
 .content.visible {
   opacity: 1;
+  -webkit-transform: translateY(0);
   transform: translateY(0);
 }
 
@@ -740,9 +974,14 @@ const logout = async () => {
   text-align: center;
   padding: 100px 24px 120px;
   min-height: calc(100vh - 80px);
+  min-height: calc(100dvh - 80px);
   display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
   flex-direction: column;
+  -webkit-box-pack: center;
   justify-content: center;
+  -webkit-box-align: center;
   align-items: center;
   max-width: 1100px;
   margin: 0 auto;
@@ -753,6 +992,7 @@ const logout = async () => {
   position: absolute;
   top: 20%;
   left: 50%;
+  -webkit-transform: translateX(-50%);
   transform: translateX(-50%);
   width: 600px;
   height: 400px;
@@ -1185,6 +1425,614 @@ const logout = async () => {
   transition: width 1s ease;
 }
 
+/* ===== PALPITES DO DIA ===== */
+.palpites-section {
+  padding: 80px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.palpites-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 60px 20px;
+}
+
+.palpites-loading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.palpites-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 40px;
+}
+
+.palpite-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 24px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.palpite-card:not(.bloqueado):hover {
+  transform: translateY(-5px);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.palpite-card.bloqueado {
+  cursor: pointer;
+}
+
+.palpite-card.bloqueado:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.palpite-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 50px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.palpite-badge.gratis {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.palpite-badge.premium {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.palpite-times {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 30px;
+  margin-bottom: 24px;
+}
+
+.time-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.time-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+  padding: 4px;
+}
+
+.time-logo-placeholder {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.1);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.7);
+  text-transform: uppercase;
+}
+
+.time-nome {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vs-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px;
+}
+
+.vs-text {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.4);
+}
+
+.jogo-hora {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.jogo-data {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.5);
+}
+
+.palpite-resultado {
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.palpite-recomendacao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.palpite-recomendacao .label {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.6);
+}
+
+.palpite-recomendacao .valor {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #4caf50;
+}
+
+.confianca-bar {
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.confianca-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #8bc34a);
+  border-radius: 10px;
+  transition: width 0.5s ease;
+}
+
+.confianca-label {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.5);
+}
+
+.palpite-bloqueado {
+  position: relative;
+  background: rgba(255,255,255,0.03);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.blur-content {
+  filter: blur(6px);
+  pointer-events: none;
+}
+
+.blur-text {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+  display: block;
+  margin-bottom: 12px;
+}
+
+.blur-bar {
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
+  width: 70%;
+}
+
+.unlock-cta {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0,0,0,0.8);
+  padding: 10px 16px;
+  border-radius: 8px;
+  color: #ffc107;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.palpite-odds {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.palpite-odds.blur-odds {
+  opacity: 0.4;
+}
+
+.odd-item {
+  flex: 1;
+  text-align: center;
+  background: rgba(255,255,255,0.05);
+  padding: 10px 8px;
+  border-radius: 8px;
+}
+
+.odd-label {
+  display: block;
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 4px;
+}
+
+.odd-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.palpites-cta {
+  text-align: center;
+  margin-top: 50px;
+  padding: 30px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+}
+
+.palpites-cta p {
+  font-size: 1.1rem;
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 20px;
+}
+
+.palpites-cta .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-arrow {
+  transition: transform 0.3s ease;
+}
+
+.btn:hover .btn-arrow {
+  transform: translateX(4px);
+}
+
+/* ===== MODAL PALPITE ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.9);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-palpite {
+  background: #111;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  padding: 30px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.6);
+  font-size: 28px;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.modal-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.modal-liga {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.modal-times {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.modal-time {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.modal-logo {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
+  padding: 6px;
+}
+
+.modal-time h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  max-width: 100px;
+}
+
+.modal-vs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0 20px;
+}
+
+.modal-vs .hora {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.modal-vs .data {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.5);
+}
+
+.modal-palpite-destaque {
+  background: linear-gradient(135deg, rgba(76,175,80,0.15), rgba(139,195,74,0.1));
+  border: 1px solid rgba(76,175,80,0.3);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.palpite-icon {
+  font-size: 2rem;
+  margin-bottom: 12px;
+}
+
+.modal-palpite-destaque h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #4caf50;
+  margin-bottom: 16px;
+}
+
+.confianca-grande {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.confianca-bar-grande {
+  height: 10px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.confianca-fill-grande {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #8bc34a);
+  border-radius: 10px;
+}
+
+.confianca-grande span {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.7);
+}
+
+.modal-probabilidades {
+  margin-bottom: 24px;
+}
+
+.modal-probabilidades h4 {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.prob-bar {
+  display: flex;
+  height: 30px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.prob {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  min-width: 40px;
+}
+
+.prob.casa {
+  background: #4caf50;
+}
+
+.prob.empate {
+  background: #ff9800;
+}
+
+.prob.fora {
+  background: #2196f3;
+}
+
+.prob-legenda {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.7);
+}
+
+.prob-legenda .dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.dot.casa { background: #4caf50; }
+.dot.empate { background: #ff9800; }
+.dot.fora { background: #2196f3; }
+
+.modal-odds {
+  margin-bottom: 24px;
+}
+
+.modal-odds h4 {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.odds-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.odd-box {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+}
+
+.odd-team {
+  display: block;
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.odd-number {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffc107;
+}
+
+.modal-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(255,193,7,0.1);
+  border: 1px solid rgba(255,193,7,0.2);
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.modal-aviso svg {
+  flex-shrink: 0;
+  color: #ffc107;
+}
+
+.modal-aviso p {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.7);
+  line-height: 1.5;
+}
+
+.modal-upgrade {
+  text-align: center;
+  padding: 20px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 12px;
+}
+
+.modal-upgrade p {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 12px;
+}
+
 /* Pricing */
 .pricing {
   padding: 80px 20px;
@@ -1547,6 +2395,56 @@ const logout = async () => {
   .ia-card {
     max-width: 100%;
     padding: 24px;
+  }
+  
+  /* Palpites responsive */
+  .palpites-section {
+    padding: 60px 16px;
+  }
+  
+  .palpites-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .palpite-card {
+    padding: 20px;
+  }
+  
+  .time-logo, .time-logo-placeholder {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .time-nome {
+    font-size: 0.8rem;
+    max-width: 80px;
+  }
+  
+  .modal-palpite {
+    padding: 24px;
+    border-radius: 16px;
+  }
+  
+  .modal-logo {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .modal-time h3 {
+    font-size: 0.9rem;
+  }
+  
+  .modal-palpite-destaque h2 {
+    font-size: 1.2rem;
+  }
+  
+  .odds-grid {
+    gap: 8px;
+  }
+  
+  .odd-box {
+    padding: 10px 6px;
   }
   
   .pricing {

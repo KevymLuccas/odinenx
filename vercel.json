@@ -4,6 +4,13 @@
   "installCommand": "npm install",
   "ignoreCommand": "exit 0",
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/daily-maintenance",
+      "schedule": "0 6 * * *"
+    }
   ]
 }

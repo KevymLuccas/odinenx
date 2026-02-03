@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+  
+  <!-- Homepage - Palpites do Dia -->
+  <url>
+    <loc>https://odinenx.vercel.app/</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  
+  <!-- Módulo BET - Palpites Principais -->
+  <url>
+    <loc>https://odinenx.vercel.app/bet</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.95</priority>
+  </url>
+  
+  <!-- Dashboard -->
+  <url>
+    <loc>https://odinenx.vercel.app/dashboard</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Módulo Trade -->
+  <url>
+    <loc>https://odinenx.vercel.app/trade</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- Módulo Cartola -->
+  <url>
+    <loc>https://odinenx.vercel.app/cartola</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- Login -->
+  <url>
+    <loc>https://odinenx.vercel.app/login</loc>
+    <lastmod>2026-02-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <!-- Registro -->
+  <url>
+    <loc>https://odinenx.vercel.app/register</loc>
+    <lastmod>2026-02-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+</urlset>
