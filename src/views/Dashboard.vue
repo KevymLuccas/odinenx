@@ -56,12 +56,16 @@ onMounted(async () => {
 })
 
 const currentPlan = computed(() => {
+  // Admin sempre tem plano Elite
+  if (userIsAdmin.value) {
+    return plans.elite || plans.free
+  }
   const planId = subscription.value?.plan || 'free'
   return plans[planId] || plans.free
 })
 
 const isPaidPlan = computed(() => {
-  return currentPlan.value.id !== 'free'
+  return currentPlan.value.id !== 'free' || userIsAdmin.value
 })
 
 const isCanceledButActive = computed(() => {
