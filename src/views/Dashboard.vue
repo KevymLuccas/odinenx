@@ -2,7 +2,7 @@
 import { ref, onMounted, computed, inject } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { supabase } from '../lib/supabase'
-import { getSubscriptionStatus, createCustomerPortal, cancelSubscription, plans, getTrialStatus } from '../lib/stripe'
+import { getSubscriptionStatus, createCustomerPortal, cancelSubscription, plans, getTrialStatus, isAdmin as checkIsAdmin } from '../lib/stripe'
 import ViewerCounter from '../components/ViewerCounter.vue'
 
 const router = useRouter()
@@ -13,7 +13,7 @@ const loading = ref(true)
 const showCancelModal = ref(false)
 const canceling = ref(false)
 const trialStatus = ref(null)
-const isAdmin = ref(false)
+const userIsAdmin = ref(false)
 
 // Toast function from App.vue
 const showToast = inject('showToast', () => {})
@@ -30,8 +30,7 @@ onMounted(async () => {
   subscription.value = await getSubscriptionStatus(session.user.id)
   
   // Check if user is admin
-  isAdmin.value = session.user.email === 'admin@odinenx.com' || 
-                  session.user.user_metadata?.role === 'admin'
+  userIsAdmin.value = await checkIsAdmin(session.user.id)
   
   // Verificar status do trial para usuários free
   if (!subscription.value?.plan || subscription.value.plan === 'free') {
@@ -193,6 +192,14 @@ const navigateTo = (path) => {
           </svg>
           Configurações
         </router-link>
+        
+        <!-- ADMIN (só aparece para admins) -->
+        <router-link v-if="userIsAdmin" to="/admin" class="nav-item admin-link">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Painel Admin
+        </router-link>
       </nav>
 
       <div class="sidebar-footer">
@@ -236,6 +243,7 @@ const navigateTo = (path) => {
         <button @click="navigateTo('/alerts')" class="mobile-nav-item">Alertas</button>
         <button @click="navigateTo('/history')" class="mobile-nav-item">Histórico</button>
         <button @click="navigateTo('/settings')" class="mobile-nav-item">Configurações</button>
+        <button v-if="userIsAdmin" @click="navigateTo('/admin')" class="mobile-nav-item admin-mobile">Painel Admin</button>
       </div>
       <button @click="logout" class="mobile-logout">Sair</button>
     </nav>
@@ -610,6 +618,23 @@ const navigateTo = (path) => {
 .nav-item.active {
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
+}
+
+.nav-item.admin-link {
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+}
+
+.nav-item.admin-link:hover {
+  background: rgba(255, 107, 107, 0.2);
+  color: #ff6b6b;
+}
+
+.mobile-nav-item.admin-mobile {
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
 }
 
 .nav-icon {
