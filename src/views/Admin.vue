@@ -81,7 +81,8 @@ const stats = computed(() => {
   const total = users.value.length
   const pagos = subscriptions.value.filter(s => s.status === 'active').length
   const free = total - pagos
-  const receita = pagos * 79
+  // Receita real = R$ 0,00 até ter pagamentos via Stripe
+  const receita = 0
   
   return {
     totalUsers: total,
