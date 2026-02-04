@@ -122,7 +122,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
-import { getTrialStatus, isAdmin, createCheckout } from '../lib/stripe'
+import { getTrialStatus, isAdmin, redirectToCheckout } from '../lib/stripe'
 
 const router = useRouter()
 const trialData = ref(null)
@@ -169,10 +169,7 @@ const selectPlan = async (planId) => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return router.push('/login')
     
-    const checkoutUrl = await createCheckout(session.user.id, planId)
-    if (checkoutUrl) {
-      window.location.href = checkoutUrl
-    }
+    await redirectToCheckout(planId)
   } catch (err) {
     console.error('Erro ao criar checkout:', err)
     alert('Erro ao processar. Tente novamente.')
