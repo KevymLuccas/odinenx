@@ -170,13 +170,15 @@ const carregarJogos = async () => {
     
     const jogosProcessados = data.matches.slice(0, limiteJogos).map(match => {
       const analise = calcularAnalise(match)
+      const homeTeamName = match.homeTeam.shortName || match.homeTeam.name
+      const awayTeamName = match.awayTeam.shortName || match.awayTeam.name
       
       return {
         id: match.id,
-        casa: match.homeTeam.shortName || match.homeTeam.name,
-        casaLogo: match.homeTeam.crest || getTeamLogo(match.homeTeam.name),
-        fora: match.awayTeam.shortName || match.awayTeam.name,
-        foraLogo: match.awayTeam.crest || getTeamLogo(match.awayTeam.name),
+        casa: homeTeamName,
+        casaLogo: getTeamLogo(homeTeamName, match.homeTeam.id) || getTeamLogo(match.homeTeam.name, match.homeTeam.id),
+        fora: awayTeamName,
+        foraLogo: getTeamLogo(awayTeamName, match.awayTeam.id) || getTeamLogo(match.awayTeam.name, match.awayTeam.id),
         data: formatarData(match.utcDate),
         hora: formatarHora(match.utcDate),
         estadio: match.venue || 'A definir',
@@ -203,9 +205,151 @@ const carregarJogos = async () => {
 // Verificar acesso do plano a funcionalidades avançadas
 const temAcessoIA = computed(() => hasAccess(subscription.value, 'iaAvancada'))
 
+// Mapa de logos dos times mais populares (fontes públicas - Wikipedia/Commons)
+const TEAM_LOGOS = {
+  // Brasileirão
+  'Flamengo': 'https://upload.wikimedia.org/wikipedia/commons/2/2e/Flamengo_braz_logo.svg',
+  'CR Flamengo': 'https://upload.wikimedia.org/wikipedia/commons/2/2e/Flamengo_braz_logo.svg',
+  'Palmeiras': 'https://upload.wikimedia.org/wikipedia/commons/1/10/Palmeiras_logo.svg',
+  'SE Palmeiras': 'https://upload.wikimedia.org/wikipedia/commons/1/10/Palmeiras_logo.svg',
+  'Botafogo': 'https://upload.wikimedia.org/wikipedia/commons/1/12/Botafogo_de_Futebol_e_Regatas_logo.svg',
+  'Botafogo FR': 'https://upload.wikimedia.org/wikipedia/commons/1/12/Botafogo_de_Futebol_e_Regatas_logo.svg',
+  'São Paulo': 'https://upload.wikimedia.org/wikipedia/commons/6/6f/Brasao_do_Sao_Paulo_Futebol_Clube.svg',
+  'Corinthians': 'https://upload.wikimedia.org/wikipedia/pt/b/b4/Corinthians_simbolo.png',
+  'SC Corinthians Paulista': 'https://upload.wikimedia.org/wikipedia/pt/b/b4/Corinthians_simbolo.png',
+  'Internacional': 'https://upload.wikimedia.org/wikipedia/commons/f/f1/Escudo_do_Sport_Club_Internacional.svg',
+  'SC Internacional': 'https://upload.wikimedia.org/wikipedia/commons/f/f1/Escudo_do_Sport_Club_Internacional.svg',
+  'Fluminense': 'https://upload.wikimedia.org/wikipedia/commons/1/1a/Fluminense_fc_logo.svg',
+  'Fluminense FC': 'https://upload.wikimedia.org/wikipedia/commons/1/1a/Fluminense_fc_logo.svg',
+  'Atlético Mineiro': 'https://upload.wikimedia.org/wikipedia/commons/c/c7/Atletico_mineiro_galo.png',
+  'Clube Atlético Mineiro': 'https://upload.wikimedia.org/wikipedia/commons/c/c7/Atletico_mineiro_galo.png',
+  'Grêmio': 'https://upload.wikimedia.org/wikipedia/commons/8/8e/Gremio.svg',
+  'Grêmio FBPA': 'https://upload.wikimedia.org/wikipedia/commons/8/8e/Gremio.svg',
+  'Cruzeiro': 'https://upload.wikimedia.org/wikipedia/commons/9/90/Cruzeiro_Esporte_Clube_%28logo%29.svg',
+  'Cruzeiro EC': 'https://upload.wikimedia.org/wikipedia/commons/9/90/Cruzeiro_Esporte_Clube_%28logo%29.svg',
+  'Santos': 'https://upload.wikimedia.org/wikipedia/commons/1/15/Santos_Logo.png',
+  'Santos FC': 'https://upload.wikimedia.org/wikipedia/commons/1/15/Santos_Logo.png',
+  'Vasco da Gama': 'https://upload.wikimedia.org/wikipedia/pt/c/cb/Vasco_da_Gama_logo.png',
+  'Vasco': 'https://upload.wikimedia.org/wikipedia/pt/c/cb/Vasco_da_Gama_logo.png',
+  'CR Vasco da Gama': 'https://upload.wikimedia.org/wikipedia/pt/c/cb/Vasco_da_Gama_logo.png',
+  'Bahia': 'https://upload.wikimedia.org/wikipedia/pt/3/3b/ECBahia.png',
+  'Fortaleza': 'https://upload.wikimedia.org/wikipedia/commons/c/c9/Fortaleza_Esporte_Clube_%28logo%29.svg',
+  'Athletico Paranaense': 'https://upload.wikimedia.org/wikipedia/commons/6/6f/Club_Athletico_Paranaense_2019.svg',
+  'Athletico': 'https://upload.wikimedia.org/wikipedia/commons/6/6f/Club_Athletico_Paranaense_2019.svg',
+  'Bragantino': 'https://upload.wikimedia.org/wikipedia/pt/2/27/Red_Bull_Bragantino.png',
+  'RB Bragantino': 'https://upload.wikimedia.org/wikipedia/pt/2/27/Red_Bull_Bragantino.png',
+  'Cuiabá': 'https://upload.wikimedia.org/wikipedia/commons/7/7e/Cuiab%C3%A1_Esporte_Clube.png',
+  'Cuiabá EC': 'https://upload.wikimedia.org/wikipedia/commons/7/7e/Cuiab%C3%A1_Esporte_Clube.png',
+  'Vitória': 'https://upload.wikimedia.org/wikipedia/pt/5/53/ECVitoria.png',
+  'EC Vitória': 'https://upload.wikimedia.org/wikipedia/pt/5/53/ECVitoria.png',
+  'Juventude': 'https://upload.wikimedia.org/wikipedia/pt/d/db/ECJuventude.png',
+  'Ceará': 'https://upload.wikimedia.org/wikipedia/commons/8/88/Cear%C3%A1_Sporting_Club_logo.svg',
+  'Sport': 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Sport_Club_Recife.png',
+  'Coritiba': 'https://upload.wikimedia.org/wikipedia/commons/2/20/Coritiba_FBC_-_Paran%C3%A1_-_Brasil.svg',
+  'Coritiba FBC': 'https://upload.wikimedia.org/wikipedia/commons/2/20/Coritiba_FBC_-_Paran%C3%A1_-_Brasil.svg',
+  'Chapecoense': 'https://upload.wikimedia.org/wikipedia/pt/9/9e/Chapecoense.png',
+  'Chapecoense AF': 'https://upload.wikimedia.org/wikipedia/pt/9/9e/Chapecoense.png',
+  'Mirassol': 'https://upload.wikimedia.org/wikipedia/pt/e/e0/Mirassol_Futebol_Clube.png',
+  'Mirassol FC': 'https://upload.wikimedia.org/wikipedia/pt/e/e0/Mirassol_Futebol_Clube.png',
+  'Goiás': 'https://upload.wikimedia.org/wikipedia/commons/7/7f/Goias_Esporte_Clube_logo.svg',
+  'América Mineiro': 'https://upload.wikimedia.org/wikipedia/pt/6/6c/Am%C3%A9rica_FC_%28MG%29.png',
+  'Ponte Preta': 'https://upload.wikimedia.org/wikipedia/commons/c/c0/AAPontePreta.svg',
+  'Clube do Remo': 'https://upload.wikimedia.org/wikipedia/pt/c/c9/Clube_do_Remo.png',
+  // Premier League
+  'Manchester City': 'https://upload.wikimedia.org/wikipedia/en/e/eb/Manchester_City_FC_badge.svg',
+  'Arsenal': 'https://upload.wikimedia.org/wikipedia/en/5/53/Arsenal_FC.svg',
+  'Liverpool': 'https://upload.wikimedia.org/wikipedia/en/0/0c/Liverpool_FC.svg',
+  'Chelsea': 'https://upload.wikimedia.org/wikipedia/en/c/cc/Chelsea_FC.svg',
+  'Manchester United': 'https://upload.wikimedia.org/wikipedia/en/7/7a/Manchester_United_FC_crest.svg',
+  'Tottenham': 'https://upload.wikimedia.org/wikipedia/en/b/b4/Tottenham_Hotspur.svg',
+  'Tottenham Hotspur': 'https://upload.wikimedia.org/wikipedia/en/b/b4/Tottenham_Hotspur.svg',
+  'Newcastle': 'https://upload.wikimedia.org/wikipedia/en/5/56/Newcastle_United_Logo.svg',
+  'Newcastle United': 'https://upload.wikimedia.org/wikipedia/en/5/56/Newcastle_United_Logo.svg',
+  'Aston Villa': 'https://upload.wikimedia.org/wikipedia/en/f/f9/Aston_Villa_FC_crest_%282016%29.svg',
+  'Brighton': 'https://upload.wikimedia.org/wikipedia/en/f/fd/Brighton_%26_Hove_Albion_logo.svg',
+  'West Ham': 'https://upload.wikimedia.org/wikipedia/en/c/c2/West_Ham_United_FC_logo.svg',
+  'West Ham United': 'https://upload.wikimedia.org/wikipedia/en/c/c2/West_Ham_United_FC_logo.svg',
+  'Everton': 'https://upload.wikimedia.org/wikipedia/en/7/7c/Everton_FC_logo.svg',
+  'Fulham': 'https://upload.wikimedia.org/wikipedia/en/e/eb/Fulham_FC_%28shield%29.svg',
+  'Crystal Palace': 'https://upload.wikimedia.org/wikipedia/en/0/0c/Crystal_Palace_FC_logo.svg',
+  'Brentford': 'https://upload.wikimedia.org/wikipedia/en/2/2a/Brentford_FC_crest.svg',
+  'Wolverhampton': 'https://upload.wikimedia.org/wikipedia/en/f/fc/Wolverhampton_Wanderers.svg',
+  'Wolves': 'https://upload.wikimedia.org/wikipedia/en/f/fc/Wolverhampton_Wanderers.svg',
+  'Bournemouth': 'https://upload.wikimedia.org/wikipedia/en/e/e5/AFC_Bournemouth_%282013%29.svg',
+  'Nottingham Forest': 'https://upload.wikimedia.org/wikipedia/en/e/e5/Nottingham_Forest_F.C._logo.svg',
+  'Ipswich': 'https://upload.wikimedia.org/wikipedia/en/4/43/Ipswich_Town.svg',
+  'Ipswich Town': 'https://upload.wikimedia.org/wikipedia/en/4/43/Ipswich_Town.svg',
+  'Leicester': 'https://upload.wikimedia.org/wikipedia/en/2/2d/Leicester_City_crest.svg',
+  'Leicester City': 'https://upload.wikimedia.org/wikipedia/en/2/2d/Leicester_City_crest.svg',
+  'Southampton': 'https://upload.wikimedia.org/wikipedia/en/c/c9/FC_Southampton.svg',
+  // La Liga
+  'Real Madrid': 'https://upload.wikimedia.org/wikipedia/en/5/56/Real_Madrid_CF.svg',
+  'Barcelona': 'https://upload.wikimedia.org/wikipedia/en/4/47/FC_Barcelona_%28crest%29.svg',
+  'Atlético Madrid': 'https://upload.wikimedia.org/wikipedia/en/f/f4/Atletico_Madrid_2017_logo.svg',
+  'Atlético de Madrid': 'https://upload.wikimedia.org/wikipedia/en/f/f4/Atletico_Madrid_2017_logo.svg',
+  'Real Sociedad': 'https://upload.wikimedia.org/wikipedia/en/f/f1/Real_Sociedad_logo.svg',
+  'Villarreal': 'https://upload.wikimedia.org/wikipedia/en/b/b9/Villarreal_CF_logo.svg',
+  'Athletic Club': 'https://upload.wikimedia.org/wikipedia/en/9/98/Athletic_Club_Bilbao_logo.svg',
+  'Athletic Bilbao': 'https://upload.wikimedia.org/wikipedia/en/9/98/Athletic_Club_Bilbao_logo.svg',
+  'Real Betis': 'https://upload.wikimedia.org/wikipedia/en/1/13/Real_betis_logo.svg',
+  'Sevilla': 'https://upload.wikimedia.org/wikipedia/en/3/3b/Sevilla_FC_logo.svg',
+  'Valencia': 'https://upload.wikimedia.org/wikipedia/en/c/ce/Valenciacf.svg',
+  'Girona': 'https://upload.wikimedia.org/wikipedia/en/9/90/Girona_FC.svg',
+  'Osasuna': 'https://upload.wikimedia.org/wikipedia/en/4/4b/Osasuna_logo.svg',
+  // Serie A (Italia)
+  'Inter': 'https://upload.wikimedia.org/wikipedia/commons/0/05/FC_Internazionale_Milano_2021.svg',
+  'Inter Milan': 'https://upload.wikimedia.org/wikipedia/commons/0/05/FC_Internazionale_Milano_2021.svg',
+  'Juventus': 'https://upload.wikimedia.org/wikipedia/commons/1/15/Juventus_FC_2017_logo.svg',
+  'Milan': 'https://upload.wikimedia.org/wikipedia/commons/d/d0/Logo_of_AC_Milan.svg',
+  'AC Milan': 'https://upload.wikimedia.org/wikipedia/commons/d/d0/Logo_of_AC_Milan.svg',
+  'Napoli': 'https://upload.wikimedia.org/wikipedia/commons/2/2d/SSC_Neapel.svg',
+  'Roma': 'https://upload.wikimedia.org/wikipedia/en/f/f7/AS_Roma_logo_%282017%29.svg',
+  'AS Roma': 'https://upload.wikimedia.org/wikipedia/en/f/f7/AS_Roma_logo_%282017%29.svg',
+  'Lazio': 'https://upload.wikimedia.org/wikipedia/en/c/ce/S.S._Lazio_badge.svg',
+  'Atalanta': 'https://upload.wikimedia.org/wikipedia/en/6/66/AtalantaBC.svg',
+  'Fiorentina': 'https://upload.wikimedia.org/wikipedia/commons/8/8c/ACF_Fiorentina_2022.svg',
+  'Bologna': 'https://upload.wikimedia.org/wikipedia/commons/5/5b/Bologna_F.C._1909_logo.svg',
+  'Torino': 'https://upload.wikimedia.org/wikipedia/en/2/2e/Torino_FC_Logo.svg',
+  // Bundesliga
+  'Bayern München': 'https://upload.wikimedia.org/wikipedia/commons/1/1b/FC_Bayern_M%C3%BCnchen_logo_%282017%29.svg',
+  'Bayern Munich': 'https://upload.wikimedia.org/wikipedia/commons/1/1b/FC_Bayern_M%C3%BCnchen_logo_%282017%29.svg',
+  'Borussia Dortmund': 'https://upload.wikimedia.org/wikipedia/commons/6/67/Borussia_Dortmund_logo.svg',
+  'RB Leipzig': 'https://upload.wikimedia.org/wikipedia/en/0/04/RB_Leipzig_2014_logo.svg',
+  'Bayer Leverkusen': 'https://upload.wikimedia.org/wikipedia/en/5/59/Bayer_04_Leverkusen_logo.svg',
+  'Bayer 04 Leverkusen': 'https://upload.wikimedia.org/wikipedia/en/5/59/Bayer_04_Leverkusen_logo.svg',
+  'Frankfurt': 'https://upload.wikimedia.org/wikipedia/commons/0/04/Eintracht_Frankfurt_Logo.svg',
+  'Eintracht Frankfurt': 'https://upload.wikimedia.org/wikipedia/commons/0/04/Eintracht_Frankfurt_Logo.svg',
+  'Wolfsburg': 'https://upload.wikimedia.org/wikipedia/commons/f/f3/Logo-VfL-Wolfsburg.svg',
+  'VfL Wolfsburg': 'https://upload.wikimedia.org/wikipedia/commons/f/f3/Logo-VfL-Wolfsburg.svg',
+  'Freiburg': 'https://upload.wikimedia.org/wikipedia/en/6/6d/SC_Freiburg_logo.svg',
+  'SC Freiburg': 'https://upload.wikimedia.org/wikipedia/en/6/6d/SC_Freiburg_logo.svg',
+  'Hoffenheim': 'https://upload.wikimedia.org/wikipedia/commons/e/e7/Logo_TSG_Hoffenheim.svg',
+  'TSG Hoffenheim': 'https://upload.wikimedia.org/wikipedia/commons/e/e7/Logo_TSG_Hoffenheim.svg',
+  'Gladbach': 'https://upload.wikimedia.org/wikipedia/commons/8/81/Borussia_M%C3%B6nchengladbach_logo.svg',
+  "Borussia M'gladbach": 'https://upload.wikimedia.org/wikipedia/commons/8/81/Borussia_M%C3%B6nchengladbach_logo.svg',
+  'Stuttgart': 'https://upload.wikimedia.org/wikipedia/commons/e/eb/VfB_Stuttgart_1893_Logo.svg',
+  'VfB Stuttgart': 'https://upload.wikimedia.org/wikipedia/commons/e/eb/VfB_Stuttgart_1893_Logo.svg',
+  // Ligue 1
+  'Paris Saint-Germain': 'https://upload.wikimedia.org/wikipedia/en/a/a7/Paris_Saint-Germain_F.C..svg',
+  'PSG': 'https://upload.wikimedia.org/wikipedia/en/a/a7/Paris_Saint-Germain_F.C..svg',
+  'Monaco': 'https://upload.wikimedia.org/wikipedia/en/5/5d/AS_Monaco_FC.svg',
+  'Marseille': 'https://upload.wikimedia.org/wikipedia/commons/d/d8/Olympique_Marseille_logo.svg',
+  'Lyon': 'https://upload.wikimedia.org/wikipedia/en/c/c6/Olympique_Lyonnais.svg',
+  'Lille': 'https://upload.wikimedia.org/wikipedia/en/3/3f/Lille_OSC_2018_logo.svg'
+}
+
 // Gerar logo placeholder baseado no nome do time
-const getTeamLogo = (teamName) => {
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(teamName)}&background=random&color=fff&size=100&bold=true`
+const getTeamLogo = (teamName, teamId = null) => {
+  // Primeiro tenta no mapa de logos conhecidos
+  if (TEAM_LOGOS[teamName]) {
+    return TEAM_LOGOS[teamName]
+  }
+  // Se tiver ID, usa a URL do football-data.org através de um proxy
+  if (teamId) {
+    return `https://crests.football-data.org/${teamId}.png`
+  }
+  // Fallback para avatar gerado
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(teamName)}&background=1a1a2e&color=00e5ff&size=100&bold=true&format=svg`
 }
 
 // Função para gerar "hash" numérico a partir de string (para variação consistente)
