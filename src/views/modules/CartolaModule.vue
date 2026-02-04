@@ -520,13 +520,39 @@ const escalarAutomatico = () => {
     }
     
     // Reservas (5 posições: GOL, LAT, ZAG, MEI, ATA - sem TEC)
+    // IMPORTANTE: Reservas devem ser MAIS BARATAS que os titulares da posição!
+    // O Cartola só substitui reserva se o titular não jogar, então faz sentido economizar aqui
     const reservasTemp = []
     for (const posId of [1, 2, 3, 4, 5]) {
+      // Pegar o preço médio dos titulares dessa posição
+      const titularesPosicao = novaEscalacao.filter(a => a.posicao_id == posId)
+      const precoMedioTitulares = titularesPosicao.length > 0
+        ? titularesPosicao.reduce((sum, a) => sum + (a.preco_num || 0), 0) / titularesPosicao.length
+        : 10 // fallback
+      
+      // Reservas devem custar MENOS que os titulares (economizar cartoletas)
+      // Ordenar por melhor custo-benefício (score/preço) entre os mais baratos
       const disponiveis = (porPosicao[posId] || [])
         .filter(a => !idsUsados.has(a.atleta_id))
-        .sort((a, b) => (b.score || 0) - (a.score || 0))
+        .filter(a => (a.preco_num || 0) < precoMedioTitulares) // Mais barato que titular
+        .sort((a, b) => {
+          // Ordenar por custo-benefício (score / preço)
+          const cbA = (a.score || 0) / Math.max(a.preco_num || 1, 1)
+          const cbB = (b.score || 0) / Math.max(b.preco_num || 1, 1)
+          return cbB - cbA
+        })
+      
+      // Se não encontrou ninguém mais barato, pega o mais barato disponível
       if (disponiveis.length > 0) {
         reservasTemp.push(disponiveis[0])
+      } else {
+        // Fallback: pegar o mais barato disponível mesmo que custe mais
+        const fallback = (porPosicao[posId] || [])
+          .filter(a => !idsUsados.has(a.atleta_id))
+          .sort((a, b) => (a.preco_num || 0) - (b.preco_num || 0))
+        if (fallback.length > 0) {
+          reservasTemp.push(fallback[0])
+        }
       }
     }
     
