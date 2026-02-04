@@ -695,6 +695,20 @@ const mediaReservas = computed(() => {
   return total / reservas.value.length
 })
 
+// Reserva de Luxo - aquela com MAIOR MÉDIA entre as reservas
+// É o jogador com mais potencial para substituir um titular que não performar
+const reservaDeLuxo = computed(() => {
+  if (reservas.value.length === 0) return null
+  return reservas.value.reduce((melhor, atual) => {
+    return (atual.media_num || 0) > (melhor.media_num || 0) ? atual : melhor
+  }, reservas.value[0])
+})
+
+// Verificar se um atleta é a reserva de luxo
+const isReservaDeLuxo = (atleta) => {
+  return reservaDeLuxo.value && atleta.atleta_id === reservaDeLuxo.value.atleta_id
+}
+
 // Obter foto do atleta
 const getFoto = (atleta) => {
   if (atleta.foto) {
@@ -1084,19 +1098,20 @@ const navigateTo = (path) => {
           <!-- Reservas de Luxo -->
           <div class="reservas-section">
             <div class="reservas-header">
-              <h3>🏆 BANCO DE RESERVAS DE LUXO</h3>
+              <h3>🏆 BANCO DE RESERVAS</h3>
               <div class="reservas-stats">
                 <span class="stat">💎 {{ reservas.length }} jogadores</span>
                 <span class="stat">💰 C$ {{ gastoReservas.toFixed(2) }}</span>
                 <span class="stat">📊 Média: {{ mediaReservas.toFixed(1) }} pts</span>
               </div>
             </div>
-            <p class="reservas-desc">Reservas mais baratas que titulares | Prontas para entrar!</p>
+            <p class="reservas-desc">Reservas mais baratas que titulares | <strong v-if="reservaDeLuxo">⭐ Reserva de Luxo: {{ reservaDeLuxo.apelido }} ({{ reservaDeLuxo.media_num?.toFixed(1) }} pts)</strong></p>
             
             <div class="reservas-grid-luxo">
               <!-- GOL Reserva -->
-              <div class="reserva-card-luxo" :class="{ vazio: !reservaGol }" @click="reservaGol && abrirModalJogador(reservaGol, 'reserva')">
+              <div class="reserva-card-luxo" :class="{ vazio: !reservaGol, 'is-luxo': reservaGol && isReservaDeLuxo(reservaGol) }" @click="reservaGol && abrirModalJogador(reservaGol, 'reserva')">
                 <div class="reserva-pos" style="background: #f59e0b;">GOL</div>
+                <span v-if="reservaGol && isReservaDeLuxo(reservaGol)" class="luxo-badge">⭐ LUXO</span>
                 <template v-if="reservaGol">
                   <img :src="getFoto(reservaGol)" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
                   <span class="reserva-nome-luxo">{{ reservaGol.apelido }}</span>
@@ -1111,8 +1126,9 @@ const navigateTo = (path) => {
               </div>
 
               <!-- LAT Reserva -->
-              <div class="reserva-card-luxo" :class="{ vazio: !reservaLat }" @click="reservaLat && abrirModalJogador(reservaLat, 'reserva')">
+              <div class="reserva-card-luxo" :class="{ vazio: !reservaLat, 'is-luxo': reservaLat && isReservaDeLuxo(reservaLat) }" @click="reservaLat && abrirModalJogador(reservaLat, 'reserva')">
                 <div class="reserva-pos" style="background: #3b82f6;">LAT</div>
+                <span v-if="reservaLat && isReservaDeLuxo(reservaLat)" class="luxo-badge">⭐ LUXO</span>
                 <template v-if="reservaLat">
                   <img :src="getFoto(reservaLat)" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
                   <span class="reserva-nome-luxo">{{ reservaLat.apelido }}</span>
@@ -1127,8 +1143,9 @@ const navigateTo = (path) => {
               </div>
 
               <!-- ZAG Reserva -->
-              <div class="reserva-card-luxo" :class="{ vazio: !reservaZag }" @click="reservaZag && abrirModalJogador(reservaZag, 'reserva')">
+              <div class="reserva-card-luxo" :class="{ vazio: !reservaZag, 'is-luxo': reservaZag && isReservaDeLuxo(reservaZag) }" @click="reservaZag && abrirModalJogador(reservaZag, 'reserva')">
                 <div class="reserva-pos" style="background: #10b981;">ZAG</div>
+                <span v-if="reservaZag && isReservaDeLuxo(reservaZag)" class="luxo-badge">⭐ LUXO</span>
                 <template v-if="reservaZag">
                   <img :src="getFoto(reservaZag)" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
                   <span class="reserva-nome-luxo">{{ reservaZag.apelido }}</span>
@@ -1143,8 +1160,9 @@ const navigateTo = (path) => {
               </div>
 
               <!-- MEI Reserva -->
-              <div class="reserva-card-luxo" :class="{ vazio: !reservaMei }" @click="reservaMei && abrirModalJogador(reservaMei, 'reserva')">
+              <div class="reserva-card-luxo" :class="{ vazio: !reservaMei, 'is-luxo': reservaMei && isReservaDeLuxo(reservaMei) }" @click="reservaMei && abrirModalJogador(reservaMei, 'reserva')">
                 <div class="reserva-pos" style="background: #8b5cf6;">MEI</div>
+                <span v-if="reservaMei && isReservaDeLuxo(reservaMei)" class="luxo-badge">⭐ LUXO</span>
                 <template v-if="reservaMei">
                   <img :src="getFoto(reservaMei)" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
                   <span class="reserva-nome-luxo">{{ reservaMei.apelido }}</span>
@@ -1159,8 +1177,9 @@ const navigateTo = (path) => {
               </div>
 
               <!-- ATA Reserva -->
-              <div class="reserva-card-luxo" :class="{ vazio: !reservaAta }" @click="reservaAta && abrirModalJogador(reservaAta, 'reserva')">
+              <div class="reserva-card-luxo" :class="{ vazio: !reservaAta, 'is-luxo': reservaAta && isReservaDeLuxo(reservaAta) }" @click="reservaAta && abrirModalJogador(reservaAta, 'reserva')">
                 <div class="reserva-pos" style="background: #ef4444;">ATA</div>
+                <span v-if="reservaAta && isReservaDeLuxo(reservaAta)" class="luxo-badge">⭐ LUXO</span>
                 <template v-if="reservaAta">
                   <img :src="getFoto(reservaAta)" @error="$event.target.src = '/icone.webp'" class="reserva-foto-luxo">
                   <span class="reserva-nome-luxo">{{ reservaAta.apelido }}</span>
@@ -2204,6 +2223,36 @@ const navigateTo = (path) => {
   align-items: center;
   gap: 8px;
   transition: all 0.3s;
+  position: relative;
+}
+
+.reserva-card-luxo.is-luxo {
+  border-color: #ffd700;
+  background: linear-gradient(180deg, #3d3520, #1a1a1a);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.reserva-card-luxo.is-luxo:hover {
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+}
+
+.luxo-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, #ffd700, #ffb300);
+  color: #1a1a1a;
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.5);
+  animation: pulse-luxo 2s infinite;
+}
+
+@keyframes pulse-luxo {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
 .reserva-card-luxo:hover {
