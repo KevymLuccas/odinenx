@@ -188,32 +188,104 @@ const carregarJogos = async () => {
 }
 
 const calcularAnalise = (match) => {
-  const homePos = match.homeTeam?.position || 10
-  const awayPos = match.awayTeam?.position || 10
+  // Usar dados reais da API se disponíveis
+  const homePos = match.homeTeam?.position || null
+  const awayPos = match.awayTeam?.position || null
+  const homeForm = match.homeTeam?.form || '' // Ex: "W,W,D,L,W"
+  const awayForm = match.awayTeam?.form || ''
+  const homeGoalsFor = match.homeTeam?.goalsFor || 0
+  const homeGoalsAgainst = match.homeTeam?.goalsAgainst || 0
+  const awayGoalsFor = match.awayTeam?.goalsFor || 0
+  const awayGoalsAgainst = match.awayTeam?.goalsAgainst || 0
+  const homeWins = match.homeTeam?.won || 0
+  const awayWins = match.awayTeam?.won || 0
+  const homePlayed = match.homeTeam?.playedGames || 0
+  const awayPlayed = match.awayTeam?.playedGames || 0
   
-  // Fatores de cálculo mais realistas
-  const fatorCasa = 1.35 // Vantagem de jogar em casa
-  const fatorForma = 1.1 // Peso da forma recente
+  // Se não tem posição, usar hash do ID do time para gerar valores pseudoaleatórios mas consistentes
+  const hashCode = (str) => {
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i)
+      hash |= 0
+    }
+    return Math.abs(hash)
+  }
   
-  // Força baseada na posição (times melhores = posição menor)
-  const forcaCasa = (22 - homePos) * fatorCasa * fatorForma
-  const forcaFora = (22 - awayPos)
-  const forcaEmpate = 8 // Base para empate
+  // Calcular força dos times
+  let forcaCasa, forcaFora
   
-  const total = forcaCasa + forcaFora + forcaEmpate
+  if (homePos && awayPos) {
+    // Com dados reais de classificação
+    const fatorCasa = 1.30 // Vantagem de jogar em casa
+    
+    // Força base pela posição (1º lugar = 20 pontos, 20º lugar = 1 ponto)
+    forcaCasa = (21 - homePos) * fatorCasa
+    forcaFora = (21 - awayPos)
+    
+    // Adicionar bônus por forma recente (últimos 5 jogos)
+    const calcFormaBonus = (form) => {
+      if (!form) return 0
+      let bonus = 0
+      const results = form.split(',')
+      results.forEach((r, i) => {
+        const peso = 1 + (i * 0.1) // Jogos recentes pesam mais
+        if (r === 'W') bonus += 2 * peso
+        else if (r === 'D') bonus += 1 * peso
+      })
+      return bonus
+    }
+    
+    forcaCasa += calcFormaBonus(homeForm)
+    forcaFora += calcFormaBonus(awayForm)
+    
+    // Bônus por saldo de gols
+    if (homeGoalsFor > 0) {
+      forcaCasa += (homeGoalsFor - homeGoalsAgainst) / 10
+    }
+    if (awayGoalsFor > 0) {
+      forcaFora += (awayGoalsFor - awayGoalsAgainst) / 10
+    }
+    
+  } else {
+    // Sem dados reais - usar algoritmo baseado em hash para consistência
+    const homeHash = hashCode(String(match.homeTeam?.id || match.homeTeam?.name || 'home'))
+    const awayHash = hashCode(String(match.awayTeam?.id || match.awayTeam?.name || 'away'))
+    const matchHash = hashCode(String(match.id || Date.now()))
+    
+    // Gerar força pseudoaleatória mas consistente (5-20)
+    forcaCasa = 8 + (homeHash % 12) + ((matchHash % 5) * 0.5) // 8-20
+    forcaFora = 5 + (awayHash % 12) + ((matchHash % 3) * 0.5) // 5-17
+    
+    // Adicionar variação baseada no matchday se disponível
+    if (match.matchday) {
+      forcaCasa += (match.matchday % 3)
+      forcaFora += ((match.matchday + 1) % 3)
+    }
+  }
+  
+  // Base para empate (varia de 6-12)
+  const empateBase = homePos && awayPos 
+    ? 6 + Math.min(6, Math.abs(homePos - awayPos) / 2)
+    : 7 + (hashCode(String(match.id)) % 5)
+  
+  const total = forcaCasa + forcaFora + empateBase
   
   // Probabilidades brutas
   let probCasa = Math.round((forcaCasa / total) * 100)
   let probFora = Math.round((forcaFora / total) * 100)
   let probEmpate = 100 - probCasa - probFora
   
-  // Ajustar empate para ser mais realista (entre 20-35%)
-  if (probEmpate < 20) {
-    const diff = 20 - probEmpate
-    probEmpate = 20
-    probCasa = probCasa - Math.floor(diff / 2)
-    probFora = probFora - Math.ceil(diff / 2)
-  }
+  // Garantir valores mínimos realistas
+  probEmpate = Math.max(18, Math.min(35, probEmpate))
+  probCasa = Math.max(20, Math.min(70, probCasa))
+  probFora = Math.max(15, Math.min(60, probFora))
+  
+  // Normalizar para somar 100%
+  const soma = probCasa + probEmpate + probFora
+  probCasa = Math.round((probCasa / soma) * 100)
+  probFora = Math.round((probFora / soma) * 100)
+  probEmpate = 100 - probCasa - probFora
   
   // Calcular odds estimadas (com margem de 5% como as casas)
   const margem = 1.05
@@ -241,7 +313,7 @@ const calcularAnalise = (match) => {
   return {
     palpite,
     tipoPalpite,
-    confianca: Math.min(85, confianca),
+    confianca: Math.min(85, Math.max(35, confianca)),
     probCasa,
     probEmpate,
     probFora,
@@ -250,8 +322,11 @@ const calcularAnalise = (match) => {
     oddFora,
     homePos,
     awayPos,
+    homeForm,
+    awayForm,
     explicacoes,
-    isEstimated: true // Marca como odds estimadas
+    hasRealData: !!(homePos && awayPos),
+    isEstimated: true
   }
 }
 
