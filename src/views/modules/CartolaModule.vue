@@ -520,38 +520,38 @@ const escalarAutomatico = () => {
     }
     
     // Reservas (5 posições: GOL, LAT, ZAG, MEI, ATA - sem TEC)
-    // IMPORTANTE: Reservas devem ser MAIS BARATAS que os titulares da posição!
-    // O Cartola só substitui reserva se o titular não jogar, então faz sentido economizar aqui
+    // ESTRATÉGIA: Reserva de luxo = jogador com MAIOR MÉDIA disponível
+    // Se o titular não jogar, queremos o melhor substituto possível!
     const reservasTemp = []
+    const orcamentoReservas = cartoletas.value - novaEscalacao.reduce((s, a) => s + (a.preco_num || 0), 0)
+    let gastoReservasAcumulado = 0
+    
     for (const posId of [1, 2, 3, 4, 5]) {
-      // Pegar o preço médio dos titulares dessa posição
-      const titularesPosicao = novaEscalacao.filter(a => a.posicao_id == posId)
-      const precoMedioTitulares = titularesPosicao.length > 0
-        ? titularesPosicao.reduce((sum, a) => sum + (a.preco_num || 0), 0) / titularesPosicao.length
-        : 10 // fallback
+      // Calcular quanto sobra para esta reserva (dividir igualmente entre as restantes)
+      const posicoesRestantes = 5 - reservasTemp.length
+      const orcamentoPorReserva = posicoesRestantes > 0 
+        ? (orcamentoReservas - gastoReservasAcumulado) / posicoesRestantes 
+        : 5
       
-      // Reservas devem custar MENOS que os titulares (economizar cartoletas)
-      // Ordenar por melhor custo-benefício (score/preço) entre os mais baratos
+      // Pegar jogadores que cabem no orçamento, ordenados por MAIOR MÉDIA
       const disponiveis = (porPosicao[posId] || [])
         .filter(a => !idsUsados.has(a.atleta_id))
-        .filter(a => (a.preco_num || 0) < precoMedioTitulares) // Mais barato que titular
-        .sort((a, b) => {
-          // Ordenar por custo-benefício (score / preço)
-          const cbA = (a.score || 0) / Math.max(a.preco_num || 1, 1)
-          const cbB = (b.score || 0) / Math.max(b.preco_num || 1, 1)
-          return cbB - cbA
-        })
+        .filter(a => (a.preco_num || 0) <= Math.max(orcamentoPorReserva, 3)) // Mínimo 3 C$
+        .sort((a, b) => (b.media_num || 0) - (a.media_num || 0)) // Maior média primeiro!
       
-      // Se não encontrou ninguém mais barato, pega o mais barato disponível
       if (disponiveis.length > 0) {
         reservasTemp.push(disponiveis[0])
+        gastoReservasAcumulado += disponiveis[0].preco_num || 0
+        idsUsados.add(disponiveis[0].atleta_id)
       } else {
-        // Fallback: pegar o mais barato disponível mesmo que custe mais
+        // Fallback: pegar o mais barato disponível
         const fallback = (porPosicao[posId] || [])
           .filter(a => !idsUsados.has(a.atleta_id))
           .sort((a, b) => (a.preco_num || 0) - (b.preco_num || 0))
         if (fallback.length > 0) {
           reservasTemp.push(fallback[0])
+          gastoReservasAcumulado += fallback[0].preco_num || 0
+          idsUsados.add(fallback[0].atleta_id)
         }
       }
     }
@@ -559,6 +559,68 @@ const escalarAutomatico = () => {
     reservas.value = reservasTemp
     analisando.value = false
   }, 1500)
+}
+
+// Otimizar apenas as reservas com IA
+const otimizarReservas = () => {
+  analisando.value = true
+  
+  setTimeout(() => {
+    // Organizar atletas por posição (excluindo escalados)
+    const idsEscalados = new Set(escalacao.value.map(a => a.atleta_id))
+    const atletasValidos = atletas.value.filter(a => {
+      const status = a.status_id
+      if (status === 3 || status === 5 || status === 6) return false
+      if (idsEscalados.has(a.atleta_id)) return false
+      return true
+    })
+    
+    const porPosicao = {}
+    for (const pos in POSICOES) {
+      porPosicao[pos] = atletasValidos
+        .filter(a => a.posicao_id == pos)
+        .sort((a, b) => (b.media_num || 0) - (a.media_num || 0))
+    }
+    
+    // Calcular orçamento disponível para reservas
+    const gastoTitulares = escalacao.value.reduce((s, a) => s + (a.preco_num || 0), 0)
+    const orcamentoReservas = cartoletas.value - gastoTitulares
+    
+    const reservasTemp = []
+    const idsUsados = new Set(idsEscalados)
+    let gastoAcumulado = 0
+    
+    for (const posId of [1, 2, 3, 4, 5]) {
+      const posicoesRestantes = 5 - reservasTemp.length
+      const orcamentoPorReserva = posicoesRestantes > 0 
+        ? (orcamentoReservas - gastoAcumulado) / posicoesRestantes 
+        : 5
+      
+      // Pegar o de maior média que cabe no orçamento
+      const disponiveis = (porPosicao[posId] || [])
+        .filter(a => !idsUsados.has(a.atleta_id))
+        .filter(a => (a.preco_num || 0) <= Math.max(orcamentoPorReserva, 3))
+        .sort((a, b) => (b.media_num || 0) - (a.media_num || 0))
+      
+      if (disponiveis.length > 0) {
+        reservasTemp.push(disponiveis[0])
+        gastoAcumulado += disponiveis[0].preco_num || 0
+        idsUsados.add(disponiveis[0].atleta_id)
+      } else {
+        const fallback = (porPosicao[posId] || [])
+          .filter(a => !idsUsados.has(a.atleta_id))
+          .sort((a, b) => (a.preco_num || 0) - (b.preco_num || 0))
+        if (fallback.length > 0) {
+          reservasTemp.push(fallback[0])
+          gastoAcumulado += fallback[0].preco_num || 0
+          idsUsados.add(fallback[0].atleta_id)
+        }
+      }
+    }
+    
+    reservas.value = reservasTemp
+    analisando.value = false
+  }, 800)
 }
 
 // Adicionar atleta à escalação
@@ -1099,13 +1161,18 @@ const navigateTo = (path) => {
           <div class="reservas-section">
             <div class="reservas-header">
               <h3>🏆 BANCO DE RESERVAS</h3>
-              <div class="reservas-stats">
-                <span class="stat">💎 {{ reservas.length }} jogadores</span>
-                <span class="stat">💰 C$ {{ gastoReservas.toFixed(2) }}</span>
-                <span class="stat">📊 Média: {{ mediaReservas.toFixed(1) }} pts</span>
+              <div class="reservas-actions">
+                <button @click="otimizarReservas" class="btn-otimizar-reservas" :disabled="analisando || escalacao.length === 0">
+                  🤖 Otimizar Reservas
+                </button>
               </div>
             </div>
-            <p class="reservas-desc">Reservas mais baratas que titulares | <strong v-if="reservaDeLuxo">⭐ Reserva de Luxo: {{ reservaDeLuxo.apelido }} ({{ reservaDeLuxo.media_num?.toFixed(1) }} pts)</strong></p>
+            <div class="reservas-stats-row">
+              <span class="stat">💎 {{ reservas.length }} jogadores</span>
+              <span class="stat">💰 C$ {{ gastoReservas.toFixed(2) }}</span>
+              <span class="stat">📊 Média: {{ mediaReservas.toFixed(1) }} pts</span>
+            </div>
+            <p class="reservas-desc" v-if="reservaDeLuxo">⭐ <strong>Reserva de Luxo:</strong> {{ reservaDeLuxo.apelido }} ({{ reservaDeLuxo.media_num?.toFixed(1) }} pts) - Maior potencial de substituição</p>
             
             <div class="reservas-grid-luxo">
               <!-- GOL Reserva -->
@@ -2181,6 +2248,47 @@ const navigateTo = (path) => {
   flex-wrap: wrap;
   gap: 15px;
   margin-bottom: 10px;
+}
+
+.reservas-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-otimizar-reservas {
+  background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-otimizar-reservas:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+}
+
+.btn-otimizar-reservas:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reservas-stats-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 10px;
+}
+
+.reservas-stats-row .stat {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .reservas-section h3 {
