@@ -98,6 +98,8 @@ DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 DROP POLICY IF EXISTS "Service role can insert profiles" ON profiles;
 DROP POLICY IF EXISTS "Enable insert for authenticated users" ON profiles;
 DROP POLICY IF EXISTS "Allow trigger to insert profile" ON profiles;
+DROP POLICY IF EXISTS "Anyone can view profiles" ON profiles;
+DROP POLICY IF EXISTS "System can insert profiles" ON profiles;
 
 -- Criar políticas novas
 CREATE POLICY "Anyone can view profiles" ON profiles
