@@ -908,7 +908,7 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 .confianca-badge.sem { background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.4); }
 .jogo-times { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .time { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1; }
-.time img { width: 50px; height: 50px; object-fit: contain; }
+.time img { width: 60px; height: 60px; object-fit: contain; border-radius: 10px; background: rgba(255, 255, 255, 0.1); padding: 6px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); }
 .time-nome { font-weight: 600; font-size: 0.95rem; text-align: center; }
 .time-odd { font-size: 0.8rem; color: #3b82f6; background: rgba(59, 130, 246, 0.1); padding: 3px 10px; border-radius: 10px; font-weight: 600; }
 .versus { display: flex; flex-direction: column; align-items: center; gap: 5px; }
@@ -934,7 +934,7 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 .modal-close:hover { background: #ef4444; }
 .modal-header-jogo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .time-modal { display: flex; flex-direction: column; align-items: center; gap: 10px; flex: 1; }
-.time-modal img { width: 65px; height: 65px; object-fit: contain; }
+.time-modal img { width: 70px; height: 70px; object-fit: contain; border-radius: 12px; background: rgba(255, 255, 255, 0.1); padding: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
 .time-modal h3 { font-size: 1.1rem; text-align: center; }
 .vs-modal { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .liga-logo { width: 40px; height: 40px; object-fit: contain; margin-bottom: 5px; }
