@@ -7,18 +7,9 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
-import { useGameRoom } from '../lib/useGameRoom'
 import { getSubscriptionStatus, plans, getMaxPrivateRooms } from '../lib/stripe'
 
 const router = useRouter()
-
-const {
-  fetchLiveRooms,
-  createPrivateRoom,
-  joinPrivateRoom,
-  isLoading,
-  error
-} = useGameRoom()
 
 // State
 const user = ref(null)
@@ -27,68 +18,8 @@ const rooms = ref([])
 const showPrivateModal = ref(false)
 const privateCode = ref('')
 const activeTab = ref('live') // 'live', 'scheduled', 'private'
-
-// Jogos mockados (em produção, viriam da API Football)
-const mockGames = [
-  {
-    id: 'room_1',
-    fixture_id: 1001,
-    home_team: 'Flamengo',
-    away_team: 'Palmeiras',
-    home_team_logo: 'https://media.api-sports.io/football/teams/127.png',
-    away_team_logo: 'https://media.api-sports.io/football/teams/121.png',
-    home_score: 2,
-    away_score: 1,
-    minute: 67,
-    status: 'live',
-    league: 'Brasileirão Série A',
-    viewers_count: 342
-  },
-  {
-    id: 'room_2',
-    fixture_id: 1002,
-    home_team: 'Real Madrid',
-    away_team: 'Barcelona',
-    home_team_logo: 'https://media.api-sports.io/football/teams/541.png',
-    away_team_logo: 'https://media.api-sports.io/football/teams/529.png',
-    home_score: 1,
-    away_score: 1,
-    minute: 34,
-    status: 'live',
-    league: 'La Liga',
-    viewers_count: 1523
-  },
-  {
-    id: 'room_3',
-    fixture_id: 1003,
-    home_team: 'Manchester City',
-    away_team: 'Liverpool',
-    home_team_logo: 'https://media.api-sports.io/football/teams/50.png',
-    away_team_logo: 'https://media.api-sports.io/football/teams/40.png',
-    home_score: 0,
-    away_score: 0,
-    minute: 0,
-    status: 'scheduled',
-    league: 'Premier League',
-    start_time: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-    viewers_count: 0
-  },
-  {
-    id: 'room_4',
-    fixture_id: 1004,
-    home_team: 'Corinthians',
-    away_team: 'São Paulo',
-    home_team_logo: 'https://media.api-sports.io/football/teams/131.png',
-    away_team_logo: 'https://media.api-sports.io/football/teams/126.png',
-    home_score: 0,
-    away_score: 0,
-    minute: 0,
-    status: 'scheduled',
-    league: 'Brasileirão Série A',
-    start_time: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
-    viewers_count: 0
-  }
-]
+const isLoading = ref(true)
+const error = ref(null)
 
 onMounted(async () => {
   // Verificar autenticação
@@ -104,15 +35,36 @@ onMounted(async () => {
   const sub = await getSubscriptionStatus(user.value.id)
   userPlan.value = sub.plan || 'free'
   
-  // Buscar salas (usando mock por enquanto)
-  rooms.value = mockGames
-  
-  // Em produção: 
-  // rooms.value = await fetchLiveRooms()
+  // Buscar salas reais do banco
+  await loadRooms()
 })
 
+// Carregar salas do banco de dados
+async function loadRooms() {
+  isLoading.value = true
+  error.value = null
+  
+  try {
+    const { data, error: err } = await supabase
+      .from('game_rooms')
+      .select('*')
+      .in('status', ['live', 'scheduled', 'halftime'])
+      .order('status', { ascending: true })
+      .order('start_time', { ascending: true })
+    
+    if (err) throw err
+    rooms.value = data || []
+  } catch (err) {
+    console.error('Erro ao carregar salas:', err)
+    error.value = err.message
+    rooms.value = []
+  } finally {
+    isLoading.value = false
+  }
+}
+
 // Computed
-const liveRooms = computed(() => rooms.value.filter(r => r.status === 'live'))
+const liveRooms = computed(() => rooms.value.filter(r => r.status === 'live' || r.status === 'halftime'))
 const scheduledRooms = computed(() => rooms.value.filter(r => r.status === 'scheduled'))
 const privateRooms = computed(() => rooms.value.filter(r => r.is_private && r.owner_id === user.value?.id))
 
@@ -134,6 +86,7 @@ const canCreatePrivateRoom = computed(() => {
 
 // Formatar hora
 function formatTime(isoString) {
+  if (!isoString) return '--:--'
   return new Date(isoString).toLocaleTimeString('pt-BR', {
     hour: '2-digit',
     minute: '2-digit'
@@ -149,15 +102,37 @@ function enterRoom(room) {
 async function handlePrivateJoin() {
   if (!privateCode.value.trim()) return
   
-  const success = await joinPrivateRoom(privateCode.value, user.value.id, {
-    username: user.value.email?.split('@')[0],
-    plan: userPlan.value
-  })
-  
-  if (success) {
+  try {
+    // Buscar sala pelo código
+    const { data: room, error: err } = await supabase
+      .from('game_rooms')
+      .select('*')
+      .eq('private_code', privateCode.value.toUpperCase())
+      .single()
+    
+    if (err || !room) {
+      alert('Código inválido ou sala não encontrada')
+      return
+    }
+    
     showPrivateModal.value = false
     privateCode.value = ''
+    router.push(`/live/${room.id}`)
+    
+  } catch (err) {
+    console.error('Erro ao buscar sala:', err)
+    alert('Erro ao buscar sala privada')
   }
+}
+
+// Gerar código privado
+function generatePrivateCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let code = ''
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return code
 }
 
 // Criar sala privada
@@ -167,20 +142,40 @@ async function handleCreatePrivate(game) {
     return
   }
   
-  const room = await createPrivateRoom(user.value.id, userPlan.value, {
-    fixture_id: game.fixture_id,
-    home_team: game.home_team,
-    away_team: game.away_team,
-    home_logo: game.home_team_logo,
-    away_logo: game.away_team_logo,
-    league: game.league
-  })
-  
-  if (room) {
+  try {
+    const privateCodeGen = generatePrivateCode()
+    
+    const { data: room, error: err } = await supabase
+      .from('game_rooms')
+      .insert({
+        fixture_id: game.fixture_id,
+        home_team: game.home_team,
+        away_team: game.away_team,
+        home_team_logo: game.home_team_logo,
+        away_team_logo: game.away_team_logo,
+        home_score: game.home_score || 0,
+        away_score: game.away_score || 0,
+        minute: game.minute || 0,
+        status: game.status || 'scheduled',
+        league: game.league,
+        is_private: true,
+        private_code: privateCodeGen,
+        owner_id: user.value.id,
+        start_time: game.start_time || new Date().toISOString()
+      })
+      .select()
+      .single()
+    
+    if (err) throw err
+    
     // Copiar código para clipboard
-    navigator.clipboard.writeText(room.private_code)
-    alert(`Sala criada! Código: ${room.private_code} (copiado para área de transferência)`)
+    navigator.clipboard.writeText(privateCodeGen)
+    alert(`Sala criada! Código: ${privateCodeGen} (copiado para área de transferência)`)
     router.push(`/live/${room.id}`)
+    
+  } catch (err) {
+    console.error('Erro ao criar sala:', err)
+    alert('Erro ao criar sala privada: ' + err.message)
   }
 }
 </script>
@@ -547,6 +542,11 @@ async function handleCreatePrivate(game) {
   width: 50px;
   height: 50px;
   object-fit: contain;
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .team-name {

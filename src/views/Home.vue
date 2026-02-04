@@ -77,8 +77,8 @@ const carregarPalpites = async () => {
     }
   } catch (error) {
     console.error('Erro ao carregar palpites:', error)
-    // Palpites mock se a API falhar
-    palpitesDoDia.value = gerarPalpitesMock()
+    // Se a API falhar, mostra array vazio (sem dados mockados)
+    palpitesDoDia.value = []
   }
   palpitesLoading.value = false
 }
@@ -123,17 +123,7 @@ const calcularPalpite = (match) => {
   }
 }
 
-// Palpites mock de fallback
-const gerarPalpitesMock = () => {
-  return [
-    { id: 1, index: 0, casa: 'Flamengo', fora: 'Internacional', data: '04/02', hora: '19:00', liga: 'Brasileirão', palpite: 'Flamengo', confianca: 58, probCasa: 58, probEmpate: 22, probFora: 20, oddCasa: '1.45', oddEmpate: '4.50', oddFora: '7.50', bloqueado: false },
-    { id: 2, index: 1, casa: 'Santos', fora: 'São Paulo', data: '04/02', hora: '20:00', liga: 'Brasileirão', palpite: 'São Paulo', confianca: 52, probCasa: 28, probEmpate: 25, probFora: 47, oddCasa: '3.50', oddEmpate: '4.00', oddFora: '2.10', bloqueado: false },
-    { id: 3, index: 2, casa: 'Palmeiras', fora: 'Vitória', data: '04/02', hora: '21:30', liga: 'Brasileirão', palpite: 'Palmeiras', confianca: 72, probCasa: 72, probEmpate: 18, probFora: 10, oddCasa: '1.28', oddEmpate: '5.50', oddFora: '10.00', bloqueado: false },
-    { id: 4, index: 3, casa: 'Grêmio', fora: 'Botafogo', data: '04/02', hora: '21:30', liga: 'Brasileirão', palpite: 'Botafogo', confianca: 48, probCasa: 32, probEmpate: 28, probFora: 40, oddCasa: '2.80', oddEmpate: '3.50', oddFora: '2.50', bloqueado: false },
-    { id: 5, index: 4, casa: 'Bragantino', fora: 'Atlético-MG', data: '04/02', hora: '19:00', liga: 'Brasileirão', palpite: 'Atlético-MG', confianca: 45, probCasa: 35, probEmpate: 25, probFora: 40, oddCasa: '2.60', oddEmpate: '4.00', oddFora: '2.80', bloqueado: false },
-    { id: 6, index: 5, casa: 'Corinthians', fora: 'Fluminense', data: '05/02', hora: '19:00', liga: 'Brasileirão', palpite: 'Corinthians', confianca: 55, probCasa: 55, probEmpate: 25, probFora: 20, oddCasa: '1.80', oddEmpate: '4.00', oddFora: '5.00', bloqueado: false }
-  ]
-}
+// Sem mock - palpites vêm apenas da API real
 
 const abrirPalpite = (palpite) => {
   // Redireciona para a página de palpites
@@ -1532,8 +1522,10 @@ const fecharModal = () => {
   height: 48px;
   object-fit: contain;
   border-radius: 8px;
-  background: rgba(255,255,255,0.05);
-  padding: 4px;
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .time-logo-placeholder {
@@ -1542,12 +1534,14 @@ const fecharModal = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.1);
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 8px;
   font-size: 0.8rem;
   font-weight: 700;
   color: rgba(255,255,255,0.7);
   text-transform: uppercase;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .time-nome {

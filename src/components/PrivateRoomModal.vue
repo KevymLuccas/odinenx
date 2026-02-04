@@ -180,9 +180,19 @@ function copyCode(code) {
       <div v-else class="tab-content">
         <!-- No permission -->
         <div v-if="maxPrivateRooms === 0" class="no-permission">
-          <p>❌ Seu plano não permite criar salas privadas</p>
-          <router-link to="/pricing" class="upgrade-link">
-            Fazer Upgrade
+          <div class="lock-icon-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <h3>Recurso Premium</h3>
+          <p>Salas privadas estão disponíveis a partir do plano Pro</p>
+          <router-link to="/pricing" class="upgrade-btn">
+            <span>Ver Planos</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
           </router-link>
         </div>
         
@@ -471,6 +481,11 @@ function copyCode(code) {
   width: 32px;
   height: 32px;
   object-fit: contain;
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .no-game {
@@ -499,21 +514,75 @@ function copyCode(code) {
   font-size: 1.2rem;
 }
 
-/* No Permission */
+/* No Permission - Premium Style */
 .no-permission {
   text-align: center;
-  padding: 2rem 0;
+  padding: 2.5rem 1.5rem;
+  background: linear-gradient(145deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.05));
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 16px;
+  margin-bottom: 1rem;
+}
+
+.no-permission .lock-icon-wrapper {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 1rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.no-permission .lock-icon-wrapper svg {
+  width: 24px;
+  height: 24px;
+  color: #8b5cf6;
+}
+
+.no-permission h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.5rem;
 }
 
 .no-permission p {
-  color: #ff4444;
-  margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+
+.upgrade-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+}
+
+.upgrade-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+}
+
+.upgrade-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 .upgrade-link {
   display: inline-block;
-  background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
-  color: #000;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
   padding: 0.75rem 1.5rem;
   border-radius: 10px;
   text-decoration: none;
@@ -608,5 +677,49 @@ function copyCode(code) {
 .slide-leave-to {
   opacity: 0;
   transform: translateX(-50%) translateY(20px);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .modal-content {
+    max-width: 100%;
+    margin: 0.5rem;
+    border-radius: 16px;
+  }
+  
+  .modal-header {
+    padding: 1rem;
+  }
+  
+  .tab-content {
+    padding: 1rem;
+  }
+  
+  .no-permission {
+    padding: 2rem 1rem;
+  }
+  
+  .no-permission .lock-icon-wrapper {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .no-permission .lock-icon-wrapper svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .no-permission h3 {
+    font-size: 1rem;
+  }
+  
+  .no-permission p {
+    font-size: 0.85rem;
+  }
+  
+  .upgrade-btn {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.85rem;
+  }
 }
 </style>

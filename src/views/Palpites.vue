@@ -1343,6 +1343,10 @@ const logout = async () => {
   height: 45px;
   object-fit: contain;
   border-radius: 8px;
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .time span {

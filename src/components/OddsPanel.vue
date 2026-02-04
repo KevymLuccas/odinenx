@@ -27,7 +27,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:selectedOdds'])
 
-// Odds mockadas (em produção, viriam da API)
+// Odds padrão para seleção do usuário (categorias fixas, valores ilustrativos)
 const availableOdds = computed(() => [
   {
     category: '1x2 - Resultado Final',

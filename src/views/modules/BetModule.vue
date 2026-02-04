@@ -734,36 +734,55 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
         <div class="modal-upgrade-jogo">
           <button class="modal-close" @click="fecharModal">×</button>
           
+          <div class="upgrade-glow"></div>
+          
           <div class="upgrade-header">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <h2>Análise Bloqueada</h2>
-            <p>Seu trial de 3 dias expirou</p>
+            <div class="upgrade-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h2>Análise Premium</h2>
+            <p>Desbloqueie insights avançados deste jogo</p>
           </div>
           
           <div class="upgrade-jogo-preview">
-            <span class="preview-label">Você quer ver:</span>
             <div class="preview-times">
-              <img :src="jogoSelecionado.casaLogo" @error="$event.target.src = '/icone.webp'">
-              <span>{{ jogoSelecionado.casa }} vs {{ jogoSelecionado.fora }}</span>
-              <img :src="jogoSelecionado.foraLogo" @error="$event.target.src = '/icone.webp'">
+              <div class="preview-team">
+                <img :src="jogoSelecionado.casaLogo" @error="$event.target.src = '/icone.webp'">
+                <span>{{ jogoSelecionado.casa }}</span>
+              </div>
+              <span class="preview-vs">VS</span>
+              <div class="preview-team">
+                <img :src="jogoSelecionado.foraLogo" @error="$event.target.src = '/icone.webp'">
+                <span>{{ jogoSelecionado.fora }}</span>
+              </div>
             </div>
           </div>
           
-          <div class="upgrade-benefits">
-            <h4>Faça upgrade para desbloquear:</h4>
-            <ul>
-              <li>✓ Palpites ilimitados</li>
-              <li>✓ Análise completa de cada jogo</li>
-              <li>✓ Estatísticas H2H detalhadas</li>
-              <li>✓ Odds de múltiplas casas</li>
-              <li>✓ Recomendações ODINENX IA</li>
-            </ul>
+          <div class="upgrade-features">
+            <div class="feature-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Análise completa H2H</span>
+            </div>
+            <div class="feature-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Odds de 6+ casas de apostas</span>
+            </div>
+            <div class="feature-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Recomendação ODINENX IA</span>
+            </div>
+            <div class="feature-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Estatísticas detalhadas</span>
+            </div>
           </div>
           
-          <div class="upgrade-plans">
-            <router-link to="/settings" class="btn-upgrade-primary">
-              Ver Planos a partir de R$79/mês
+          <div class="upgrade-cta">
+            <router-link to="/pricing" class="btn-upgrade-main">
+              <span>Ver Planos</span>
+              <span class="btn-price">a partir de R$19,90</span>
             </router-link>
+            <p class="upgrade-note">7 dias de garantia de satisfação</p>
           </div>
         </div>
       </div>
@@ -1059,7 +1078,7 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 .confianca-badge.sem { background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.4); }
 .jogo-times { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .time { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1; }
-.time img { width: 60px; height: 60px; object-fit: contain; border-radius: 10px; background: rgba(255, 255, 255, 0.1); padding: 6px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); }
+.time img { width: 60px; height: 60px; object-fit: contain; border-radius: 10px; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(255, 255, 255, 0.1); padding: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05); }
 .time-nome { font-weight: 600; font-size: 0.95rem; text-align: center; }
 .time-odd { font-size: 0.8rem; color: #3b82f6; background: rgba(59, 130, 246, 0.1); padding: 3px 10px; border-radius: 10px; font-weight: 600; }
 .versus { display: flex; flex-direction: column; align-items: center; gap: 5px; }
@@ -1085,7 +1104,7 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 .modal-close:hover { background: #ef4444; }
 .modal-header-jogo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .time-modal { display: flex; flex-direction: column; align-items: center; gap: 10px; flex: 1; }
-.time-modal img { width: 70px; height: 70px; object-fit: contain; border-radius: 12px; background: rgba(255, 255, 255, 0.1); padding: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
+.time-modal img { width: 70px; height: 70px; object-fit: contain; border-radius: 12px; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(255, 255, 255, 0.1); padding: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); }
 .time-modal h3 { font-size: 1.1rem; text-align: center; }
 .vs-modal { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .liga-logo { width: 40px; height: 40px; object-fit: contain; margin-bottom: 5px; }
@@ -1587,31 +1606,57 @@ input, select, textarea, button {
   filter: brightness(1.1);
 }
 
-/* ===== MODAL UPGRADE ===== */
+/* ===== MODAL UPGRADE PREMIUM ===== */
 .modal-upgrade-jogo {
-  background: #111;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 20px;
+  background: linear-gradient(145deg, #1a1a2e, #16162a);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 24px;
   width: 100%;
-  max-width: 420px;
+  max-width: 400px;
   padding: 32px;
   position: relative;
   text-align: center;
+  overflow: hidden;
+}
+
+.upgrade-glow {
+  position: absolute;
+  top: -50%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.2) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .upgrade-header {
   margin-bottom: 24px;
+  position: relative;
+  z-index: 1;
 }
 
-.upgrade-header svg {
-  color: #ffc107;
-  margin-bottom: 16px;
+.upgrade-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upgrade-icon svg {
+  color: #8b5cf6;
 }
 
 .upgrade-header h2 {
   font-size: 1.4rem;
   margin-bottom: 8px;
   color: #fff;
+  font-weight: 700;
 }
 
 .upgrade-header p {
@@ -1620,87 +1665,114 @@ input, select, textarea, button {
 }
 
 .upgrade-jogo-preview {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 20px;
   margin-bottom: 24px;
-}
-
-.preview-label {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
-  display: block;
-  margin-bottom: 12px;
 }
 
 .preview-times {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 16px;
 }
 
-.preview-times img {
-  width: 32px;
-  height: 32px;
+.preview-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.preview-team img {
+  width: 40px;
+  height: 40px;
   object-fit: contain;
-  border-radius: 6px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px;
 }
 
-.preview-times span {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #fff;
+.preview-team span {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+  max-width: 80px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.upgrade-benefits {
-  text-align: left;
+.preview-vs {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 700;
+}
+
+.upgrade-features {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   margin-bottom: 24px;
 }
 
-.upgrade-benefits h4 {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 12px;
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
 }
 
-.upgrade-benefits ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.feature-item svg {
+  width: 18px;
+  height: 18px;
+  color: #22c55e;
+  flex-shrink: 0;
 }
 
-.upgrade-benefits li {
-  font-size: 0.85rem;
-  color: #fff;
-  padding: 6px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+.feature-item span {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.85);
 }
 
-.upgrade-benefits li:last-child {
-  border-bottom: none;
+.upgrade-cta {
+  margin-top: 8px;
 }
 
-.upgrade-plans {
-  margin-top: 20px;
-}
-
-.btn-upgrade-primary {
-  display: inline-block;
+.btn-upgrade-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
-  background: linear-gradient(135deg, #ffc107, #ff9800);
-  color: #000;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
   font-weight: 700;
-  font-size: 0.95rem;
-  padding: 14px 24px;
-  border-radius: 12px;
+  font-size: 1rem;
+  padding: 16px 24px;
+  border-radius: 14px;
   text-decoration: none;
   transition: all 0.3s ease;
+  gap: 4px;
 }
 
-.btn-upgrade-primary:hover {
+.btn-upgrade-main:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(255, 193, 7, 0.3);
+  box-shadow: 0 12px 30px rgba(99, 102, 241, 0.4);
+}
+
+.btn-price {
+  font-size: 0.75rem;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.upgrade-note {
+  margin-top: 12px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 @media (max-width: 768px) {

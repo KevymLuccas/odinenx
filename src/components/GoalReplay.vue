@@ -31,47 +31,45 @@ async function fetchReplays() {
   error.value = ''
   
   try {
-    // Em produção, usaria a Scorebat API
-    // const response = await fetch(`https://www.scorebat.com/video-api/v3/feed/?token=YOUR_TOKEN`)
-    // const data = await response.json()
+    // Buscar replays da API Scorebat (requer token)
+    // Por enquanto, mostra estado vazio até a API ser configurada
+    const SCOREBAT_TOKEN = import.meta.env.VITE_SCOREBAT_TOKEN
     
-    // Mock para demonstração
-    videos.value = [
-      {
-        id: 1,
-        title: `⚽ GOL! ${props.homeTeam} marca`,
-        thumbnail: 'https://via.placeholder.com/320x180/1a1a2e/ffd700?text=GOL+1',
-        embed: '<iframe src="about:blank" width="100%" height="100%"></iframe>',
-        minute: '23\'',
-        scorer: 'Jogador 1',
-        team: props.homeTeam
-      },
-      {
-        id: 2,
-        title: `⚽ GOL! ${props.awayTeam} empata`,
-        thumbnail: 'https://via.placeholder.com/320x180/1a1a2e/ff4444?text=GOL+2',
-        embed: '<iframe src="about:blank" width="100%" height="100%"></iframe>',
-        minute: '45\'',
-        scorer: 'Jogador 2',
-        team: props.awayTeam
-      },
-      {
-        id: 3,
-        title: `⚽ GOL! ${props.homeTeam} vira`,
-        thumbnail: 'https://via.placeholder.com/320x180/1a1a2e/00c853?text=GOL+3',
-        embed: '<iframe src="about:blank" width="100%" height="100%"></iframe>',
-        minute: '67\'',
-        scorer: 'Jogador 3',
-        team: props.homeTeam
-      }
-    ]
+    if (!SCOREBAT_TOKEN) {
+      // Sem token, mostrar estado vazio
+      videos.value = []
+      return
+    }
+    
+    const response = await fetch(`https://www.scorebat.com/video-api/v3/feed/?token=${SCOREBAT_TOKEN}`)
+    const data = await response.json()
+    
+    // Filtrar vídeos pelo nome dos times
+    const homeSearch = props.homeTeam.toLowerCase()
+    const awaySearch = props.awayTeam.toLowerCase()
+    
+    videos.value = (data?.response || [])
+      .filter(v => {
+        const title = (v.title || '').toLowerCase()
+        return title.includes(homeSearch) || title.includes(awaySearch)
+      })
+      .slice(0, 5)
+      .map((v, idx) => ({
+        id: idx,
+        title: v.title,
+        thumbnail: v.thumbnail,
+        embed: v.embed,
+        minute: '',
+        scorer: '',
+        team: ''
+      }))
     
     if (videos.value.length > 0) {
       currentVideo.value = videos.value[0]
     }
   } catch (err) {
     console.error('Erro ao buscar replays:', err)
-    error.value = 'Não foi possível carregar os replays'
+    videos.value = []
   } finally {
     loading.value = false
   }
@@ -138,16 +136,15 @@ onMounted(() => {
         <!-- Video Player -->
         <div class="video-player">
           <div v-if="isPlaying && currentVideo" class="player-wrapper">
-            <!-- Em produção, usaria o embed real -->
-            <div class="mock-player">
-              <span>▶️</span>
-              <p>{{ currentVideo.title }}</p>
-              <small>Reproduzindo...</small>
+            <!-- Embed real do Scorebat -->
+            <div v-if="currentVideo.embed" v-html="currentVideo.embed" class="video-embed"></div>
+            <div v-else class="player-placeholder">
+              <p>Vídeo indisponível</p>
             </div>
           </div>
           <div v-else class="player-placeholder">
             <img 
-              v-if="currentVideo"
+              v-if="currentVideo?.thumbnail"
               :src="currentVideo.thumbnail" 
               :alt="currentVideo.title"
               class="thumbnail-large"

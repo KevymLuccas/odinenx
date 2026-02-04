@@ -382,9 +382,16 @@ function showNotification(message) {
       
       <!-- Not Elite Warning -->
       <div v-if="userPlan !== 'elite'" class="not-elite-warning">
-        <p>⚠️ A loja de customização é exclusiva para usuários Elite</p>
+        <div class="elite-lock-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1l3 6 6.5 1-5 4.5 1.5 6.5-6-3.5-6 3.5 1.5-6.5-5-4.5 6.5-1z"/>
+          </svg>
+        </div>
+        <h3>Loja Exclusiva Elite</h3>
+        <p>Desbloqueie badges, stickers e itens exclusivos</p>
         <router-link to="/pricing" class="upgrade-link">
-          Fazer Upgrade 👑
+          <span>Ver Plano Elite</span>
+          <span class="elite-price">R$99,90/mês</span>
         </router-link>
       </div>
       
@@ -579,31 +586,70 @@ function showNotification(message) {
   background: rgba(255,68,68,0.3);
 }
 
-/* Not Elite Warning */
+/* Not Elite Warning - Premium Style */
 .not-elite-warning {
   padding: 4rem 2rem;
   text-align: center;
+  background: linear-gradient(145deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.05));
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 20px;
+  margin: 2rem;
+}
+
+.elite-lock-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1.5rem;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.2));
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.elite-lock-icon svg {
+  width: 32px;
+  height: 32px;
+  color: #f59e0b;
+}
+
+.not-elite-warning h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.5rem;
 }
 
 .not-elite-warning p {
-  font-size: 1.2rem;
-  color: #888;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
   margin-bottom: 1.5rem;
 }
 
 .upgrade-link {
-  display: inline-block;
-  background: linear-gradient(135deg, #8a2be2 0%, #ffd700 100%);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
   color: white;
   padding: 1rem 2rem;
-  border-radius: 10px;
+  border-radius: 12px;
   text-decoration: none;
   font-weight: 600;
   transition: all 0.3s;
 }
 
 .upgrade-link:hover {
-  transform: scale(1.05);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(245, 158, 11, 0.4);
+}
+
+.elite-price {
+  font-size: 0.8rem;
+  font-weight: 500;
+  opacity: 0.85;
 }
 
 /* Store Content */

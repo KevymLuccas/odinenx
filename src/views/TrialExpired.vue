@@ -1,61 +1,118 @@
 <template>
-  <div class="trial-expired-page">
+  <div class="trial-page">
+    <!-- Background Effects -->
+    <div class="bg-effects">
+      <div class="glow glow-1"></div>
+      <div class="glow glow-2"></div>
+      <div class="grid-overlay"></div>
+    </div>
+
     <div class="container">
-      <div class="expired-card">
-        <div class="expired-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="m15 9-6 6"/>
-            <path d="m9 9 6 6"/>
-          </svg>
-        </div>
-        
-        <h1>🔒 Trial Expirado</h1>
-        <p class="expired-message">
-          Seu período gratuito de <strong>3 dias</strong> chegou ao fim!
-        </p>
-        
-        <div class="trial-stats">
-          <div class="stat-item">
-            <span class="stat-label">Período do Trial:</span>
-            <span class="stat-value">{{ formatDate(trialStart) }} - {{ formatDate(trialEnd) }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Dias utilizados:</span>
-            <span class="stat-value">{{ daysUsed }}/3 dias</span>
-          </div>
-        </div>
-        
-        <div class="benefits">
-          <h3>🎯 O que você pode fazer agora:</h3>
-          <ul>
-            <li>✅ <strong>Continuar usando BET</strong> - Análises básicas de apostas</li>
-            <li>🚀 <strong>Assinar um plano</strong> - Acesso completo + novas funcionalidades</li>
-            <li>📊 <strong>Paper Trading</strong> - Simulação com R$ 10.000 virtuais</li>
-            <li>🔔 <strong>Sistema de Alertas</strong> - Notificações automáticas</li>
-          </ul>
-        </div>
-        
-        <div class="action-buttons">
-          <router-link to="/pricing" class="btn-primary">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      <!-- Card Principal -->
+      <div class="upgrade-card">
+        <!-- Header com animação -->
+        <div class="card-header">
+          <div class="icon-wrapper">
+            <div class="icon-bg"></div>
+            <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
             </svg>
-            Ver Planos - A partir de R$ 79
-          </router-link>
+          </div>
+          <h1>Seu Trial Terminou</h1>
+          <p class="subtitle">
+            Você aproveitou <span class="highlight">{{ daysUsed }} dias</span> de acesso completo
+          </p>
+        </div>
+
+        <!-- Stats do Trial -->
+        <div class="trial-summary">
+          <div class="summary-item">
+            <span class="label">Iniciou em</span>
+            <span class="value">{{ formatDate(trialStart) }}</span>
+          </div>
+          <div class="divider"></div>
+          <div class="summary-item">
+            <span class="label">Expirou em</span>
+            <span class="value">{{ formatDate(trialEnd) }}</span>
+          </div>
+        </div>
+
+        <!-- Planos -->
+        <div class="plans-section">
+          <h2>Escolha seu plano</h2>
+          <p class="plans-subtitle">Desbloqueie todo o potencial do ODINENX</p>
           
-          <router-link to="/bet" class="btn-secondary">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="22,6 13.5,14.5 8.5,9.5 2,16"/>
-              <polyline points="16,6 22,6 22,12"/>
-            </svg>
-            Continuar no BET (Grátis)
+          <div class="plans-grid">
+            <!-- Basic -->
+            <div class="plan-card">
+              <div class="plan-header">
+                <span class="plan-name">Basic</span>
+                <span class="plan-price">R$ <strong>19</strong>,90/mês</span>
+              </div>
+              <ul class="plan-features">
+                <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Análises BET ilimitadas</li>
+                <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Paper Trading</li>
+                <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> GIFs no chat</li>
+              </ul>
+              <button @click="selectPlan('basic')" class="btn-plan">
+                Assinar Basic
+              </button>
+            </div>
+
+            <!-- Pro (Destaque) -->
+            <div class="plan-card featured">
+              <div class="featured-badge">⭐ Mais Popular</div>
+              <div class="plan-header">
+                <span class="plan-name">Pro</span>
+                <span class="plan-price">R$ <strong>49</strong>,90/mês</span>
+              </div>
+              <ul class="plan-features">
+                <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Tudo do Basic</li>
+                <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> 5 Salas Privadas</li>
+                <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Alertas Ilimitados</li>
+                <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Stickers + Badge VIP</li>
+              </ul>
+              <button @click="selectPlan('pro')" class="btn-plan btn-featured">
+                Assinar Pro
+              </button>
+            </div>
+
+            <!-- Elite -->
+            <div class="plan-card elite">
+              <div class="elite-badge">👑 Elite</div>
+              <div class="plan-header">
+                <span class="plan-name">Elite</span>
+                <span class="plan-price">R$ <strong>99</strong>,90/mês</span>
+              </div>
+              <ul class="plan-features">
+                <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Tudo do Pro</li>
+                <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Salas Ilimitadas</li>
+                <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> API de Odds em Tempo Real</li>
+                <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Suporte Prioritário</li>
+              </ul>
+              <button @click="selectPlan('elite')" class="btn-plan btn-elite">
+                Assinar Elite
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Link Free -->
+        <div class="free-option">
+          <router-link to="/dashboard" class="link-free">
+            Continuar gratuitamente (recursos limitados) →
           </router-link>
         </div>
-        
-        <div class="contact-support">
-          <p>💬 <strong>Dúvidas?</strong> Entre em contato conosco!</p>
-        </div>
+      </div>
+
+      <!-- Garantia -->
+      <div class="guarantee">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <polyline points="9 12 11 14 15 10"/>
+        </svg>
+        <span>Garantia de 7 dias ou seu dinheiro de volta</span>
       </div>
     </div>
   </div>
@@ -65,11 +122,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
-import { getTrialStatus, isAdmin } from '../lib/stripe'
+import { getTrialStatus, isAdmin, createCheckout } from '../lib/stripe'
 
 const router = useRouter()
 const trialData = ref(null)
-const userIsAdmin = ref(false)
+const loading = ref(false)
 
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
@@ -79,225 +136,422 @@ onMounted(async () => {
     return
   }
   
-  // Verificar se é admin
-  userIsAdmin.value = await isAdmin(session.user.id)
-  
-  // Se for admin, redirecionar direto para dashboard
-  if (userIsAdmin.value) {
+  // Se for admin, redirecionar
+  if (await isAdmin(session.user.id)) {
     router.push('/dashboard')
     return
   }
   
-  // Buscar dados do trial
   trialData.value = await getTrialStatus(session.user.id)
 })
 
 const trialStart = computed(() => {
-  if (!trialData.value?.startDate) return null
+  if (!trialData.value?.startDate) return new Date()
   return new Date(trialData.value.startDate)
 })
 
 const trialEnd = computed(() => {
-  if (!trialStart.value) return null
   const end = new Date(trialStart.value)
   end.setDate(end.getDate() + 3)
   return end
 })
 
-const daysUsed = computed(() => {
-  return trialData.value?.daysUsed || 3
-})
+const daysUsed = computed(() => trialData.value?.daysUsed || 3)
 
 const formatDate = (date) => {
-  if (!date) return 'N/A'
-  return date.toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  })
+  if (!date) return '--'
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+}
+
+const selectPlan = async (planId) => {
+  loading.value = true
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return router.push('/login')
+    
+    const checkoutUrl = await createCheckout(session.user.id, planId)
+    if (checkoutUrl) {
+      window.location.href = checkoutUrl
+    }
+  } catch (err) {
+    console.error('Erro ao criar checkout:', err)
+    alert('Erro ao processar. Tente novamente.')
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
 <style scoped>
-.trial-expired-page {
+.trial-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #2d2d2d 100%);
+  background: #0a0a0f;
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2rem;
 }
 
-.container {
-  max-width: 600px;
-  width: 100%;
+/* Background Effects */
+.bg-effects {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
-.expired-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 107, 107, 0.3);
-  border-radius: 20px;
+.glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.4;
+}
+
+.glow-1 {
+  width: 600px;
+  height: 600px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  top: -200px;
+  right: -100px;
+}
+
+.glow-2 {
+  width: 500px;
+  height: 500px;
+  background: linear-gradient(135deg, #06b6d4, #0ea5e9);
+  bottom: -150px;
+  left: -100px;
+}
+
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+.container {
+  max-width: 900px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+/* Card Principal */
+.upgrade-card {
+  background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 24px;
   padding: 3rem;
-  text-align: center;
   backdrop-filter: blur(20px);
 }
 
-.expired-icon {
-  background: rgba(255, 107, 107, 0.2);
-  border-radius: 50%;
+/* Header */
+.card-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.icon-wrapper {
+  position: relative;
   width: 80px;
   height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 2rem;
+  margin: 0 auto 1.5rem;
 }
 
-.expired-icon svg {
-  width: 40px;
-  height: 40px;
-  color: #ff6b6b;
+.icon-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border-radius: 50%;
+  animation: pulse-glow 2s ease-in-out infinite;
 }
 
-h1 {
-  color: #ff6b6b;
-  font-size: 2.5rem;
-  font-weight: 800;
-  margin-bottom: 1rem;
+@keyframes pulse-glow {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.1); opacity: 0.8; }
 }
 
-.expired-message {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 1.2rem;
-  margin-bottom: 2rem;
-  line-height: 1.6;
-}
-
-.trial-stats {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  text-align: left;
-}
-
-.stat-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-}
-
-.stat-item:last-child {
-  margin-bottom: 0;
-}
-
-.stat-label {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
-}
-
-.stat-value {
+.lock-icon {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 36px;
+  height: 36px;
   color: white;
+  z-index: 1;
+}
+
+.card-header h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: rgba(255,255,255,0.6);
+  font-size: 1.1rem;
+}
+
+.highlight {
+  color: #f59e0b;
   font-weight: 600;
 }
 
-.benefits {
-  text-align: left;
-  margin-bottom: 2rem;
+/* Trial Summary */
+.trial-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  padding: 1.5rem;
+  background: rgba(255,255,255,0.03);
+  border-radius: 16px;
+  margin-bottom: 2.5rem;
 }
 
-.benefits h3 {
-  color: #00d9ff;
-  font-size: 1.3rem;
-  margin-bottom: 1rem;
+.summary-item {
   text-align: center;
 }
 
-.benefits ul {
-  list-style: none;
-  padding: 0;
+.summary-item .label {
+  display: block;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.benefits li {
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 0.75rem;
-  padding-left: 1.5rem;
-  position: relative;
-  line-height: 1.5;
+.summary-item .value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: white;
 }
 
-.action-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+.divider {
+  width: 1px;
+  height: 40px;
+  background: rgba(255,255,255,0.1);
+}
+
+/* Plans Section */
+.plans-section h2 {
+  text-align: center;
+  font-size: 1.5rem;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.plans-subtitle {
+  text-align: center;
+  color: rgba(255,255,255,0.5);
   margin-bottom: 2rem;
 }
 
-.btn-primary, .btn-secondary {
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+/* Plan Card */
+.plan-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 1.5rem;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.plan-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.plan-card.featured {
+  background: linear-gradient(145deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1));
+  border-color: rgba(99, 102, 241, 0.4);
+  transform: scale(1.02);
+}
+
+.plan-card.elite {
+  background: linear-gradient(145deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.05));
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.featured-badge, .elite-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.25rem 1rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.featured-badge {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+}
+
+.elite-badge {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+.plan-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  padding-top: 0.5rem;
+}
+
+.plan-name {
+  display: block;
+  font-size: 1rem;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 0.5rem;
+}
+
+.plan-price {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.5);
+}
+
+.plan-price strong {
+  font-size: 2rem;
+  color: white;
+  font-weight: 700;
+}
+
+.plan-features {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 1.5rem;
+}
+
+.plan-features li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255,255,255,0.8);
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.plan-features svg {
+  width: 16px;
+  height: 16px;
+  stroke: #22c55e;
+  stroke-width: 3;
+  fill: none;
+}
+
+.btn-plan {
+  width: 100%;
+  padding: 0.875rem;
+  border-radius: 10px;
+  border: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+.btn-plan:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.btn-featured {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+}
+
+.btn-featured:hover {
+  transform: scale(1.02);
+  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+}
+
+.btn-elite {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.btn-elite:hover {
+  transform: scale(1.02);
+  box-shadow: 0 10px 30px rgba(245, 158, 11, 0.4);
+}
+
+/* Free Option */
+.free-option {
+  text-align: center;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.link-free {
+  color: rgba(255,255,255,0.5);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.3s;
+}
+
+.link-free:hover {
+  color: rgba(255,255,255,0.8);
+}
+
+/* Guarantee */
+.guarantee {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  padding: 1rem 2rem;
-  border-radius: 12px;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 1rem;
-  transition: all 0.3s;
-  border: none;
+  margin-top: 2rem;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.85rem;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #ff6b6b, #cc4444);
-  color: white;
-}
-
-.btn-primary:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 25px rgba(255, 107, 107, 0.4);
-}
-
-.btn-secondary {
-  background: rgba(0, 217, 255, 0.1);
-  color: #00d9ff;
-  border: 1px solid rgba(0, 217, 255, 0.3);
-}
-
-.btn-secondary:hover {
-  background: rgba(0, 217, 255, 0.2);
-  transform: translateY(-2px);
-}
-
-.btn-primary svg, .btn-secondary svg {
+.guarantee svg {
   width: 20px;
   height: 20px;
+  stroke: #22c55e;
 }
 
-.contact-support {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.9rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 1.5rem;
-}
-
+/* Responsivo */
 @media (max-width: 768px) {
-  .trial-expired-page {
+  .trial-page {
     padding: 1rem;
   }
   
-  .expired-card {
-    padding: 2rem;
+  .upgrade-card {
+    padding: 1.5rem;
   }
   
-  h1 {
-    font-size: 2rem;
+  .plans-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
   
-  .stat-item {
+  .plan-card.featured {
+    transform: none;
+    order: -1;
+  }
+  
+  .trial-summary {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
+    gap: 1rem;
+  }
+  
+  .divider {
+    width: 60px;
+    height: 1px;
   }
 }
 </style>
