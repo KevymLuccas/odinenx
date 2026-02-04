@@ -16,6 +16,10 @@ import Settings from '../views/Settings.vue'
 import TrialExpired from '../views/TrialExpired.vue'
 import Palpites from '../views/Palpites.vue'
 import OddsComparator from '../views/OddsComparator.vue'
+// v2.0 - Live Rooms
+import LiveRooms from '../views/LiveRooms.vue'
+import GameRoom from '../views/GameRoom.vue'
+import PricingV2 from '../views/PricingV2.vue'
 
 const routes = [
   {
@@ -53,7 +57,7 @@ const routes = [
   {
     path: '/pricing',
     name: 'Pricing',
-    component: Pricing
+    component: PricingV2
   },
   {
     path: '/dashboard',
@@ -117,6 +121,19 @@ const routes = [
     path: '/checkout/cancel',
     name: 'CheckoutCancel',
     component: CheckoutCancel
+  },
+  // v2.0 - Salas ao Vivo
+  {
+    path: '/live',
+    name: 'LiveRooms',
+    component: LiveRooms,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/live/:roomId',
+    name: 'GameRoom',
+    component: GameRoom,
+    meta: { requiresAuth: true }
   }
 ]
 

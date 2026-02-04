@@ -1,0 +1,24 @@
+{
+  "created_at": "2026-02-04T18:12:43.724Z",
+  "environment": "live",
+  "products": [
+    {
+      "plan": "basic",
+      "productId": "prod_Tv0an63DQm3KSI",
+      "priceId": "price_1SxAZCD3mufAbT6cUHrvNnub",
+      "amount": 1990
+    },
+    {
+      "plan": "pro",
+      "productId": "prod_Tv0aSpOrjDPOPF",
+      "priceId": "price_1SxAZCD3mufAbT6cSdYNWkN2",
+      "amount": 4990
+    },
+    {
+      "plan": "elite",
+      "productId": "prod_Tv0aWLeido8OK2",
+      "priceId": "price_1SxAZDD3mufAbT6clYbRkQoo",
+      "amount": 9990
+    }
+  ]
+}

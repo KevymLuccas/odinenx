@@ -37,6 +37,10 @@ const logout = async () => {
       <div class="nav-links desktop">
         <a href="#modules" class="nav-link">Módulos</a>
         <a href="#pricing" class="nav-link">Preços</a>
+        <router-link to="/live" class="nav-link live-link">
+          <span class="live-dot"></span>
+          Ao Vivo
+        </router-link>
         <template v-if="user">
           <router-link to="/dashboard" class="nav-link">Dashboard</router-link>
           <button @click="logout" class="nav-link btn-logout">Sair</button>
@@ -57,6 +61,10 @@ const logout = async () => {
     <div class="mobile-menu" :class="{ 'open': menuOpen }">
       <a href="#modules" class="nav-link" @click="menuOpen = false">Módulos</a>
       <a href="#pricing" class="nav-link" @click="menuOpen = false">Preços</a>
+      <router-link to="/live" class="nav-link live-link" @click="menuOpen = false">
+        <span class="live-dot"></span>
+        Ao Vivo
+      </router-link>
       <template v-if="user">
         <router-link to="/dashboard" class="nav-link" @click="menuOpen = false">Dashboard</router-link>
         <button @click="logout" class="nav-link btn-logout">Sair</button>
@@ -190,6 +198,28 @@ const logout = async () => {
 
 .mobile-menu.open {
   display: flex;
+}
+
+/* Link Ao Vivo com animação */
+.live-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ff4444 !important;
+  font-weight: 600;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background: #ff4444;
+  border-radius: 50%;
+  animation: pulse-live 1.5s infinite;
+}
+
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7); }
+  50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(255, 68, 68, 0); }
 }
 
 @media (max-width: 768px) {

@@ -147,6 +147,17 @@ const navigateTo = (path) => {
           Dashboard
         </router-link>
 
+        <!-- 🔴 AO VIVO v2.0 -->
+        <div class="nav-category">Ao Vivo</div>
+        <router-link to="/live" class="nav-item live-nav">
+          <span class="live-indicator"></span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polygon points="10 8 16 12 10 16 10 8"/>
+          </svg>
+          Jogos ao Vivo
+        </router-link>
+
         <!-- MÓDULOS -->
         <div class="nav-category">Módulos</div>
         <router-link to="/bet" class="nav-item">
@@ -243,6 +254,7 @@ const navigateTo = (path) => {
       </div>
       <div class="mobile-nav">
         <button @click="navigateTo('/dashboard')" class="mobile-nav-item active">Dashboard</button>
+        <button @click="navigateTo('/live')" class="mobile-nav-item live-mobile">🔴 Ao Vivo</button>
         <button @click="navigateTo('/bet')" class="mobile-nav-item">BET</button>
         <button @click="navigateTo('/trade')" class="mobile-nav-item">TRADE</button>
         <button @click="navigateTo('/cartola')" class="mobile-nav-item">Cartola FC</button>
@@ -634,6 +646,41 @@ const navigateTo = (path) => {
 
 .nav-item.admin-link:hover {
   background: rgba(255, 107, 107, 0.2);
+  color: #ff6b6b;
+}
+
+/* 🔴 Link Ao Vivo com destaque */
+.nav-item.live-nav {
+  background: linear-gradient(135deg, rgba(255, 68, 68, 0.1) 0%, rgba(255, 140, 0, 0.1) 100%);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  color: #ff6b6b;
+  position: relative;
+}
+
+.nav-item.live-nav:hover {
+  background: linear-gradient(135deg, rgba(255, 68, 68, 0.2) 0%, rgba(255, 140, 0, 0.2) 100%);
+}
+
+.live-indicator {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background: #ff4444;
+  border-radius: 50%;
+  animation: live-pulse 1.5s infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7); }
+  50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(255, 68, 68, 0); }
+}
+
+.mobile-nav-item.live-mobile {
+  background: linear-gradient(135deg, rgba(255, 68, 68, 0.15) 0%, rgba(255, 140, 0, 0.15) 100%);
+  border: 1px solid rgba(255, 68, 68, 0.3);
   color: #ff6b6b;
 }
 

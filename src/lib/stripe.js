@@ -11,40 +11,54 @@ export const getStripe = () => {
   return stripePromise
 }
 
-// Planos disponíveis
+// Planos disponíveis - v2.0 com Salas ao Vivo
 export const plans = {
   free: {
     id: 'free',
     name: 'Free',
     price: 0,
     interval: 'month',
+    badge: null,
+    badgeEmoji: '',
     features: [
-      'Todos os palpites do dia',
-      'Probabilidades básicas',
-      'Odds estimadas',
+      'Chat em salas ao vivo',
+      'Emojis básicos',
+      'Palpites do dia',
       'Histórico 7 dias'
     ],
     limits: {
-      palpitesPerDay: -1, // Ilimitado
-      palpitesVisiveis: -1, // Todos visíveis
+      palpitesPerDay: -1,
+      palpitesVisiveis: -1,
       historyDays: 7,
-      palpiteCompleto: false, // Não vê análise H2H
+      palpiteCompleto: false,
       oddsMultiplas: false,
-      estatisticasH2H: false
+      estatisticasH2H: false,
+      // v2.0 - Salas ao Vivo
+      chatTexto: true,
+      emojisBasicos: true,
+      gifs: false,
+      stickers: false,
+      imagens: false,
+      salasPrivadas: 0,
+      efeitoGolCustom: false,
+      destaqueLista: false,
+      celebracao: 'confete_simples'
     }
   },
   basic: {
     id: 'basic',
     name: 'Basic',
-    price: 79,
+    price: 19.90,
     interval: 'month',
-    stripePriceId: 'price_1SvMedD3mufAbT6c994DmZYw',
+    stripePriceId: 'price_1SxAZCD3mufAbT6cUHrvNnub',
+    badge: 'bronze',
+    badgeEmoji: '🥉',
     features: [
-      'Palpites ilimitados',
-      'Análise completa dos jogos',
-      'Estatísticas H2H',
-      'Histórico 30 dias',
-      'Odds de múltiplas casas'
+      'Tudo do Free',
+      'GIFs no chat',
+      '1 sala privada',
+      'Badge Bronze',
+      'Histórico 30 dias'
     ],
     limits: {
       palpitesPerDay: -1,
@@ -52,23 +66,36 @@ export const plans = {
       historyDays: 30,
       palpiteCompleto: true,
       oddsMultiplas: true,
-      estatisticasH2H: true
+      estatisticasH2H: true,
+      // v2.0 - Salas ao Vivo
+      chatTexto: true,
+      emojisBasicos: true,
+      gifs: true,
+      stickers: false,
+      imagens: false,
+      salasPrivadas: 1,
+      efeitoGolCustom: false,
+      destaqueLista: false,
+      celebracao: 'confete_colorido'
     }
   },
   pro: {
     id: 'pro',
     name: 'Pro',
-    price: 199,
+    price: 49.90,
     interval: 'month',
-    stripePriceId: 'price_1SvMehD3mufAbT6cmjXFFHtA',
+    stripePriceId: 'price_1SxAZCD3mufAbT6cSdYNWkN2',
     popular: true,
+    badge: 'prata',
+    badgeEmoji: '⭐',
     features: [
       'Tudo do Basic',
-      'Módulo TRADE completo',
-      'Cartola FC',
-      'Histórico 90 dias',
-      'Sistema de Alertas',
-      'Suporte prioritário'
+      'Stickers exclusivos',
+      '5 salas privadas',
+      'Badge Prata',
+      'Destaque na lista',
+      'Módulo TRADE',
+      'Cartola FC'
     ],
     limits: {
       palpitesPerDay: -1,
@@ -79,19 +106,34 @@ export const plans = {
       estatisticasH2H: true,
       trade: true,
       cartola: true,
-      alerts: true
+      alerts: true,
+      // v2.0 - Salas ao Vivo
+      chatTexto: true,
+      emojisBasicos: true,
+      gifs: true,
+      stickers: true,
+      imagens: true,
+      salasPrivadas: 5,
+      efeitoGolCustom: false,
+      destaqueLista: true,
+      celebracao: 'animacao_premium'
     }
   },
   elite: {
     id: 'elite',
     name: 'Elite',
-    price: 399,
+    price: 99.90,
     interval: 'month',
-    stripePriceId: 'price_1SvMemD3mufAbT6cRHEhLdAM',
+    stripePriceId: 'price_1SxAZDD3mufAbT6clYbRkQoo',
+    badge: 'dourado',
+    badgeEmoji: '👑',
     features: [
       'Tudo do Pro',
-      'Histórico ilimitado',
-      'Relatórios avançados',
+      'Salas privadas ilimitadas',
+      'Badge Dourado',
+      'Topo da lista de usuários',
+      'Efeitos de gol customizáveis',
+      'Loja de customização',
       'Suporte VIP 24/7'
     ],
     limits: {
@@ -105,7 +147,18 @@ export const plans = {
       cartola: true,
       alerts: true,
       admin: true,
-      reports: true
+      reports: true,
+      // v2.0 - Salas ao Vivo
+      chatTexto: true,
+      emojisBasicos: true,
+      gifs: true,
+      stickers: true,
+      imagens: true,
+      salasPrivadas: -1, // Ilimitado
+      efeitoGolCustom: true,
+      destaqueLista: 'topo',
+      celebracao: 'full_customizado',
+      lojaCustomizacao: true
     }
   }
 }
@@ -114,7 +167,42 @@ export const plans = {
 export const priceIdToPlan = {
   'price_1SvMedD3mufAbT6c994DmZYw': 'basic',
   'price_1SvMehD3mufAbT6cmjXFFHtA': 'pro',
-  'price_1SvMemD3mufAbT6cRHEhLdAM': 'elite'
+  'price_1SvMemD3mufAbT6cRHEhLdAM': 'elite',
+  // v2.0 - Novos price IDs (criar no Stripe)
+  'price_basic_v2': 'basic',
+  'price_pro_v2': 'pro',
+  'price_elite_v2': 'elite'
+}
+
+// Helpers para sistema de salas v2.0
+export const getPlanBadge = (planId) => {
+  const plan = plans[planId] || plans.free
+  return plan.badgeEmoji || ''
+}
+
+export const getPlanOrder = (planId) => {
+  const order = { elite: 0, pro: 1, basic: 2, free: 3 }
+  return order[planId] ?? 3
+}
+
+export const canSendGif = (planId) => {
+  const plan = plans[planId] || plans.free
+  return plan.limits?.gifs || false
+}
+
+export const canSendSticker = (planId) => {
+  const plan = plans[planId] || plans.free
+  return plan.limits?.stickers || false
+}
+
+export const getMaxPrivateRooms = (planId) => {
+  const plan = plans[planId] || plans.free
+  return plan.limits?.salasPrivadas || 0
+}
+
+export const getCelebrationEffect = (planId) => {
+  const plan = plans[planId] || plans.free
+  return plan.limits?.celebracao || 'confete_simples'
 }
 
 // Verificar se usuário tem acesso a um recurso específico
