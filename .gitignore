@@ -24,4 +24,22 @@ dist-ssr
 *.sw?
 
 .vercel
-.env*.local
+
+# ======================================
+# SEGURANÇA - NUNCA COMMITAR
+# ======================================
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# Chaves e secrets
+*.pem
+*.key
+secrets/
+credentials/
+
+# Supabase local
+supabase/.temp/
+supabase/.branches/

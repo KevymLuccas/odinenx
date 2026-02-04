@@ -12,12 +12,50 @@ const jogos = ref([])
 const jogoSelecionado = ref(null)
 const lastUpdate = ref(null)
 const mostrarModalBloqueio = ref(false)
+const oddsReais = ref({}) // Cache de odds reais por jogo
+const loadingOdds = ref(false)
 
-// Controle de análises vistas hoje (localStorage) - REATIVO
+// Controle de análises vistas hoje - BACKEND + localStorage (fallback)
 const ANALISES_KEY = 'odinenx_analises_vistas'
 const MAX_ANALISES_FREE = 3
 const analisesVistasTrigger = ref(0) // Trigger para reatividade
 
+// Verificar análise no backend (Supabase)
+const verificarAnaliseBackend = async (jogoId) => {
+  if (!user.value) return { allowed: true, remaining: MAX_ANALISES_FREE }
+  
+  try {
+    const { data, error } = await supabase.rpc('can_view_analysis', {
+      p_user_id: user.value.id,
+      p_analysis_id: String(jogoId),
+      p_type: 'palpite'
+    })
+    
+    if (error) throw error
+    return data
+  } catch (err) {
+    console.warn('Backend check failed, using localStorage fallback:', err)
+    // Fallback para localStorage se backend falhar
+    return null
+  }
+}
+
+// Registrar visualização no backend
+const registrarAnaliseBackend = async (jogoId) => {
+  if (!user.value) return
+  
+  try {
+    await supabase.rpc('register_analysis_view', {
+      p_user_id: user.value.id,
+      p_analysis_id: String(jogoId),
+      p_type: 'palpite'
+    })
+  } catch (err) {
+    console.warn('Backend register failed:', err)
+  }
+}
+
+// Fallback localStorage (para quando backend não está disponível)
 const getAnalisesVistasHoje = () => {
   try {
     const data = localStorage.getItem(ANALISES_KEY)
@@ -35,7 +73,11 @@ const getAnalisesVistasHoje = () => {
   }
 }
 
-const salvarAnaliseVista = (jogoId) => {
+const salvarAnaliseVista = async (jogoId) => {
+  // Salvar no backend primeiro
+  await registrarAnaliseBackend(jogoId)
+  
+  // Também salvar em localStorage como backup
   const atual = getAnalisesVistasHoje()
   if (!atual.ids.includes(jogoId)) {
     atual.ids.push(jogoId)
@@ -148,19 +190,36 @@ const carregarJogos = async () => {
 const calcularAnalise = (match) => {
   const homePos = match.homeTeam?.position || 10
   const awayPos = match.awayTeam?.position || 10
-  const fatorCasa = 1.3
   
-  const forcaCasa = (21 - homePos) * fatorCasa
-  const forcaFora = (21 - awayPos)
-  const total = forcaCasa + forcaFora + 5
+  // Fatores de cálculo mais realistas
+  const fatorCasa = 1.35 // Vantagem de jogar em casa
+  const fatorForma = 1.1 // Peso da forma recente
   
-  const probCasa = Math.round((forcaCasa / total) * 100)
-  const probFora = Math.round((forcaFora / total) * 100)
-  const probEmpate = 100 - probCasa - probFora
+  // Força baseada na posição (times melhores = posição menor)
+  const forcaCasa = (22 - homePos) * fatorCasa * fatorForma
+  const forcaFora = (22 - awayPos)
+  const forcaEmpate = 8 // Base para empate
   
-  const oddCasa = probCasa > 0 ? (100 / probCasa).toFixed(2) : '-'
-  const oddEmpate = probEmpate > 0 ? (100 / probEmpate).toFixed(2) : '-'
-  const oddFora = probFora > 0 ? (100 / probFora).toFixed(2) : '-'
+  const total = forcaCasa + forcaFora + forcaEmpate
+  
+  // Probabilidades brutas
+  let probCasa = Math.round((forcaCasa / total) * 100)
+  let probFora = Math.round((forcaFora / total) * 100)
+  let probEmpate = 100 - probCasa - probFora
+  
+  // Ajustar empate para ser mais realista (entre 20-35%)
+  if (probEmpate < 20) {
+    const diff = 20 - probEmpate
+    probEmpate = 20
+    probCasa = probCasa - Math.floor(diff / 2)
+    probFora = probFora - Math.ceil(diff / 2)
+  }
+  
+  // Calcular odds estimadas (com margem de 5% como as casas)
+  const margem = 1.05
+  const oddCasa = probCasa > 0 ? ((100 / probCasa) * margem).toFixed(2) : '-'
+  const oddEmpate = probEmpate > 0 ? ((100 / probEmpate) * margem).toFixed(2) : '-'
+  const oddFora = probFora > 0 ? ((100 / probFora) * margem).toFixed(2) : '-'
   
   let palpite = 'Empate'
   let confianca = probEmpate
@@ -176,6 +235,9 @@ const calcularAnalise = (match) => {
     tipoPalpite = 'fora'
   }
   
+  // Gerar explicações detalhadas do PORQUÊ do palpite
+  const explicacoes = gerarExplicacoes(match, tipoPalpite, probCasa, probFora, probEmpate, homePos, awayPos)
+  
   return {
     palpite,
     tipoPalpite,
@@ -185,8 +247,115 @@ const calcularAnalise = (match) => {
     probFora,
     oddCasa,
     oddEmpate,
-    oddFora
+    oddFora,
+    homePos,
+    awayPos,
+    explicacoes,
+    isEstimated: true // Marca como odds estimadas
   }
+}
+
+// Gerar explicações detalhadas do palpite
+const gerarExplicacoes = (match, tipoPalpite, probCasa, probFora, probEmpate, homePos, awayPos) => {
+  const homeName = match.homeTeam?.shortName || match.homeTeam?.name || 'Casa'
+  const awayName = match.awayTeam?.shortName || match.awayTeam?.name || 'Fora'
+  
+  const explicacoes = []
+  
+  // 1. Posição na tabela
+  if (homePos && awayPos) {
+    if (homePos < awayPos) {
+      explicacoes.push({
+        icon: '📊',
+        titulo: 'Posição na Tabela',
+        texto: `${homeName} está em ${homePos}º lugar, ${awayPos - homePos} posições à frente de ${awayName} (${awayPos}º)`,
+        impacto: 'positivo'
+      })
+    } else if (awayPos < homePos) {
+      explicacoes.push({
+        icon: '📊',
+        titulo: 'Posição na Tabela',
+        texto: `${awayName} está em ${awayPos}º lugar, ${homePos - awayPos} posições à frente de ${homeName} (${homePos}º)`,
+        impacto: tipoPalpite === 'fora' ? 'positivo' : 'negativo'
+      })
+    } else {
+      explicacoes.push({
+        icon: '📊',
+        titulo: 'Posição na Tabela',
+        texto: `Times empatados na tabela (${homePos}º lugar) - equilíbrio técnico`,
+        impacto: 'neutro'
+      })
+    }
+  }
+  
+  // 2. Fator casa
+  explicacoes.push({
+    icon: '🏟️',
+    titulo: 'Vantagem de Casa',
+    texto: `${homeName} joga em casa, o que historicamente adiciona ~10-15% de chance de vitória`,
+    impacto: tipoPalpite === 'casa' ? 'positivo' : 'neutro'
+  })
+  
+  // 3. Probabilidades
+  if (tipoPalpite === 'casa') {
+    explicacoes.push({
+      icon: '🎯',
+      titulo: 'Probabilidade Calculada',
+      texto: `${homeName} tem ${probCasa}% de chance de vencer baseado em estatísticas`,
+      impacto: 'positivo'
+    })
+  } else if (tipoPalpite === 'fora') {
+    explicacoes.push({
+      icon: '🎯',
+      titulo: 'Probabilidade Calculada',
+      texto: `${awayName} tem ${probFora}% de chance mesmo jogando fora - time em grande fase`,
+      impacto: 'positivo'
+    })
+  } else {
+    explicacoes.push({
+      icon: '🎯',
+      titulo: 'Probabilidade Calculada',
+      texto: `Empate tem ${probEmpate}% de chance - forças muito equilibradas`,
+      impacto: 'positivo'
+    })
+  }
+  
+  // 4. Análise de risco
+  const diffProb = Math.abs(probCasa - probFora)
+  if (diffProb < 10) {
+    explicacoes.push({
+      icon: '⚠️',
+      titulo: 'Análise de Risco',
+      texto: `Jogo muito equilibrado (diferença de apenas ${diffProb}%) - considere empate ou aposta dupla`,
+      impacto: 'alerta'
+    })
+  } else if (diffProb > 25) {
+    explicacoes.push({
+      icon: '✅',
+      titulo: 'Análise de Risco',
+      texto: `Favoritismo claro (diferença de ${diffProb}%) - palpite com boa margem de segurança`,
+      impacto: 'positivo'
+    })
+  }
+  
+  // 5. Recomendação de aposta
+  if (probCasa > 55 || probFora > 55) {
+    explicacoes.push({
+      icon: '💡',
+      titulo: 'Recomendação',
+      texto: `Favorito claro no jogo. Para maior segurança, considere "Dupla Chance" ou "Handicap"`,
+      impacto: 'dica'
+    })
+  } else if (probEmpate > 30) {
+    explicacoes.push({
+      icon: '💡',
+      titulo: 'Recomendação',
+      texto: `Alta chance de empate. Considere "Ambas Marcam" ou "Under/Over 2.5 gols"`,
+      impacto: 'dica'
+    })
+  }
+  
+  return explicacoes
 }
 
 // Filtrar jogos
@@ -211,26 +380,69 @@ const jogosFiltrados = computed(() => {
   return resultado
 })
 
-const selecionarJogo = (jogo) => {
-  // Verificar se já viu este jogo hoje
-  const vistas = getAnalisesVistasHoje()
-  const jaViu = vistas.ids.includes(jogo.id)
-  
-  // Se tem acesso completo ou já viu este jogo, abre direto
-  if (temAcessoCompleto.value || jaViu) {
+const selecionarJogo = async (jogo) => {
+  // Se tem acesso completo (plano pago), abre direto
+  if (temAcessoCompleto.value) {
     jogoSelecionado.value = jogo
-    if (!jaViu) salvarAnaliseVista(jogo.id)
+    await buscarOddsReais(jogo)
     return
   }
   
-  // Se ainda tem análises disponíveis, abre e salva
+  // Para usuários free: verificar no backend primeiro
+  const backendCheck = await verificarAnaliseBackend(jogo.id)
+  
+  if (backendCheck) {
+    // Backend respondeu - usar validação do servidor (mais seguro)
+    if (backendCheck.allowed) {
+      await salvarAnaliseVista(jogo.id)
+      jogoSelecionado.value = jogo
+    } else {
+      // Limite atingido - mostra modal de upgrade
+      mostrarModalBloqueio.value = true
+    }
+    return
+  }
+  
+  // Fallback: usar localStorage se backend falhar
+  const vistas = getAnalisesVistasHoje()
+  const jaViu = vistas.ids.includes(jogo.id)
+  
+  if (jaViu) {
+    jogoSelecionado.value = jogo
+    return
+  }
+  
   if (analisesRestantes.value > 0) {
-    salvarAnaliseVista(jogo.id)
+    await salvarAnaliseVista(jogo.id)
     jogoSelecionado.value = jogo
   } else {
-    // Limite atingido - mostra modal de upgrade
     mostrarModalBloqueio.value = true
   }
+}
+
+// Buscar odds reais de múltiplas casas de apostas
+const buscarOddsReais = async (jogo) => {
+  if (oddsReais.value[jogo.id]) return // Já tem cache
+  
+  loadingOdds.value = true
+  try {
+    const liga = ligaSelecionada.value === 'all' ? 'BSA' : ligaSelecionada.value
+    const response = await fetch(`/api/odds?league=${liga}`)
+    if (response.ok) {
+      const data = await response.json()
+      // Tentar encontrar o jogo nas odds
+      const matchOdds = data.odds?.find(m => 
+        m.home_team?.toLowerCase().includes(jogo.casa.toLowerCase()) ||
+        jogo.casa.toLowerCase().includes(m.home_team?.toLowerCase()?.split(' ')[0])
+      )
+      if (matchOdds) {
+        oddsReais.value[jogo.id] = matchOdds
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao buscar odds:', error)
+  }
+  loadingOdds.value = false
 }
 
 const fecharModal = () => {
@@ -261,6 +473,7 @@ const logout = async () => {
         <p v-if="lastUpdate">Atualizado às {{ lastUpdate }}</p>
       </div>
       <div class="header-right">
+        <router-link to="/odds" class="btn-header odds">📊 Odds</router-link>
         <template v-if="user">
           <router-link to="/dashboard" class="btn-header">Dashboard</router-link>
         </template>
@@ -439,6 +652,25 @@ const logout = async () => {
           </div>
         </div>
         
+        <!-- EXPLICAÇÕES DETALHADAS DO PORQUÊ -->
+        <div class="explicacoes-section">
+          <h4>🧠 Por que esse palpite?</h4>
+          <div class="explicacoes-lista">
+            <div 
+              v-for="(exp, idx) in jogoSelecionado.explicacoes" 
+              :key="idx" 
+              class="explicacao-item"
+              :class="exp.impacto"
+            >
+              <span class="exp-icon">{{ exp.icon }}</span>
+              <div class="exp-content">
+                <span class="exp-titulo">{{ exp.titulo }}</span>
+                <span class="exp-texto">{{ exp.texto }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <div class="modal-probabilidades">
           <h4>Probabilidades</h4>
           <div class="prob-bar">
@@ -469,18 +701,192 @@ const logout = async () => {
               <span class="value">@{{ jogoSelecionado.oddFora }}</span>
             </div>
           </div>
+          <p class="odds-estimadas-info">💡 Odds estimadas baseadas nas probabilidades calculadas</p>
         </div>
         
-        <!-- H2H Bloqueado -->
-        <div v-if="!temAcessoCompleto" class="h2h-locked">
-          <div class="lock-icon">🔒</div>
-          <h4>Estatísticas H2H</h4>
-          <p>Confrontos diretos, últimos jogos e mais estatísticas disponíveis nos planos pagos.</p>
-          <router-link to="/pricing" class="btn-upgrade">Ver Planos</router-link>
+        <!-- Odds Reais - Premium -->
+        <div v-if="temAcessoCompleto && oddsReais[jogoSelecionado?.id]" class="odds-reais-section">
+          <h4>🏆 Odds Reais em Tempo Real</h4>
+          <p class="odds-reais-subtitle">Comparativo de {{ oddsReais[jogoSelecionado.id]?.bookmakers?.length || 0 }} casas de apostas</p>
+          
+          <div v-if="loadingOdds" class="loading-odds">
+            <span class="spinner-small"></span> Carregando odds de múltiplas casas...
+          </div>
+          
+          <div v-else class="odds-reais-container">
+            <!-- Melhores Odds -->
+            <div class="melhores-odds">
+              <span class="melhores-titulo">🥇 MELHORES ODDS</span>
+              <div class="melhores-grid">
+                <div class="melhor-odd-item">
+                  <span class="resultado">{{ jogoSelecionado.casa }}</span>
+                  <span class="odd-valor">@{{ oddsReais[jogoSelecionado.id]?.best_odds?.home?.value?.toFixed(2) || '-' }}</span>
+                  <span class="casa-nome">{{ oddsReais[jogoSelecionado.id]?.best_odds?.home?.bookmaker?.icon }} {{ oddsReais[jogoSelecionado.id]?.best_odds?.home?.bookmaker?.name || '-' }}</span>
+                </div>
+                <div class="melhor-odd-item">
+                  <span class="resultado">Empate</span>
+                  <span class="odd-valor">@{{ oddsReais[jogoSelecionado.id]?.best_odds?.draw?.value?.toFixed(2) || '-' }}</span>
+                  <span class="casa-nome">{{ oddsReais[jogoSelecionado.id]?.best_odds?.draw?.bookmaker?.icon }} {{ oddsReais[jogoSelecionado.id]?.best_odds?.draw?.bookmaker?.name || '-' }}</span>
+                </div>
+                <div class="melhor-odd-item">
+                  <span class="resultado">{{ jogoSelecionado.fora }}</span>
+                  <span class="odd-valor">@{{ oddsReais[jogoSelecionado.id]?.best_odds?.away?.value?.toFixed(2) || '-' }}</span>
+                  <span class="casa-nome">{{ oddsReais[jogoSelecionado.id]?.best_odds?.away?.bookmaker?.icon }} {{ oddsReais[jogoSelecionado.id]?.best_odds?.away?.bookmaker?.name || '-' }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Probabilidades Implícitas -->
+            <div class="probabilidades-implicitas">
+              <span class="prob-titulo">📊 Probabilidades do Mercado</span>
+              <div class="prob-bars">
+                <div class="prob-bar-row">
+                  <span class="prob-label">{{ jogoSelecionado.casa.substring(0, 10) }}</span>
+                  <div class="prob-bar">
+                    <div class="prob-fill home" :style="{ width: (oddsReais[jogoSelecionado.id]?.implied_probabilities?.adjusted?.home || 0) + '%' }"></div>
+                  </div>
+                  <span class="prob-value">{{ oddsReais[jogoSelecionado.id]?.implied_probabilities?.adjusted?.home || 0 }}%</span>
+                </div>
+                <div class="prob-bar-row">
+                  <span class="prob-label">Empate</span>
+                  <div class="prob-bar">
+                    <div class="prob-fill draw" :style="{ width: (oddsReais[jogoSelecionado.id]?.implied_probabilities?.adjusted?.draw || 0) + '%' }"></div>
+                  </div>
+                  <span class="prob-value">{{ oddsReais[jogoSelecionado.id]?.implied_probabilities?.adjusted?.draw || 0 }}%</span>
+                </div>
+                <div class="prob-bar-row">
+                  <span class="prob-label">{{ jogoSelecionado.fora.substring(0, 10) }}</span>
+                  <div class="prob-bar">
+                    <div class="prob-fill away" :style="{ width: (oddsReais[jogoSelecionado.id]?.implied_probabilities?.adjusted?.away || 0) + '%' }"></div>
+                  </div>
+                  <span class="prob-value">{{ oddsReais[jogoSelecionado.id]?.implied_probabilities?.adjusted?.away || 0 }}%</span>
+                </div>
+              </div>
+              <div class="margem-casa">
+                <span>Margem das casas: <strong>{{ oddsReais[jogoSelecionado.id]?.implied_probabilities?.overround || 0 }}%</strong></span>
+                <span v-if="oddsReais[jogoSelecionado.id]?.implied_probabilities?.overround < 105" class="margem-boa">✨ Margens excelentes!</span>
+              </div>
+            </div>
+            
+            <!-- Todas as Casas -->
+            <div class="todas-casas">
+              <span class="casas-titulo">🏠 Comparativo de Casas</span>
+              <div class="casas-grid">
+                <div 
+                  v-for="bm in oddsReais[jogoSelecionado.id]?.bookmakers?.slice(0, 6)" 
+                  :key="bm.key" 
+                  class="casa-item"
+                >
+                  <div class="casa-header">
+                    <span class="casa-icon">{{ bm.icon }}</span>
+                    <span class="casa-name">{{ bm.name }}</span>
+                  </div>
+                  <div class="casa-odds">
+                    <div class="casa-odd" :class="{ melhor: bm.odds?.home === oddsReais[jogoSelecionado.id]?.best_odds?.home?.value }">
+                      <span class="odd-tipo">1</span>
+                      <span class="odd-val">@{{ bm.odds?.home?.toFixed(2) }}</span>
+                    </div>
+                    <div class="casa-odd" :class="{ melhor: bm.odds?.draw === oddsReais[jogoSelecionado.id]?.best_odds?.draw?.value }">
+                      <span class="odd-tipo">X</span>
+                      <span class="odd-val">@{{ bm.odds?.draw?.toFixed(2) }}</span>
+                    </div>
+                    <div class="casa-odd" :class="{ melhor: bm.odds?.away === oddsReais[jogoSelecionado.id]?.best_odds?.away?.value }">
+                      <span class="odd-tipo">2</span>
+                      <span class="odd-val">@{{ bm.odds?.away?.toFixed(2) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Value Bets Alert -->
+          <div v-if="oddsReais[jogoSelecionado.id]?.value_bets?.length > 0" class="value-bets-section">
+            <div class="value-bets-header">
+              <span class="vb-icon">💎</span>
+              <span class="vb-titulo">VALUE BETS DETECTADAS</span>
+            </div>
+            <div class="value-bets-list">
+              <div v-for="vb in oddsReais[jogoSelecionado.id].value_bets.slice(0, 3)" :key="vb.bookmaker" class="value-bet-card">
+                <div class="vb-info">
+                  <span class="vb-casa">{{ vb.icon }} {{ vb.bookmaker }}</span>
+                  <span class="vb-resultado">{{ vb.outcome === 'home' ? jogoSelecionado.casa : vb.outcome === 'away' ? jogoSelecionado.fora : 'Empate' }}</span>
+                </div>
+                <div class="vb-numeros">
+                  <span class="vb-odd">@{{ vb.odds?.toFixed(2) }}</span>
+                  <span class="vb-edge">+{{ vb.value_percentage }}% edge</span>
+                </div>
+              </div>
+            </div>
+            <p class="vb-explicacao">💡 Value bets são apostas onde a odd paga mais do que a probabilidade real sugere - lucro esperado positivo a longo prazo!</p>
+          </div>
+          
+          <router-link to="/bet" class="btn-ver-odds">
+            📊 Abrir Comparador Completo de Odds →
+          </router-link>
+        </div>
+        
+        <!-- Odds Bloqueadas - CTA para Free Users -->
+        <div v-if="!temAcessoCompleto" class="odds-bloqueadas-section">
+          <div class="odds-bloqueadas-header">
+            <span class="lock-icon">🔒</span>
+            <h4>Odds Reais de Múltiplas Casas</h4>
+          </div>
+          
+          <div class="odds-preview-blur">
+            <div class="preview-grid">
+              <div class="preview-item">
+                <span class="preview-icon">🟢</span>
+                <span class="preview-casa">Bet365</span>
+                <span class="preview-odds">@?.?? / @?.?? / @?.??</span>
+              </div>
+              <div class="preview-item">
+                <span class="preview-icon">🟡</span>
+                <span class="preview-casa">Betfair</span>
+                <span class="preview-odds">@?.?? / @?.?? / @?.??</span>
+              </div>
+              <div class="preview-item">
+                <span class="preview-icon">🔵</span>
+                <span class="preview-casa">Pinnacle</span>
+                <span class="preview-odds">@?.?? / @?.?? / @?.??</span>
+              </div>
+              <div class="preview-item">
+                <span class="preview-icon">🔷</span>
+                <span class="preview-casa">1xBet</span>
+                <span class="preview-odds">@?.?? / @?.?? / @?.??</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="odds-bloqueadas-benefits">
+            <div class="benefit-item">
+              <span>📊</span>
+              <p><strong>17+ casas de apostas</strong> comparadas em tempo real</p>
+            </div>
+            <div class="benefit-item">
+              <span>💎</span>
+              <p><strong>Value Bets automáticas</strong> - apostas com vantagem matemática</p>
+            </div>
+            <div class="benefit-item">
+              <span>📈</span>
+              <p><strong>Probabilidades implícitas</strong> calculadas por profissionais</p>
+            </div>
+            <div class="benefit-item">
+              <span>🏆</span>
+              <p><strong>Melhores odds</strong> identificadas para cada resultado</p>
+            </div>
+          </div>
+          
+          <div class="odds-bloqueadas-cta">
+            <router-link to="/pricing" class="btn-desbloquear">
+              🚀 Desbloquear Odds Reais - A partir de R$29/mês
+            </router-link>
+            <p class="cta-hint">Cancele a qualquer momento. Garantia de 7 dias.</p>
+          </div>
         </div>
         
         <!-- H2H Liberado (placeholder) -->
-        <div v-else class="h2h-section">
+        <div v-if="temAcessoCompleto" class="h2h-section">
           <h4>📊 Estatísticas H2H</h4>
           <p class="h2h-info">Confrontos diretos entre {{ jogoSelecionado.casa }} e {{ jogoSelecionado.fora }}</p>
           <!-- Dados H2H seriam carregados aqui -->
@@ -598,6 +1004,16 @@ const logout = async () => {
 .btn-header.primary {
   background: #fff;
   color: #000;
+}
+
+.btn-header.odds {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(139, 195, 74, 0.15));
+  border: 1px solid rgba(76, 175, 80, 0.4);
+  color: #4caf50;
+}
+
+.btn-header.odds:hover {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(139, 195, 74, 0.25));
 }
 
 /* Filtros */
@@ -1261,6 +1677,85 @@ const logout = async () => {
 .dot.empate { background: #ff9800; }
 .dot.fora { background: #2196f3; }
 
+/* Explicações Section */
+.explicacoes-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.explicacoes-section h4 {
+  font-size: 0.95rem;
+  margin-bottom: 16px;
+  color: #fff;
+}
+
+.explicacoes-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.explicacao-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+.explicacao-item.positivo {
+  border-left-color: #4caf50;
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.explicacao-item.negativo {
+  border-left-color: #f44336;
+  background: rgba(244, 67, 54, 0.1);
+}
+
+.explicacao-item.neutro {
+  border-left-color: #9e9e9e;
+  background: rgba(158, 158, 158, 0.1);
+}
+
+.explicacao-item.alerta {
+  border-left-color: #ff9800;
+  background: rgba(255, 152, 0, 0.1);
+}
+
+.explicacao-item.dica {
+  border-left-color: #2196f3;
+  background: rgba(33, 150, 243, 0.1);
+}
+
+.exp-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.exp-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.exp-titulo {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.exp-texto {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+}
+
 .modal-odds {
   margin-bottom: 24px;
 }
@@ -1329,11 +1824,482 @@ const logout = async () => {
   transition: all 0.3s ease;
 }
 
+/* Odds Bloqueadas Section - Free Users */
+.odds-bloqueadas-section {
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.08), rgba(255, 152, 0, 0.05));
+  border: 1px solid rgba(255, 193, 7, 0.2);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.odds-bloqueadas-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.odds-bloqueadas-header .lock-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0;
+}
+
+.odds-bloqueadas-header h4 {
+  font-size: 1rem;
+  color: #ffc107;
+  margin: 0;
+}
+
+.odds-preview-blur {
+  position: relative;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.odds-preview-blur::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.8) 100%);
+  backdrop-filter: blur(3px);
+  pointer-events: none;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.preview-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+}
+
+.preview-icon { font-size: 1rem; }
+.preview-casa { font-size: 0.8rem; color: rgba(255, 255, 255, 0.6); }
+.preview-odds { font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); margin-left: auto; }
+
+.odds-bloqueadas-benefits {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.benefit-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+}
+
+.benefit-item span {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.benefit-item p {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.benefit-item strong {
+  color: #fff;
+}
+
+.odds-bloqueadas-cta {
+  text-align: center;
+}
+
+.btn-desbloquear {
+  display: inline-block;
+  background: linear-gradient(135deg, #4caf50, #2e7d32);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 14px 30px;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+.btn-desbloquear:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+
+.cta-hint {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 10px;
+}
+
 .h2h-section {
   padding: 20px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   margin-bottom: 20px;
+}
+
+.odds-estimadas-info {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  margin-top: 10px;
+  font-style: italic;
+}
+
+/* Odds Reais Section - Premium */
+.odds-reais-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(139, 195, 74, 0.05));
+  border: 1px solid rgba(76, 175, 80, 0.2);
+  border-radius: 12px;
+}
+
+.odds-reais-section h4 {
+  font-size: 1rem;
+  margin-bottom: 5px;
+  color: #4caf50;
+}
+
+.odds-reais-subtitle {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 20px;
+}
+
+.loading-odds {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+}
+
+.odds-reais-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Melhores Odds */
+.melhores-odds {
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 12px;
+  padding: 15px;
+}
+
+.melhores-titulo {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ffc107;
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.melhores-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.melhor-odd-item {
+  text-align: center;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+}
+
+.melhor-odd-item .resultado {
+  display: block;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 4px;
+}
+
+.melhor-odd-item .odd-valor {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #ffc107;
+  margin-bottom: 4px;
+}
+
+.melhor-odd-item .casa-nome {
+  display: block;
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Probabilidades Implícitas */
+.probabilidades-implicitas {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 15px;
+}
+
+.prob-titulo {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  display: block;
+  margin-bottom: 12px;
+}
+
+.prob-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prob-bar-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 45px;
+  align-items: center;
+  gap: 10px;
+}
+
+.prob-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prob-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.prob-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.prob-fill.home { background: linear-gradient(90deg, #4caf50, #8bc34a); }
+.prob-fill.draw { background: linear-gradient(90deg, #9e9e9e, #bdbdbd); }
+.prob-fill.away { background: linear-gradient(90deg, #2196f3, #03a9f4); }
+
+.prob-value {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+  text-align: right;
+}
+
+.margem-casa {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.margem-boa {
+  color: #4caf50;
+  font-weight: 600;
+}
+
+/* Todas as Casas */
+.todas-casas {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 15px;
+}
+
+.casas-titulo {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  display: block;
+  margin-bottom: 12px;
+}
+
+.casas-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.casa-item {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.casa-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.casa-icon { font-size: 1rem; }
+.casa-name { font-size: 0.75rem; font-weight: 600; color: #fff; }
+
+.casa-odds {
+  display: flex;
+  gap: 6px;
+}
+
+.casa-odd {
+  flex: 1;
+  text-align: center;
+  padding: 6px 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.casa-odd.melhor {
+  background: rgba(76, 175, 80, 0.2);
+  border: 1px solid rgba(76, 175, 80, 0.4);
+}
+
+.odd-tipo {
+  display: block;
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 2px;
+}
+
+.odd-val {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #ffc107;
+}
+
+.casa-odd.melhor .odd-val {
+  color: #4caf50;
+}
+
+/* Value Bets Section */
+.value-bets-section {
+  background: linear-gradient(135deg, rgba(156, 39, 176, 0.15), rgba(103, 58, 183, 0.1));
+  border: 1px solid rgba(156, 39, 176, 0.3);
+  border-radius: 12px;
+  padding: 15px;
+  margin-top: 15px;
+}
+
+.value-bets-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.value-bets-header .vb-icon { font-size: 1.3rem; }
+.value-bets-header .vb-titulo {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ce93d8;
+  letter-spacing: 1px;
+}
+
+.value-bets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.value-bet-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+}
+
+.vb-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vb-casa {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.vb-resultado {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.vb-numeros {
+  text-align: right;
+}
+
+.vb-odd {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffc107;
+}
+
+.vb-edge {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4caf50;
+}
+
+.vb-explicacao {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  line-height: 1.5;
+}
+
+.btn-ver-odds {
+  display: block;
+  text-align: center;
+  background: linear-gradient(135deg, #4caf50, #2e7d32);
+  color: #fff;
+  padding: 14px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.btn-ver-odds:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .h2h-section h4 {

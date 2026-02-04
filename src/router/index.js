@@ -6,7 +6,6 @@ import Pricing from '../views/Pricing.vue'
 import Dashboard from '../views/Dashboard.vue'
 import CheckoutSuccess from '../views/CheckoutSuccess.vue'
 import CheckoutCancel from '../views/CheckoutCancel.vue'
-import BetModule from '../views/modules/BetModule.vue'
 import TradeModule from '../views/modules/TradeModule.vue'
 import CartolaModule from '../views/modules/CartolaModule.vue'
 import PaperTrading from '../views/PaperTrading.vue'
@@ -16,6 +15,7 @@ import History from '../views/History.vue'
 import Settings from '../views/Settings.vue'
 import TrialExpired from '../views/TrialExpired.vue'
 import Palpites from '../views/Palpites.vue'
+import OddsComparator from '../views/OddsComparator.vue'
 
 const routes = [
   {
@@ -27,6 +27,18 @@ const routes = [
     path: '/palpites',
     name: 'Palpites',
     component: Palpites
+  },
+  {
+    path: '/odds',
+    name: 'OddsComparator',
+    component: OddsComparator,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/bet',
+    name: 'Bet',
+    component: OddsComparator,
+    meta: { requiresAuth: true }
   },
   {
     path: '/login',
@@ -47,12 +59,6 @@ const routes = [
     path: '/dashboard',
     name: 'Dashboard',
     component: Dashboard,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/bet',
-    name: 'BetModule',
-    component: BetModule,
     meta: { requiresAuth: true }
   },
   {
@@ -123,6 +129,27 @@ const router = createRouter({
     }
     return { top: 0 }
   }
+})
+
+// Guard de autenticação global
+import { supabase } from '../lib/supabase'
+
+router.beforeEach(async (to, from, next) => {
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  
+  if (requiresAuth) {
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    if (!session) {
+      // Não autenticado - redireciona para login
+      return next({ 
+        path: '/login', 
+        query: { redirect: to.fullPath } 
+      })
+    }
+  }
+  
+  next()
 })
 
 export default router

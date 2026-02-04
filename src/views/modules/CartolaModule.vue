@@ -202,7 +202,7 @@ const carregarDados = async () => {
   }
 }
 
-// Calcular score do atleta
+// Calcular score do atleta COM EXPLICAÇÕES
 const calcularScore = (atleta) => {
   const media = atleta.media_num || 0
   const preco = Math.max(atleta.preco_num || 1, 0.1)
@@ -223,6 +223,192 @@ const calcularScore = (atleta) => {
   // status 7 (Provável) ou undefined: sem penalização
   
   return Math.round(score * 100) / 100
+}
+
+// Gerar explicações detalhadas do atleta
+const gerarExplicacoesAtleta = (atleta) => {
+  const explicacoes = []
+  const media = atleta.media_num || 0
+  const preco = atleta.preco_num || 0
+  const variacao = atleta.variacao_num || 0
+  const jogos = atleta.jogos_num || 0
+  const status = atleta.status_id
+  const score = atleta.score || 0
+  
+  // 1. Média de pontos
+  if (media >= 8) {
+    explicacoes.push({
+      icon: '⭐',
+      titulo: 'Média Excelente',
+      texto: `Média de ${media.toFixed(1)} pts - Um dos melhores da posição`,
+      impacto: 'positivo'
+    })
+  } else if (media >= 5) {
+    explicacoes.push({
+      icon: '📊',
+      titulo: 'Boa Média',
+      texto: `Média de ${media.toFixed(1)} pts - Desempenho consistente`,
+      impacto: 'positivo'
+    })
+  } else if (media >= 3) {
+    explicacoes.push({
+      icon: '📉',
+      titulo: 'Média Regular',
+      texto: `Média de ${media.toFixed(1)} pts - Pode melhorar`,
+      impacto: 'neutro'
+    })
+  } else {
+    explicacoes.push({
+      icon: '⚠️',
+      titulo: 'Média Baixa',
+      texto: `Média de apenas ${media.toFixed(1)} pts - Risco alto`,
+      impacto: 'negativo'
+    })
+  }
+  
+  // 2. Custo-benefício
+  const custoBeneficio = preco > 0 ? (media / preco).toFixed(2) : 0
+  if (custoBeneficio >= 1.5) {
+    explicacoes.push({
+      icon: '💰',
+      titulo: 'Ótimo Custo-Benefício',
+      texto: `C$${preco.toFixed(1)} por ${media.toFixed(1)} pts = ${custoBeneficio} pts/C$ - Pechincha!`,
+      impacto: 'positivo'
+    })
+  } else if (custoBeneficio >= 0.8) {
+    explicacoes.push({
+      icon: '💵',
+      titulo: 'Custo-Benefício Justo',
+      texto: `C$${preco.toFixed(1)} por ${media.toFixed(1)} pts - Preço adequado`,
+      impacto: 'neutro'
+    })
+  } else {
+    explicacoes.push({
+      icon: '💸',
+      titulo: 'Custo-Benefício Ruim',
+      texto: `C$${preco.toFixed(1)} por ${media.toFixed(1)} pts - Muito caro pelo retorno`,
+      impacto: 'negativo'
+    })
+  }
+  
+  // 3. Momento / Variação
+  if (variacao > 2) {
+    explicacoes.push({
+      icon: '📈',
+      titulo: 'Em Alta!',
+      texto: `Valorizou C$${variacao.toFixed(2)} - Momento excelente`,
+      impacto: 'positivo'
+    })
+  } else if (variacao > 0) {
+    explicacoes.push({
+      icon: '↗️',
+      titulo: 'Tendência de Alta',
+      texto: `Valorizou C$${variacao.toFixed(2)} - Ganhando espaço`,
+      impacto: 'positivo'
+    })
+  } else if (variacao < -2) {
+    explicacoes.push({
+      icon: '📉',
+      titulo: 'Em Baixa',
+      texto: `Desvalorizou C$${Math.abs(variacao).toFixed(2)} - Momento ruim`,
+      impacto: 'negativo'
+    })
+  } else if (variacao < 0) {
+    explicacoes.push({
+      icon: '↘️',
+      titulo: 'Leve Queda',
+      texto: `Desvalorizou C$${Math.abs(variacao).toFixed(2)} - Atenção`,
+      impacto: 'alerta'
+    })
+  }
+  
+  // 4. Experiência no campeonato
+  if (jogos >= 10) {
+    explicacoes.push({
+      icon: '🏆',
+      titulo: 'Jogador Experiente',
+      texto: `${jogos} jogos no campeonato - Estatísticas confiáveis`,
+      impacto: 'positivo'
+    })
+  } else if (jogos >= 5) {
+    explicacoes.push({
+      icon: '👤',
+      titulo: 'Amostra Razoável',
+      texto: `${jogos} jogos - Dados suficientes para análise`,
+      impacto: 'neutro'
+    })
+  } else {
+    explicacoes.push({
+      icon: '🆕',
+      titulo: 'Poucos Jogos',
+      texto: `Apenas ${jogos} jogos - Dados limitados, mais risco`,
+      impacto: 'alerta'
+    })
+  }
+  
+  // 5. Status
+  if (status === 7) {
+    explicacoes.push({
+      icon: '✅',
+      titulo: 'Provável Titular',
+      texto: 'Confirmado para jogar - Alta probabilidade de entrar',
+      impacto: 'positivo'
+    })
+  } else if (status === 2) {
+    explicacoes.push({
+      icon: '⚠️',
+      titulo: 'Status: Dúvida',
+      texto: 'Presença incerta - Risco de não jogar',
+      impacto: 'alerta'
+    })
+  } else if (status === 3) {
+    explicacoes.push({
+      icon: '🟡',
+      titulo: 'Suspenso!',
+      texto: 'Não pode jogar esta rodada - Evitar!',
+      impacto: 'negativo'
+    })
+  } else if (status === 5) {
+    explicacoes.push({
+      icon: '🏥',
+      titulo: 'Contundido',
+      texto: 'Lesionado e fora - Não escalar!',
+      impacto: 'negativo'
+    })
+  }
+  
+  // 6. Recomendação final
+  if (score >= 15) {
+    explicacoes.push({
+      icon: '💎',
+      titulo: 'Recomendação: ESCALAR',
+      texto: 'Score alto - Excelente opção para sua escalação',
+      impacto: 'positivo'
+    })
+  } else if (score >= 10) {
+    explicacoes.push({
+      icon: '👍',
+      titulo: 'Recomendação: CONSIDERAR',
+      texto: 'Boa opção se encaixar no orçamento',
+      impacto: 'neutro'
+    })
+  } else if (score >= 5) {
+    explicacoes.push({
+      icon: '🤔',
+      titulo: 'Recomendação: RESERVA',
+      texto: 'Melhor como reserva ou se faltar grana',
+      impacto: 'alerta'
+    })
+  } else {
+    explicacoes.push({
+      icon: '👎',
+      titulo: 'Recomendação: EVITAR',
+      texto: 'Existem opções melhores na posição',
+      impacto: 'negativo'
+    })
+  }
+  
+  return explicacoes
 }
 
 // Escalar automaticamente com IA
@@ -1142,6 +1328,25 @@ const navigateTo = (path) => {
             <div class="minmax-item">
               <span class="minmax-label">📈 Máximo</span>
               <span class="minmax-value verde">{{ (modalJogador.maximo_num || 0).toFixed(1) }}</span>
+            </div>
+          </div>
+
+          <!-- EXPLICAÇÕES DETALHADAS - Por que escalar? -->
+          <div class="explicacoes-jogador">
+            <h4>🧠 Por que esse jogador?</h4>
+            <div class="explicacoes-lista">
+              <div 
+                v-for="(exp, idx) in gerarExplicacoesAtleta(modalJogador)" 
+                :key="idx" 
+                class="explicacao-item"
+                :class="exp.impacto"
+              >
+                <span class="exp-icon">{{ exp.icon }}</span>
+                <div class="exp-content">
+                  <span class="exp-titulo">{{ exp.titulo }}</span>
+                  <span class="exp-texto">{{ exp.texto }}</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -2533,6 +2738,80 @@ const navigateTo = (path) => {
 
 .minmax-value.verde { color: #22c55e; }
 .minmax-value.vermelho { color: #ef4444; }
+
+/* Explicações do Jogador */
+.explicacoes-jogador {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.explicacoes-jogador h4 {
+  font-size: 0.95rem;
+  margin-bottom: 14px;
+  color: #fff;
+}
+
+.explicacoes-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.explicacao-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border-left: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+.explicacao-item.positivo {
+  border-left-color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.explicacao-item.negativo {
+  border-left-color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.explicacao-item.neutro {
+  border-left-color: #9ca3af;
+  background: rgba(156, 163, 175, 0.1);
+}
+
+.explicacao-item.alerta {
+  border-left-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.exp-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.exp-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.exp-titulo {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.exp-texto {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.3;
+}
 
 .jogador-acoes {
   display: flex;
