@@ -14,6 +14,12 @@ const lastUpdate = ref(null)
 const mostrarModalBloqueio = ref(false)
 const oddsReais = ref({}) // Cache de odds reais por jogo
 const loadingOdds = ref(false)
+const mostrarExplicacaoOdds = ref(false) // Toggle para explicação das odds
+
+// Função para toggle da explicação
+const toggleOddsExplicacao = () => {
+  mostrarExplicacaoOdds.value = !mostrarExplicacaoOdds.value
+}
 
 // Controle de análises vistas hoje - BACKEND + localStorage (fallback)
 const ANALISES_KEY = 'odinenx_analises_vistas'
@@ -761,7 +767,7 @@ const logout = async () => {
         </div>
         
         <div class="modal-odds">
-          <h4>Odds Estimadas</h4>
+          <h4>📊 Odds Estimadas</h4>
           <div class="odds-grid">
             <div class="odd-box">
               <span class="team">{{ jogoSelecionado.casa }}</span>
@@ -776,7 +782,63 @@ const logout = async () => {
               <span class="value">@{{ jogoSelecionado.oddFora }}</span>
             </div>
           </div>
-          <p class="odds-estimadas-info">💡 Odds estimadas baseadas nas probabilidades calculadas</p>
+          
+          <!-- Explicação didática das odds -->
+          <div class="odds-explicacao">
+            <div class="odds-explicacao-header" @click="toggleOddsExplicacao">
+              <span>❓ O que são odds e como usar?</span>
+              <span class="toggle-icon">{{ mostrarExplicacaoOdds ? '▼' : '▶' }}</span>
+            </div>
+            
+            <div v-if="mostrarExplicacaoOdds" class="odds-explicacao-content">
+              <div class="explicacao-item">
+                <span class="explicacao-icon">🎯</span>
+                <div class="explicacao-texto">
+                  <strong>O que são odds?</strong>
+                  <p>Odds representam a <em>probabilidade invertida</em> de um evento acontecer. Quanto <strong>menor a odd</strong>, maior a chance do evento ocorrer.</p>
+                </div>
+              </div>
+              
+              <div class="explicacao-item">
+                <span class="explicacao-icon">💰</span>
+                <div class="explicacao-texto">
+                  <strong>Como calcular o ganho?</strong>
+                  <p>Multiplique o valor apostado pela odd. Ex: R$10 × @{{ jogoSelecionado.oddCasa }} = <strong>R${{ (10 * jogoSelecionado.oddCasa).toFixed(2) }}</strong> de retorno.</p>
+                </div>
+              </div>
+              
+              <div class="explicacao-item">
+                <span class="explicacao-icon">📈</span>
+                <div class="explicacao-texto">
+                  <strong>Como usar na prática?</strong>
+                  <p>Compare nossas odds estimadas com as das casas de apostas. Se a casa oferece odd <strong>maior</strong> que a nossa, pode ser uma <strong>aposta de valor</strong>!</p>
+                </div>
+              </div>
+              
+              <div class="odds-exemplo-box">
+                <div class="exemplo-titulo">📝 Exemplo com este jogo:</div>
+                <div class="exemplo-conteudo">
+                  <p>Nossa análise estima <strong>{{ jogoSelecionado.probCasa }}%</strong> de chance para {{ jogoSelecionado.casa }}.</p>
+                  <p>Isso equivale a uma odd justa de <strong>@{{ jogoSelecionado.oddCasa }}</strong>.</p>
+                  <p class="exemplo-dica">💡 Se uma casa oferece @{{ (parseFloat(jogoSelecionado.oddCasa) + 0.3).toFixed(2) }} ou mais, pode ter <strong>valor</strong>!</p>
+                </div>
+              </div>
+              
+              <div class="odds-tabela-conversao">
+                <div class="tabela-titulo">🔄 Tabela de Conversão Rápida</div>
+                <div class="tabela-items">
+                  <div class="tabela-item"><span class="prob">80%</span> <span class="seta">→</span> <span class="odd">@1.25</span></div>
+                  <div class="tabela-item"><span class="prob">66%</span> <span class="seta">→</span> <span class="odd">@1.50</span></div>
+                  <div class="tabela-item"><span class="prob">50%</span> <span class="seta">→</span> <span class="odd">@2.00</span></div>
+                  <div class="tabela-item"><span class="prob">33%</span> <span class="seta">→</span> <span class="odd">@3.00</span></div>
+                  <div class="tabela-item"><span class="prob">25%</span> <span class="seta">→</span> <span class="odd">@4.00</span></div>
+                  <div class="tabela-item"><span class="prob">20%</span> <span class="seta">→</span> <span class="odd">@5.00</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <p class="odds-estimadas-info">💡 Odds calculadas a partir das probabilidades estatísticas (inclui margem de 5%)</p>
         </div>
         
         <!-- Odds Reais - Premium -->
@@ -2039,6 +2101,168 @@ const logout = async () => {
   text-align: center;
   margin-top: 10px;
   font-style: italic;
+}
+
+/* Explicação didática das odds */
+.odds-explicacao {
+  margin-top: 16px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.odds-explicacao-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  background: rgba(255, 193, 7, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.2s;
+}
+
+.odds-explicacao-header:hover {
+  background: rgba(255, 193, 7, 0.2);
+}
+
+.odds-explicacao-header span:first-child {
+  font-size: 0.9rem;
+  color: #ffc107;
+  font-weight: 500;
+}
+
+.toggle-icon {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  transition: transform 0.2s;
+}
+
+.odds-explicacao-content {
+  padding: 16px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.explicacao-item {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.explicacao-item:last-of-type {
+  border-bottom: none;
+  margin-bottom: 12px;
+}
+
+.explicacao-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.explicacao-texto {
+  flex: 1;
+}
+
+.explicacao-texto strong {
+  display: block;
+  color: #fff;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.explicacao-texto p {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.explicacao-texto em {
+  color: #ffc107;
+  font-style: normal;
+}
+
+.odds-exemplo-box {
+  background: linear-gradient(135deg, rgba(33, 150, 243, 0.15), rgba(33, 150, 243, 0.05));
+  border: 1px solid rgba(33, 150, 243, 0.3);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.exemplo-titulo {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #2196f3;
+  margin-bottom: 10px;
+}
+
+.exemplo-conteudo p {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 6px 0;
+  line-height: 1.4;
+}
+
+.exemplo-dica {
+  background: rgba(76, 175, 80, 0.15);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 10px !important;
+  border-left: 3px solid #4caf50;
+}
+
+.odds-tabela-conversao {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.tabela-titulo {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.tabela-items {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.tabela-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+.tabela-item .prob {
+  color: #4caf50;
+  font-weight: 600;
+}
+
+.tabela-item .seta {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.tabela-item .odd {
+  color: #ffc107;
+  font-weight: 600;
 }
 
 /* Odds Reais Section - Premium */
