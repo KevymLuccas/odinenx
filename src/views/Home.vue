@@ -486,19 +486,19 @@ const fecharModal = () => {
           <!-- Basic -->
           <div class="price-card">
             <div class="price-header">
-              <h3>Basic</h3>
+              <h3>Basic 🥉</h3>
               <div class="price">
                 <span class="currency">R$</span>
-                <span class="amount">79</span>
+                <span class="amount">19,90</span>
                 <span class="period">/mês</span>
               </div>
             </div>
             <ul class="price-features">
-              <li>✓ Palpites ilimitados</li>
-              <li>✓ Análise completa dos jogos</li>
-              <li>✓ Estatísticas H2H</li>
-              <li>✓ Odds de múltiplas casas</li>
+              <li>✓ Tudo do Free</li>
+              <li>✓ GIFs no chat</li>
+              <li>✓ 1 sala privada</li>
               <li>✓ Histórico 30 dias</li>
+              <li>✓ Badge Bronze</li>
             </ul>
             <router-link to="/register" class="btn btn-outline">Assinar Basic</router-link>
           </div>
@@ -507,19 +507,19 @@ const fecharModal = () => {
           <div class="price-card featured">
             <div class="price-badge">MAIS POPULAR</div>
             <div class="price-header">
-              <h3>Pro</h3>
+              <h3>Pro ⭐</h3>
               <div class="price">
                 <span class="currency">R$</span>
-                <span class="amount">199</span>
+                <span class="amount">49,90</span>
                 <span class="period">/mês</span>
               </div>
             </div>
             <ul class="price-features">
               <li>✓ Tudo do Basic</li>
-              <li>✓ Módulo TRADE completo</li>
+              <li>✓ Módulo TRADE</li>
               <li>✓ Cartola FC</li>
-              <li>✓ Sistema de Alertas</li>
-              <li>✓ Suporte prioritário</li>
+              <li>✓ 5 salas privadas</li>
+              <li>✓ Stickers exclusivos</li>
             </ul>
             <router-link to="/register" class="btn btn-primary">Assinar Pro</router-link>
           </div>
@@ -527,17 +527,17 @@ const fecharModal = () => {
           <!-- Elite -->
           <div class="price-card elite">
             <div class="price-header">
-              <h3>Elite</h3>
+              <h3>Elite 👑</h3>
               <div class="price">
                 <span class="currency">R$</span>
-                <span class="amount">399</span>
+                <span class="amount">99,90</span>
                 <span class="period">/mês</span>
               </div>
             </div>
             <ul class="price-features">
               <li>✓ Tudo do Pro</li>
-              <li>✓ Histórico ilimitado</li>
-              <li>✓ Relatórios avançados</li>
+              <li>✓ Salas ilimitadas</li>
+              <li>✓ Suporte VIP 24/7</li>
               <li>✓ Suporte VIP 24/7</li>
             </ul>
             <router-link to="/register" class="btn btn-outline">Assinar Elite</router-link>
