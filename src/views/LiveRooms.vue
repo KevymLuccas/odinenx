@@ -1,7 +1,8 @@
 <script setup>
 /**
  * 🔴 LiveRooms.vue - Jogos Ao Vivo
- * ODINENX v2.0 - Dados 100% REAIS da Football-Data.org API
+ * ODINENX v2.0 - Dados em tempo real via API-Football (api-sports.io)
+ * Atualização a cada 15 segundos na API, 30 segundos no frontend
  */
 
 import { ref, computed, onMounted, onUnmounted } from 'vue'
@@ -296,8 +297,9 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 
       <!-- API Info -->
       <div class="api-info">
-        <span>📡 Dados em tempo real via Football-Data.org</span>
-        <span>⚽ {{ Object.keys(LEAGUES).length }} ligas monitoradas</span>
+        <span>📡 Dados em tempo real via API-Football</span>
+        <span>⚡ Atualização a cada 15 segundos</span>
+        <span>⚽ +800 ligas disponíveis</span>
       </div>
     </main>
   </div>
