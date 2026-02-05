@@ -35,6 +35,8 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
       <nav class="sidebar-nav">
         <div class="nav-category">Principal</div>
         <router-link to="/dashboard" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</router-link>
+        <div class="nav-category">Ao Vivo</div>
+        <router-link to="/live" class="nav-item live-nav"><span class="live-indicator"></span><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>Jogos ao Vivo</router-link>
         <div class="nav-category">Módulos</div>
         <router-link to="/bet" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>BET</router-link>
         <router-link to="/trade" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>TRADE</router-link>
@@ -62,6 +64,7 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
       <div class="mobile-menu-header"><img src="/logo.webp" alt="ODINENX" class="mobile-logo" /></div>
       <div class="mobile-nav">
         <button @click="navigateTo('/dashboard')" class="mobile-nav-item">Dashboard</button>
+        <button @click="navigateTo('/live')" class="mobile-nav-item live-mobile">🔴 Ao Vivo</button>
         <button @click="navigateTo('/bet')" class="mobile-nav-item">BET</button>
         <button @click="navigateTo('/trade')" class="mobile-nav-item">TRADE</button>
         <button @click="navigateTo('/cartola')" class="mobile-nav-item">Cartola FC</button>
@@ -112,8 +115,12 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 </template>
 
 <style scoped>
-.dashboard { display: flex; min-height: 100vh; background: #000; color: #fff; }
-.sidebar { width: 260px; background: rgba(10, 10, 10, 0.95); border-right: 1px solid rgba(255, 255, 255, 0.1); display: flex; flex-direction: column; position: fixed; height: 100vh; z-index: 100; }
+.dashboard { display: flex; display: -webkit-box; display: -webkit-flex; min-height: 100vh; min-height: 100dvh; min-height: -webkit-fill-available; background: #000; color: #fff; -webkit-overflow-scrolling: touch; }
+.sidebar { width: 260px; background: rgba(10, 10, 10, 0.95); border-right: 1px solid rgba(255, 255, 255, 0.1); display: flex; display: -webkit-box; display: -webkit-flex; -webkit-box-orient: vertical; -webkit-box-direction: normal; flex-direction: column; position: fixed; height: 100vh; height: 100dvh; height: -webkit-fill-available; z-index: 100; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.nav-item.live-nav { background: linear-gradient(135deg, rgba(255, 68, 68, 0.1) 0%, rgba(255, 140, 0, 0.1) 100%); border: 1px solid rgba(255, 68, 68, 0.3); color: #ff6b6b; position: relative; }
+.live-indicator { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); width: 8px; height: 8px; background: #ff4444; border-radius: 50%; animation: live-pulse 1.5s infinite; }
+@keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.mobile-nav-item.live-mobile { background: linear-gradient(135deg, rgba(255, 68, 68, 0.15) 0%, rgba(255, 140, 0, 0.15) 100%); border: 1px solid rgba(255, 68, 68, 0.3); color: #ff6b6b; }
 .sidebar-header { padding: 25px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
 .sidebar-logo { height: 40px; width: auto; }
 .sidebar-nav { flex: 1; padding: 20px 15px; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; }

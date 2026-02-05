@@ -828,6 +828,15 @@ const navigateTo = (path) => {
           Dashboard
         </router-link>
 
+        <div class="nav-category">Ao Vivo</div>
+        <router-link to="/live" class="nav-item live-nav">
+          <span class="live-indicator"></span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>
+          </svg>
+          Jogos ao Vivo
+        </router-link>
+
         <div class="nav-category">Módulos</div>
         <router-link to="/bet" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -907,6 +916,7 @@ const navigateTo = (path) => {
       </div>
       <div class="mobile-nav">
         <button @click="navigateTo('/dashboard')" class="mobile-nav-item">Dashboard</button>
+        <button @click="navigateTo('/live')" class="mobile-nav-item live-mobile">🔴 Ao Vivo</button>
         <button @click="navigateTo('/bet')" class="mobile-nav-item">BET</button>
         <button @click="navigateTo('/trade')" class="mobile-nav-item">TRADE</button>
         <button @click="navigateTo('/cartola')" class="mobile-nav-item active">Cartola FC</button>
@@ -1618,6 +1628,30 @@ const navigateTo = (path) => {
 .nav-item.active {
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
+}
+
+.nav-item.live-nav {
+  position: relative;
+}
+
+.live-indicator {
+  position: absolute;
+  left: 8px;
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  animation: pulse-live 1.5s infinite;
+}
+
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.live-mobile {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
 }
 
 .nav-icon {

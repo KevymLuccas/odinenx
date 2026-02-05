@@ -784,6 +784,8 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
       <nav class="sidebar-nav">
         <div class="nav-category">Principal</div>
         <router-link to="/dashboard" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</router-link>
+        <div class="nav-category">Ao Vivo</div>
+        <router-link to="/live" class="nav-item live-nav"><span class="live-indicator"></span><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>Jogos ao Vivo</router-link>
         <div class="nav-category">Módulos</div>
         <router-link to="/bet" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>BET</router-link>
         <router-link to="/trade" class="nav-item active"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>TRADE</router-link>
@@ -811,6 +813,7 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
       <div class="mobile-menu-header"><img src="/logo.webp" alt="ODINENX" class="mobile-logo" /></div>
       <div class="mobile-nav">
         <button @click="navigateTo('/dashboard')" class="mobile-nav-item">Dashboard</button>
+        <button @click="navigateTo('/live')" class="mobile-nav-item live-mobile">🔴 Ao Vivo</button>
         <button @click="navigateTo('/bet')" class="mobile-nav-item">BET</button>
         <button @click="navigateTo('/trade')" class="mobile-nav-item active">TRADE</button>
         <button @click="navigateTo('/cartola')" class="mobile-nav-item">Cartola FC</button>
@@ -1461,6 +1464,10 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 .nav-item { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; gap: 12px; padding: 12px 15px; border-radius: 10px; color: rgba(255, 255, 255, 0.6); text-decoration: none; -webkit-transition: all 0.3s; transition: all 0.3s; font-weight: 500; -webkit-tap-highlight-color: transparent; }
 .nav-item:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
 .nav-item.active { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.nav-item.live-nav { position: relative; }
+.live-indicator { position: absolute; left: 8px; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; animation: pulse-live 1.5s infinite; }
+@keyframes pulse-live { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } }
+.live-mobile { background: rgba(239, 68, 68, 0.1) !important; border-color: rgba(239, 68, 68, 0.3) !important; }
 .nav-icon { width: 20px; height: 20px; }
 .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
 .plan-badge-sidebar { background: rgba(255, 255, 255, 0.1); padding: 8px 15px; border-radius: 8px; text-align: center; font-weight: 600; margin-bottom: 15px; font-size: 0.9rem; }

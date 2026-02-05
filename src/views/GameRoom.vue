@@ -284,8 +284,13 @@ const currentPlan = computed(() => {
 <style scoped>
 .game-room-page {
   min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
   background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
   color: white;
+  -webkit-overflow-scrolling: touch;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Loading */
@@ -348,8 +353,14 @@ const currentPlan = computed(() => {
 /* Room Container */
 .room-container {
   display: flex;
+  display: -webkit-box;
+  display: -webkit-flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
+  height: -webkit-fill-available;
 }
 
 /* Header */

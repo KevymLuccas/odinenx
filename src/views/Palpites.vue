@@ -1076,9 +1076,14 @@ const logout = async () => {
 <style scoped>
 .palpites-page {
   min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
   background: #000;
   color: #fff;
   padding-bottom: 50px;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: calc(50px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Header */
