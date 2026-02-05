@@ -30,6 +30,9 @@ const LEAGUES = {
   'CL': { name: 'Champions League', flag: '🇪🇺' }
 }
 
+const apiError = ref(null)
+const isRefreshing = ref(false)
+
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) { router.push('/login'); return }
@@ -38,8 +41,8 @@ onMounted(async () => {
   await loadGames()
   loading.value = false
   
-  // Atualizar a cada 60 segundos
-  refreshInterval.value = setInterval(loadGames, 60000)
+  // Atualizar a cada 30 segundos para jogos ao vivo
+  refreshInterval.value = setInterval(loadGames, 30000)
 })
 
 onUnmounted(() => {
@@ -48,28 +51,33 @@ onUnmounted(() => {
 
 async function loadGames() {
   try {
-    // Buscar da API interna (proxy que resolve CORS)
+    isRefreshing.value = true
+    apiError.value = null
     await fetchLiveFromAPI()
   } catch (err) {
     console.error('Erro ao carregar jogos:', err)
+    apiError.value = 'Erro ao carregar jogos. Tentando novamente...'
+  } finally {
+    isRefreshing.value = false
   }
 }
 
 async function fetchLiveFromAPI() {
   try {
-    // Usar API interna para evitar CORS
     const response = await fetch('/api/live-games')
+    const data = await response.json()
     
-    if (response.ok) {
-      const data = await response.json()
-      if (data.success && data.games) {
-        games.value = data.games
-        lastUpdate.value = new Date()
-        console.log(`✅ Carregou ${data.games.length} jogos da API`)
-      }
+    if (data.games && data.games.length > 0) {
+      games.value = data.games
+      lastUpdate.value = new Date()
+      apiError.value = null
+      console.log(`✅ ${data.live_count || 0} jogos ao vivo, ${data.count} total`)
+    } else if (data.message) {
+      apiError.value = data.message
     }
   } catch (err) {
     console.error('Erro ao buscar da API:', err)
+    apiError.value = 'Falha na conexão. Verificando...'
   }
 }
 
@@ -182,13 +190,23 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
       <header class="page-header">
         <div class="header-left">
           <h1>🔴 Jogos Ao Vivo</h1>
-          <p v-if="lastUpdate">Última atualização: {{ lastUpdate.toLocaleTimeString('pt-BR') }}</p>
+          <p v-if="lastUpdate">
+            Atualização: {{ lastUpdate.toLocaleTimeString('pt-BR') }}
+            <span v-if="isRefreshing" class="refresh-indicator">⟳ Atualizando...</span>
+          </p>
+          <p v-if="apiError" class="api-error">⚠️ {{ apiError }}</p>
         </div>
-        <button @click="refreshGames" class="btn-refresh" :disabled="loading">
-          <svg :class="{ spinning: loading }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-          Atualizar
+        <button @click="refreshGames" class="btn-refresh" :disabled="loading || isRefreshing">
+          <svg :class="{ spinning: loading || isRefreshing }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          {{ isRefreshing ? 'Atualizando...' : 'Atualizar' }}
         </button>
       </header>
+
+      <!-- Auto-update indicator -->
+      <div class="auto-update-bar">
+        <span class="auto-dot"></span>
+        Atualização automática a cada 30 segundos
+      </div>
 
       <!-- Stats -->
       <div class="stats-grid">
@@ -388,6 +406,13 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 .mobile-nav-item.live-mobile { background: linear-gradient(135deg, rgba(255, 68, 68, 0.15) 0%, rgba(255, 140, 0, 0.15) 100%); border: 1px solid rgba(255, 68, 68, 0.3); color: #ff6b6b; }
 .mobile-logout { width: 100%; margin-top: 15px; padding: 15px; background: transparent; border: 1px solid #ef4444; border-radius: 12px; color: #ef4444; font-weight: 600; cursor: pointer; }
 
+/* API Error & Refresh Indicator */
+.api-error { color: #f59e0b; font-size: 0.8rem; margin-top: 5px; display: flex; align-items: center; gap: 5px; }
+.refresh-indicator { color: #8b5cf6; font-size: 0.75rem; margin-left: 10px; animation: pulse 1s infinite; }
+.auto-update-bar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 8px; font-size: 0.85rem; color: #a78bfa; margin-bottom: 20px; }
+.auto-dot { width: 8px; height: 8px; background: #8b5cf6; border-radius: 50%; animation: pulse 2s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
 @media (max-width: 968px) {
   .sidebar { display: none; }
   .mobile-menu-btn { display: flex; }
@@ -400,5 +425,6 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
   .page-header h1 { font-size: 1.5rem; }
   .api-info { flex-direction: column; gap: 10px; text-align: center; }
   .filters { justify-content: center; }
+  .auto-update-bar { justify-content: center; }
 }
 </style>

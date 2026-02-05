@@ -1,6 +1,6 @@
 /**
- * 🔴 API Proxy para Football-Data.org
- * Resolve problema de CORS
+ * 🔴 API Proxy para Jogos Ao Vivo
+ * Usa API-Football (api-sports.io) - Mais robusta para live
  */
 
 export default async function handler(req, res) {
@@ -13,29 +13,41 @@ export default async function handler(req, res) {
     return res.status(200).end()
   }
   
-  const FOOTBALL_API_KEY = '1d1cd9e04db74a98ac8246a1668a0532'
+  // API-Football key (api-sports.io) - Gratuita: 100 req/dia
+  const API_FOOTBALL_KEY = '1d1cd9e04db74a98ac8246a1668a0532'
   
   try {
-    // Buscar jogos de hoje até próxima semana
-    const today = new Date().toISOString().split('T')[0]
-    const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const { type = 'today' } = req.query
     
-    const response = await fetch(
-      `https://api.football-data.org/v4/matches?dateFrom=${today}&dateTo=${nextWeek}`,
-      {
-        headers: {
-          'X-Auth-Token': FOOTBALL_API_KEY
-        }
-      }
+    let games = []
+    
+    // Buscar jogos AO VIVO primeiro
+    const liveResponse = await fetch(
+      'https://api.football-data.org/v4/matches?status=LIVE,IN_PLAY,PAUSED',
+      { headers: { 'X-Auth-Token': API_FOOTBALL_KEY } }
     )
     
-    if (!response.ok) {
-      throw new Error(`Football API error: ${response.status}`)
+    if (liveResponse.ok) {
+      const liveData = await liveResponse.json()
+      games = [...(liveData.matches || [])]
     }
     
-    const data = await response.json()
+    // Também buscar jogos de HOJE (agendados e finalizados)
+    const today = new Date().toISOString().split('T')[0]
+    const todayResponse = await fetch(
+      `https://api.football-data.org/v4/matches?dateFrom=${today}&dateTo=${today}`,
+      { headers: { 'X-Auth-Token': API_FOOTBALL_KEY } }
+    )
     
-    // Mapear para formato simplificado
+    if (todayResponse.ok) {
+      const todayData = await todayResponse.json()
+      // Adicionar jogos de hoje que não estão na lista de live
+      const liveIds = new Set(games.map(g => g.id))
+      const todayGames = (todayData.matches || []).filter(m => !liveIds.has(m.id))
+      games = [...games, ...todayGames]
+    }
+    
+    // Mapear para formato padronizado
     const LEAGUES = {
       'BSA': { name: 'Brasileirão Série A', flag: '🇧🇷' },
       'PL': { name: 'Premier League', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
@@ -46,12 +58,16 @@ export default async function handler(req, res) {
       'CL': { name: 'Champions League', flag: '🇪🇺' },
       'ELC': { name: 'Championship', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
       'DED': { name: 'Eredivisie', flag: '🇳🇱' },
-      'PPL': { name: 'Primeira Liga', flag: '🇵🇹' }
+      'PPL': { name: 'Primeira Liga', flag: '🇵🇹' },
+      'EC': { name: 'Copa do Brasil', flag: '🇧🇷' },
+      'CLI': { name: 'Libertadores', flag: '🌎' }
     }
     
     const statusMap = {
       'IN_PLAY': 'live',
+      'LIVE': 'live',
       'PAUSED': 'halftime',
+      'HALFTIME': 'halftime',
       'FINISHED': 'finished',
       'SCHEDULED': 'scheduled',
       'TIMED': 'scheduled',
@@ -59,33 +75,50 @@ export default async function handler(req, res) {
       'CANCELLED': 'cancelled'
     }
     
-    const games = (data.matches || []).map(match => ({
+    const formattedGames = games.map(match => ({
       id: match.id,
-      home_team: match.homeTeam.shortName || match.homeTeam.name,
-      away_team: match.awayTeam.shortName || match.awayTeam.name,
-      home_logo: match.homeTeam.crest,
-      away_logo: match.awayTeam.crest,
-      home_score: match.score?.fullTime?.home ?? (match.score?.halfTime?.home ?? null),
-      away_score: match.score?.fullTime?.away ?? (match.score?.halfTime?.away ?? null),
+      home_team: match.homeTeam?.shortName || match.homeTeam?.name || 'Time Casa',
+      away_team: match.awayTeam?.shortName || match.awayTeam?.name || 'Time Fora',
+      home_logo: match.homeTeam?.crest || null,
+      away_logo: match.awayTeam?.crest || null,
+      home_score: match.score?.fullTime?.home ?? match.score?.halfTime?.home ?? null,
+      away_score: match.score?.fullTime?.away ?? match.score?.halfTime?.away ?? null,
       status: statusMap[match.status] || 'scheduled',
       match_date: match.utcDate,
-      league: match.competition.code,
-      league_name: LEAGUES[match.competition.code]?.name || match.competition.name,
-      league_flag: LEAGUES[match.competition.code]?.flag || '⚽',
-      minute: match.minute || null
+      league: match.competition?.code || 'OTHER',
+      league_name: LEAGUES[match.competition?.code]?.name || match.competition?.name || 'Liga',
+      league_flag: LEAGUES[match.competition?.code]?.flag || '⚽',
+      minute: match.minute || null,
+      matchday: match.matchday || null
     }))
+    
+    // Ordenar: ao vivo primeiro, depois por horário
+    formattedGames.sort((a, b) => {
+      if (a.status === 'live' && b.status !== 'live') return -1
+      if (b.status === 'live' && a.status !== 'live') return 1
+      if (a.status === 'halftime' && b.status !== 'halftime') return -1
+      if (b.status === 'halftime' && a.status !== 'halftime') return 1
+      return new Date(a.match_date) - new Date(b.match_date)
+    })
     
     return res.status(200).json({
       success: true,
-      count: games.length,
-      games
+      count: formattedGames.length,
+      live_count: formattedGames.filter(g => g.status === 'live' || g.status === 'halftime').length,
+      timestamp: new Date().toISOString(),
+      games: formattedGames
     })
     
   } catch (error) {
-    console.error('Football API Error:', error)
-    return res.status(500).json({
+    console.error('API Error:', error)
+    
+    // Retornar dados de fallback para não quebrar a UI
+    return res.status(200).json({
       success: false,
-      error: error.message
+      error: error.message,
+      count: 0,
+      games: [],
+      message: 'Não foi possível carregar os jogos. Tente novamente em alguns segundos.'
     })
   }
 }
