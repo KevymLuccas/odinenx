@@ -539,7 +539,8 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
           <div v-for="game in filteredGames" :key="game.id" class="game-card" :class="getStatusClass(game.status)">
             <!-- League Header -->
             <div class="game-league">
-              <span class="league-flag">{{ game.league_flag }}</span>
+              <img v-if="game.league_flag && game.league_flag.startsWith('http')" :src="game.league_flag" class="league-flag-img" @error="$event.target.style.display='none'" />
+              <span v-else class="league-flag">{{ game.league_flag || '⚽' }}</span>
               <span class="league-name">{{ game.league_name }}</span>
               <span class="game-status" :class="getStatusClass(game.status)">{{ getStatusText(game.status, game.minute) }}</span>
             </div>
@@ -825,6 +826,7 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 
 .game-league { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-size: 0.85rem; }
 .league-flag { font-size: 1.2rem; }
+.league-flag-img { width: 22px; height: 16px; object-fit: cover; border-radius: 2px; }
 .league-name { color: rgba(255, 255, 255, 0.7); flex: 1; }
 .game-status { padding: 4px 10px; border-radius: 15px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
 .game-status.status-live { background: rgba(255, 68, 68, 0.2); color: #ff6b6b; animation: status-pulse 1.5s infinite; }
