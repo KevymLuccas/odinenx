@@ -15,8 +15,71 @@ const canceling = ref(false)
 const trialStatus = ref(null)
 const userIsAdmin = ref(false)
 
+// 📊 Estatísticas do Dashboard
+const userStats = ref({
+  analysesToday: 0,
+  winRate: 0,
+  opportunities: 0,
+  totalWins: 0,
+  totalLosses: 0
+})
+const recentAnalyses = ref([])
+const liveGamesCount = ref(0)
+
 // Toast function from App.vue
 const showToast = inject('showToast', () => {})
+
+// 📊 Carregar estatísticas do usuário
+async function loadUserStats(userId) {
+  try {
+    // Buscar stats do usuário
+    const { data: stats } = await supabase
+      .from('user_stats')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+    
+    if (stats) {
+      const total = stats.wins + stats.losses
+      userStats.value = {
+        analysesToday: stats.analyses_today || 0,
+        winRate: total > 0 ? Math.round((stats.wins / total) * 100) : 0,
+        opportunities: stats.current_streak || 0,
+        totalWins: stats.wins || 0,
+        totalLosses: stats.losses || 0
+      }
+    }
+  } catch (err) {
+    console.log('Stats não disponíveis ainda:', err.message)
+  }
+}
+
+// 📋 Carregar análises recentes
+async function loadRecentAnalyses(userId) {
+  try {
+    const { data } = await supabase
+      .from('analysis_history')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(5)
+    
+    if (data) recentAnalyses.value = data
+  } catch (err) {
+    console.log('Histórico não disponível:', err.message)
+  }
+}
+
+// 🔴 Buscar contagem de jogos ao vivo
+async function loadLiveGamesCount() {
+  try {
+    const response = await fetch('/api/live-games')
+    const data = await response.json()
+    if (data.live_count) liveGamesCount.value = data.live_count
+  } catch (err) {
+    console.log('Live games não disponível')
+  }
+}
 
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
@@ -51,6 +114,13 @@ onMounted(async () => {
   if (route.query.payment === 'success') {
     showToast('payment', 'Pagamento confirmado! 💳', 'Seu plano foi ativado. Acesso completo liberado!')
   }
+  
+  // 📊 Carregar dados do dashboard
+  await Promise.all([
+    loadUserStats(session.user.id),
+    loadRecentAnalyses(session.user.id),
+    loadLiveGamesCount()
+  ])
   
   loading.value = false
 })
@@ -124,7 +194,7 @@ const navigateTo = (path) => {
 <template>
   <div class="dashboard">
     <!-- Admin Viewer Counter -->
-    <ViewerCounter v-if="isAdmin" :isAdmin="true" class="admin-viewer-counter" />
+    <ViewerCounter v-if="userIsAdmin" :isAdmin="true" class="admin-viewer-counter" />
     
     <!-- Sidebar -->
     <aside class="sidebar">
@@ -341,6 +411,7 @@ const navigateTo = (path) => {
 
         <!-- Stats Cards -->
         <div class="stats-grid">
+          <!-- Análises Hoje -->
           <div class="stat-card">
             <div class="stat-icon-wrapper">
               <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -349,10 +420,11 @@ const navigateTo = (path) => {
               </svg>
             </div>
             <div class="stat-info">
-              <span class="stat-value">0</span>
+              <span class="stat-value">{{ userStats.analysesToday }}</span>
               <span class="stat-label">Análises hoje</span>
             </div>
           </div>
+          <!-- Taxa de Acerto -->
           <div class="stat-card">
             <div class="stat-icon-wrapper success">
               <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -360,22 +432,25 @@ const navigateTo = (path) => {
               </svg>
             </div>
             <div class="stat-info">
-              <span class="stat-value">0%</span>
+              <span class="stat-value">{{ userStats.winRate }}%</span>
               <span class="stat-label">Taxa de acerto</span>
             </div>
           </div>
-          <div class="stat-card">
+          <!-- Jogos ao Vivo -->
+          <div class="stat-card live-card" @click="router.push('/live')">
             <div class="stat-icon-wrapper warning">
+              <span class="live-dot"></span>
               <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"/>
-                <circle cx="12" cy="12" r="3"/>
+                <polygon points="10 8 16 12 10 16 10 8"/>
               </svg>
             </div>
             <div class="stat-info">
-              <span class="stat-value">0</span>
-              <span class="stat-label">Oportunidades</span>
+              <span class="stat-value">{{ liveGamesCount }}</span>
+              <span class="stat-label">🔴 Ao Vivo</span>
             </div>
           </div>
+          <!-- Análises Restantes -->
           <div class="stat-card">
             <div class="stat-icon-wrapper primary">
               <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -489,8 +564,29 @@ const navigateTo = (path) => {
 
         <!-- Recent Analyses -->
         <div class="recent-section">
-          <h2>Análises Recentes</h2>
-          <div class="empty-state">
+          <div class="section-header">
+            <h2>Análises Recentes</h2>
+            <router-link to="/history" class="see-all">Ver tudo →</router-link>
+          </div>
+          
+          <!-- Se tem análises -->
+          <div v-if="recentAnalyses.length > 0" class="analyses-list">
+            <div v-for="analysis in recentAnalyses" :key="analysis.id" class="analysis-item">
+              <div class="analysis-icon" :class="analysis.type">
+                {{ analysis.type === 'bet' ? '⚽' : analysis.type === 'trade' ? '📈' : '🏆' }}
+              </div>
+              <div class="analysis-info">
+                <span class="analysis-title">{{ analysis.title }}</span>
+                <span class="analysis-meta">{{ analysis.asset }} • {{ new Date(analysis.created_at).toLocaleDateString('pt-BR') }}</span>
+              </div>
+              <div class="analysis-result" :class="analysis.result">
+                {{ analysis.result === 'win' ? '✅ Green' : analysis.result === 'loss' ? '❌ Red' : '⏳ Pendente' }}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Se não tem análises -->
+          <div v-else class="empty-state">
             <div class="empty-icon-wrapper">
               <svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -500,6 +596,7 @@ const navigateTo = (path) => {
             </div>
             <h4>Nenhuma análise ainda</h4>
             <p>Comece fazendo sua primeira análise!</p>
+            <router-link to="/bet" class="btn-start">Fazer Análise</router-link>
           </div>
         </div>
       </div>
@@ -1076,9 +1173,137 @@ const navigateTo = (path) => {
 }
 
 /* Recent Section */
-.recent-section h2 {
-  font-size: 1.3rem;
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
+}
+
+.section-header h2 {
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+.see-all {
+  color: #7c3aed;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+}
+
+.see-all:hover {
+  color: #a855f7;
+}
+
+.analyses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.analysis-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.analysis-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(124, 58, 237, 0.3);
+}
+
+.analysis-icon {
+  width: 45px;
+  height: 45px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.analysis-icon.bet { background: rgba(34, 197, 94, 0.2); }
+.analysis-icon.trade { background: rgba(59, 130, 246, 0.2); }
+.analysis-icon.cartola { background: rgba(168, 85, 247, 0.2); }
+
+.analysis-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.analysis-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.analysis-meta {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.analysis-result {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+.analysis-result.win { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+.analysis-result.loss { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+.analysis-result.pending { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+
+/* Live Card Animation */
+.stat-card.live-card {
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.stat-card.live-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.live-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  animation: pulse-red 1.5s infinite;
+}
+
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.btn-start {
+  display: inline-block;
+  margin-top: 15px;
+  padding: 12px 25px;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-start:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(124, 58, 237, 0.4);
 }
 
 .empty-state {
