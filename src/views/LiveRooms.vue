@@ -67,11 +67,16 @@ async function fetchLiveFromAPI() {
     const response = await fetch('/api/live-games')
     const data = await response.json()
     
-    if (data.games && data.games.length > 0) {
+    console.log('🔴 API Response:', data)
+    
+    if (data.success && data.games) {
       games.value = data.games
       lastUpdate.value = new Date()
       apiError.value = null
       console.log(`✅ ${data.live_count || 0} jogos ao vivo, ${data.count} total`)
+    } else if (data.games) {
+      games.value = data.games
+      lastUpdate.value = new Date()
     } else if (data.message) {
       apiError.value = data.message
     }

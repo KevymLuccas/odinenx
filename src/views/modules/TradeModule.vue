@@ -11,7 +11,7 @@ const mobileMenuOpen = ref(false)
 const loading = ref(true)
 
 // Abas principais
-const abaAtiva = ref('analise') // analise, dashboard, operacoes, risco, diario
+const abaAtiva = ref('analise') // analise, dashboard, operacoes, risco, diario, acompanhamento
 
 // Sub-abas de análise
 const categoriaAtiva = ref('crypto')
@@ -72,6 +72,14 @@ const plataformas = [
 
 // Intervalo de atualização
 let atualizacaoInterval = null
+let liveGamesInterval = null
+
+// ===== ACOMPANHAMENTO - JOGOS AO VIVO =====
+const liveGames = ref([])
+const liveGamesLoading = ref(false)
+const liveGamesError = ref(null)
+const liveGamesLastUpdate = ref(null)
+const liveGamesFilter = ref('all')
 
 // Status da API
 const apiStatus = ref({
