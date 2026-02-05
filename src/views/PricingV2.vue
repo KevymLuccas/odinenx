@@ -62,18 +62,19 @@ const getPrice = (plan) => {
 // Recursos v2.0 para comparativo
 const v2Features = [
   { name: 'Salas ao Vivo', free: '✓', basic: '✓', pro: '✓', elite: '✓' },
-  { name: 'Chat em tempo real', free: 'Texto', basic: 'Texto + Emoji', pro: '+ GIFs', elite: '+ Stickers' },
-  { name: 'Badge exclusivo', free: '—', basic: '🥉 Bronze', pro: '⭐ Ouro', elite: '👑 Coroa' },
+  { name: 'Chat em tempo real', free: 'Texto', basic: '+ Emoji', pro: '+ GIFs', elite: '+ Stickers' },
+  { name: 'Badge exclusivo', free: '—', basic: '🥉 Bronze', pro: '⭐ Pro', elite: '👑 Elite' },
   { name: 'Posição na lista', free: 'Última', basic: '3ª posição', pro: '2ª posição', elite: '1ª posição' },
   { name: 'Salas privadas', free: '—', basic: '1 sala', pro: '5 salas', elite: 'Ilimitado' },
-  { name: 'Celebração de gols', free: 'Básica', basic: 'Confetes', pro: '+ Estrelas', elite: '+ Efeitos VIP' },
+  { name: 'Celebração de gols', free: 'Básica', basic: 'Confetes', pro: 'Premium', elite: 'VIP' },
   { name: 'Loja de customização', free: '—', basic: '—', pro: '—', elite: '✓' },
-  { name: 'Análises por dia', free: '3', basic: 'Ilimitado', pro: 'Ilimitado', elite: 'Ilimitado' },
-  { name: 'Histórico', free: '7 dias', basic: '30 dias', pro: '90 dias', elite: 'Ilimitado' },
-  { name: 'IA Avançada', free: '—', basic: '—', pro: '✓', elite: '✓' },
+  { name: 'Análises por dia', free: '3', basic: '∞', pro: '∞', elite: '∞' },
+  { name: 'Histórico', free: '7 dias', basic: '30 dias', pro: '90 dias', elite: '∞' },
+  { name: 'Módulo TRADE', free: '—', basic: '—', pro: '✓', elite: '✓' },
+  { name: 'Cartola FC', free: '—', basic: '—', pro: '✓', elite: '✓' },
   { name: 'Alertas tempo real', free: '—', basic: '—', pro: '✓', elite: '✓' },
   { name: 'Paper Trading', free: '—', basic: '—', pro: '✓', elite: '✓' },
-  { name: 'Suporte prioritário', free: '—', basic: '—', pro: '—', elite: '✓' }
+  { name: 'Suporte prioritário', free: '—', basic: 'Email', pro: '✓', elite: 'VIP 24/7' }
 ]
 </script>
 

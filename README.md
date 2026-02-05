@@ -128,13 +128,17 @@ vercel --prod
 
 ## 📊 Planos
 
-| Recurso | Free | Starter | Pro |
-|---------|------|---------|-----|
-| Análises/mês | 10 | 100 | ∞ |
-| Alertas | 3 | 10 | ∞ |
-| Cartola FC | ❌ | ✅ | ✅ |
-| Jogos Ao Vivo | ❌ | ✅ | ✅ |
-| Suporte | - | Email | Prioritário |
+| Recurso | Free | Basic | Pro | Elite |
+|---------|------|-------|-----|-------|
+| **Preço** | R$ 0 | R$ 19,90 | R$ 49,90 | R$ 99,90 |
+| Análises/dia | 3 | ∞ | ∞ | ∞ |
+| Histórico | 7 dias | 30 dias | 90 dias | ∞ |
+| Salas Privadas | ❌ | 1 | 5 | ∞ |
+| Módulo TRADE | ❌ | ❌ | ✅ | ✅ |
+| Cartola FC | ❌ | ❌ | ✅ | ✅ |
+| Alertas | ❌ | ❌ | ✅ | ✅ |
+| Badge | - | 🥉 | ⭐ | 👑 |
+| Suporte | - | Email | Prioritário | VIP 24/7 |
 
 ---
 
