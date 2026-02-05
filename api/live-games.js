@@ -6,10 +6,12 @@
  */
 
 export default async function handler(req, res) {
-  // CORS headers
+  // CORS headers + NO CACHE
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+  res.setHeader('Pragma', 'no-cache')
   
   if (req.method === 'OPTIONS') {
     return res.status(200).end()
@@ -19,16 +21,21 @@ export default async function handler(req, res) {
   // Registre-se em: https://dashboard.api-football.com/register
   const API_KEY = process.env.API_FOOTBALL_KEY || 'YOUR_API_KEY_HERE'
   
+  // Status que indicam jogo REALMENTE ao vivo
+  const LIVE_STATUS = ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE', 'INT']
+  
   try {
     let games = []
     
-    // Buscar jogos AO VIVO da API-Football
+    // Buscar jogos AO VIVO da API-Football (com cache-bust)
     const liveResponse = await fetch(
-      'https://v3.football.api-sports.io/fixtures?live=all',
+      `https://v3.football.api-sports.io/fixtures?live=all&_t=${Date.now()}`,
       { 
         headers: { 
-          'x-apisports-key': API_KEY
-        } 
+          'x-apisports-key': API_KEY,
+          'Cache-Control': 'no-cache'
+        },
+        cache: 'no-store'
       }
     )
     
@@ -36,23 +43,27 @@ export default async function handler(req, res) {
       const liveData = await liveResponse.json()
       
       if (liveData.response && liveData.response.length > 0) {
-        games = liveData.response.map(match => ({
-          id: match.fixture.id,
-          home_team: match.teams.home.name,
-          away_team: match.teams.away.name,
-          home_logo: match.teams.home.logo,
-          away_logo: match.teams.away.logo,
-          home_score: match.goals.home,
-          away_score: match.goals.away,
-          status: mapStatus(match.fixture.status.short),
-          match_date: match.fixture.date,
-          league: match.league.country,
-          league_name: match.league.name,
-          league_flag: match.league.flag || '⚽',
-          league_logo: match.league.logo,
-          minute: match.fixture.status.elapsed,
-          venue: match.fixture.venue?.name || null
-        }))
+        // FILTRAR: só aceitar jogos que REALMENTE estão ao vivo
+        games = liveData.response
+          .filter(match => LIVE_STATUS.includes(match.fixture.status.short))
+          .map(match => ({
+            id: match.fixture.id,
+            home_team: match.teams.home.name,
+            away_team: match.teams.away.name,
+            home_logo: match.teams.home.logo,
+            away_logo: match.teams.away.logo,
+            home_score: match.goals.home,
+            away_score: match.goals.away,
+            status: mapStatus(match.fixture.status.short),
+            status_raw: match.fixture.status.short, // Para debug
+            match_date: match.fixture.date,
+            league: match.league.country,
+            league_name: match.league.name,
+            league_flag: match.league.flag || '⚽',
+            league_logo: match.league.logo,
+            minute: match.fixture.status.elapsed,
+            venue: match.fixture.venue?.name || null
+          }))
       }
     }
     
