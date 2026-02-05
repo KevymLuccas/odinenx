@@ -7,19 +7,19 @@
 1. Acesse https://dashboard.stripe.com/products
 2. Crie 3 produtos (Basic, Pro, Elite):
 
-**Basic - R$79/mês**
+**Basic - R$19,90/mês**
 - Nome: ODINENX Basic
-- Preço: R$ 79,00 / mês
+- Preço: R$ 19,90 / mês
 - Após criar, copie o `price_id` (ex: price_1ABC...)
 
-**Pro - R$199/mês**
+**Pro - R$49,90/mês**
 - Nome: ODINENX Pro
-- Preço: R$ 199,00 / mês
+- Preço: R$ 49,90 / mês
 - Copie o `price_id`
 
-**Elite - R$399/mês**
+**Elite - R$99,90/mês**
 - Nome: ODINENX Elite
-- Preço: R$ 399,00 / mês
+- Preço: R$ 99,90 / mês
 - Copie o `price_id`
 
 3. Atualize os `stripePriceId` no arquivo `src/lib/stripe.js`:

@@ -1016,7 +1016,7 @@ const logout = async () => {
           
           <div class="odds-bloqueadas-cta">
             <router-link to="/pricing" class="btn-desbloquear">
-              🚀 Desbloquear Odds Reais - A partir de R$29/mês
+              🚀 Desbloquear Odds Reais - A partir de R$19,90/mês
             </router-link>
             <p class="cta-hint">Cancele a qualquer momento. Garantia de 7 dias.</p>
           </div>

@@ -324,8 +324,8 @@ const logout = async () => {
         <div class="bloqueio-planos">
           <div class="plano-card pro">
             <span class="plano-tag">MAIS POPULAR</span>
-            <h3>Pro</h3>
-            <div class="plano-preco">R$ 29<span>/mês</span></div>
+            <h3>Pro ⭐</h3>
+            <div class="plano-preco">R$ 49,90<span>/mês</span></div>
             <ul>
               <li>✅ Odds em tempo real</li>
               <li>✅ Value bets ilimitadas</li>
@@ -334,8 +334,8 @@ const logout = async () => {
             </ul>
           </div>
           <div class="plano-card elite">
-            <h3>Elite</h3>
-            <div class="plano-preco">R$ 49<span>/mês</span></div>
+            <h3>Elite 👑</h3>
+            <div class="plano-preco">R$ 99,90<span>/mês</span></div>
             <ul>
               <li>✅ Tudo do Pro</li>
               <li>✅ Alertas personalizados</li>
