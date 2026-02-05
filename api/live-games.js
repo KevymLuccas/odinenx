@@ -1,6 +1,8 @@
 /**
  * 🔴 API Proxy para Jogos Ao Vivo
- * Usa API-Football (api-sports.io) - Mais robusta para live
+ * Usa API-Football (api-sports.io) - Mais confiável para live
+ * Registre-se em: https://dashboard.api-football.com/register
+ * Plano Free: 100 requests/dia
  */
 
 export default async function handler(req, res) {
@@ -13,87 +15,86 @@ export default async function handler(req, res) {
     return res.status(200).end()
   }
   
-  // API-Football key (api-sports.io) - Gratuita: 100 req/dia
-  const API_FOOTBALL_KEY = '1d1cd9e04db74a98ac8246a1668a0532'
+  // ⚠️ IMPORTANTE: Substitua pela sua chave da API-Football
+  // Registre-se em: https://dashboard.api-football.com/register
+  const API_KEY = process.env.API_FOOTBALL_KEY || 'YOUR_API_KEY_HERE'
   
   try {
-    const { type = 'today' } = req.query
-    
     let games = []
     
-    // Buscar jogos AO VIVO primeiro
+    // Buscar jogos AO VIVO da API-Football
     const liveResponse = await fetch(
-      'https://api.football-data.org/v4/matches?status=LIVE,IN_PLAY,PAUSED',
-      { headers: { 'X-Auth-Token': API_FOOTBALL_KEY } }
+      'https://v3.football.api-sports.io/fixtures?live=all',
+      { 
+        headers: { 
+          'x-apisports-key': API_KEY
+        } 
+      }
     )
     
     if (liveResponse.ok) {
       const liveData = await liveResponse.json()
-      games = [...(liveData.matches || [])]
+      
+      if (liveData.response && liveData.response.length > 0) {
+        games = liveData.response.map(match => ({
+          id: match.fixture.id,
+          home_team: match.teams.home.name,
+          away_team: match.teams.away.name,
+          home_logo: match.teams.home.logo,
+          away_logo: match.teams.away.logo,
+          home_score: match.goals.home,
+          away_score: match.goals.away,
+          status: mapStatus(match.fixture.status.short),
+          match_date: match.fixture.date,
+          league: match.league.country,
+          league_name: match.league.name,
+          league_flag: match.league.flag || '⚽',
+          league_logo: match.league.logo,
+          minute: match.fixture.status.elapsed,
+          venue: match.fixture.venue?.name || null
+        }))
+      }
     }
     
-    // Também buscar jogos de HOJE (agendados e finalizados)
-    const today = new Date().toISOString().split('T')[0]
-    const todayResponse = await fetch(
-      `https://api.football-data.org/v4/matches?dateFrom=${today}&dateTo=${today}`,
-      { headers: { 'X-Auth-Token': API_FOOTBALL_KEY } }
-    )
-    
-    if (todayResponse.ok) {
-      const todayData = await todayResponse.json()
-      // Adicionar jogos de hoje que não estão na lista de live
-      const liveIds = new Set(games.map(g => g.id))
-      const todayGames = (todayData.matches || []).filter(m => !liveIds.has(m.id))
-      games = [...games, ...todayGames]
+    // Se não houver jogos ao vivo, buscar jogos de hoje
+    if (games.length === 0) {
+      const today = new Date().toISOString().split('T')[0]
+      const todayResponse = await fetch(
+        `https://v3.football.api-sports.io/fixtures?date=${today}`,
+        { 
+          headers: { 
+            'x-apisports-key': API_KEY
+          } 
+        }
+      )
+      
+      if (todayResponse.ok) {
+        const todayData = await todayResponse.json()
+        
+        if (todayData.response && todayData.response.length > 0) {
+          games = todayData.response.slice(0, 50).map(match => ({
+            id: match.fixture.id,
+            home_team: match.teams.home.name,
+            away_team: match.teams.away.name,
+            home_logo: match.teams.home.logo,
+            away_logo: match.teams.away.logo,
+            home_score: match.goals.home,
+            away_score: match.goals.away,
+            status: mapStatus(match.fixture.status.short),
+            match_date: match.fixture.date,
+            league: match.league.country,
+            league_name: match.league.name,
+            league_flag: match.league.flag || '⚽',
+            league_logo: match.league.logo,
+            minute: match.fixture.status.elapsed,
+            venue: match.fixture.venue?.name || null
+          }))
+        }
+      }
     }
-    
-    // Mapear para formato padronizado
-    const LEAGUES = {
-      'BSA': { name: 'Brasileirão Série A', flag: '🇧🇷' },
-      'PL': { name: 'Premier League', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
-      'PD': { name: 'La Liga', flag: '🇪🇸' },
-      'SA': { name: 'Serie A', flag: '🇮🇹' },
-      'BL1': { name: 'Bundesliga', flag: '🇩🇪' },
-      'FL1': { name: 'Ligue 1', flag: '🇫🇷' },
-      'CL': { name: 'Champions League', flag: '🇪🇺' },
-      'ELC': { name: 'Championship', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
-      'DED': { name: 'Eredivisie', flag: '🇳🇱' },
-      'PPL': { name: 'Primeira Liga', flag: '🇵🇹' },
-      'EC': { name: 'Copa do Brasil', flag: '🇧🇷' },
-      'CLI': { name: 'Libertadores', flag: '🌎' }
-    }
-    
-    const statusMap = {
-      'IN_PLAY': 'live',
-      'LIVE': 'live',
-      'PAUSED': 'halftime',
-      'HALFTIME': 'halftime',
-      'FINISHED': 'finished',
-      'SCHEDULED': 'scheduled',
-      'TIMED': 'scheduled',
-      'POSTPONED': 'postponed',
-      'CANCELLED': 'cancelled'
-    }
-    
-    const formattedGames = games.map(match => ({
-      id: match.id,
-      home_team: match.homeTeam?.shortName || match.homeTeam?.name || 'Time Casa',
-      away_team: match.awayTeam?.shortName || match.awayTeam?.name || 'Time Fora',
-      home_logo: match.homeTeam?.crest || null,
-      away_logo: match.awayTeam?.crest || null,
-      home_score: match.score?.fullTime?.home ?? match.score?.halfTime?.home ?? null,
-      away_score: match.score?.fullTime?.away ?? match.score?.halfTime?.away ?? null,
-      status: statusMap[match.status] || 'scheduled',
-      match_date: match.utcDate,
-      league: match.competition?.code || 'OTHER',
-      league_name: LEAGUES[match.competition?.code]?.name || match.competition?.name || 'Liga',
-      league_flag: LEAGUES[match.competition?.code]?.flag || '⚽',
-      minute: match.minute || null,
-      matchday: match.matchday || null
-    }))
     
     // Ordenar: ao vivo primeiro, depois por horário
-    formattedGames.sort((a, b) => {
+    games.sort((a, b) => {
       if (a.status === 'live' && b.status !== 'live') return -1
       if (b.status === 'live' && a.status !== 'live') return 1
       if (a.status === 'halftime' && b.status !== 'halftime') return -1
@@ -101,24 +102,55 @@ export default async function handler(req, res) {
       return new Date(a.match_date) - new Date(b.match_date)
     })
     
+    const liveCount = games.filter(g => g.status === 'live' || g.status === 'halftime').length
+    
     return res.status(200).json({
       success: true,
-      count: formattedGames.length,
-      live_count: formattedGames.filter(g => g.status === 'live' || g.status === 'halftime').length,
+      count: games.length,
+      live_count: liveCount,
       timestamp: new Date().toISOString(),
-      games: formattedGames
+      games: games
     })
     
   } catch (error) {
     console.error('API Error:', error)
     
-    // Retornar dados de fallback para não quebrar a UI
     return res.status(200).json({
       success: false,
       error: error.message,
       count: 0,
+      live_count: 0,
       games: [],
-      message: 'Não foi possível carregar os jogos. Tente novamente em alguns segundos.'
+      message: 'Não foi possível carregar os jogos. Configure sua chave API.'
     })
   }
+}
+
+function mapStatus(status) {
+  const statusMap = {
+    // Em Jogo
+    '1H': 'live',
+    '2H': 'live',
+    'HT': 'halftime',
+    'ET': 'live',
+    'BT': 'halftime',
+    'P': 'live',
+    'LIVE': 'live',
+    // Finalizado
+    'FT': 'finished',
+    'AET': 'finished',
+    'PEN': 'finished',
+    // Agendado
+    'TBD': 'scheduled',
+    'NS': 'scheduled',
+    // Outros
+    'PST': 'postponed',
+    'CANC': 'cancelled',
+    'ABD': 'cancelled',
+    'SUSP': 'suspended',
+    'INT': 'interrupted',
+    'AWD': 'finished',
+    'WO': 'finished'
+  }
+  return statusMap[status] || 'scheduled'
 }
