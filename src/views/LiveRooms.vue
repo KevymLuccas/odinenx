@@ -277,6 +277,50 @@ function getBetsForGame(gameId) {
   return userBets.value.filter(b => b.game_rooms?.fixture_id === gameId)
 }
 
+// 🏟️ Entrar na sala do jogo
+async function enterGameRoom(game) {
+  try {
+    // Buscar ou criar sala
+    let { data: existingRoom } = await supabase
+      .from('game_rooms')
+      .select('id')
+      .eq('fixture_id', game.id)
+      .single()
+    
+    if (!existingRoom) {
+      // Criar nova sala
+      const { data: newRoom, error } = await supabase
+        .from('game_rooms')
+        .insert({
+          fixture_id: game.id,
+          home_team: game.home_team,
+          away_team: game.away_team,
+          home_team_logo: game.home_logo,
+          away_team_logo: game.away_logo,
+          home_score: game.home_score || 0,
+          away_score: game.away_score || 0,
+          minute: game.minute || 0,
+          status: game.status,
+          league: game.league_name,
+          league_logo: game.league_logo,
+          start_time: game.match_date,
+          owner_id: user.value.id
+        })
+        .select()
+        .single()
+      
+      if (error) throw error
+      existingRoom = newRoom
+    }
+    
+    // Redirecionar para a sala
+    router.push(`/live/${existingRoom.id}`)
+  } catch (err) {
+    console.error('Erro ao entrar na sala:', err)
+    alert('Erro ao entrar na sala. Tente novamente.')
+  }
+}
+
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) { router.push('/login'); return }
@@ -548,10 +592,16 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
               </div>
             </div>
             
-            <!-- Botão Acompanhar -->
-            <button v-if="game.status === 'live' || game.status === 'scheduled'" @click.stop="openOddsModal(game)" class="btn-track" :class="{ active: hasTrackingForGame(game.id) }">
+            <!-- Botão Entrar na Sala -->
+            <button v-if="game.status === 'live' || game.status === 'halftime'" @click.stop="enterGameRoom(game)" class="btn-enter-room">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+              🏟️ Entrar na Sala
+            </button>
+            
+            <!-- Botão Acompanhar (para jogos agendados) -->
+            <button v-else-if="game.status === 'scheduled'" @click.stop="openOddsModal(game)" class="btn-track">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              {{ hasTrackingForGame(game.id) ? 'Adicionar Odd' : 'Acompanhar' }}
+              Definir Odds
             </button>
           </div>
         </div>
@@ -797,6 +847,11 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 
 .live-bar { margin-top: 15px; height: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 2px; overflow: hidden; }
 .live-progress { height: 100%; background: linear-gradient(90deg, #ff6b6b, #ff8c00); border-radius: 2px; transition: width 0.3s; }
+
+/* Botão Entrar na Sala */
+.btn-enter-room { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin-top: 15px; padding: 14px; background: linear-gradient(135deg, #ff6b6b, #ff8c00); border: none; border-radius: 12px; color: #fff; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3); }
+.btn-enter-room:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4); }
+.btn-enter-room svg { width: 20px; height: 20px; }
 
 .empty-state { text-align: center; padding: 80px 40px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; }
 .empty-icon-wrapper { width: 100px; height: 100px; background: rgba(255, 255, 255, 0.05); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 30px; }
