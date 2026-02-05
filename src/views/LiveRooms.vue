@@ -1,11 +1,11 @@
 <script setup>
 /**
- * 🔴 LiveRooms.vue - Jogos Ao Vivo
+ * 🔴 LiveRooms.vue - Jogos Ao Vivo com Acompanhamento de Apostas
  * ODINENX v2.0 - Dados em tempo real via API-Football (api-sports.io)
- * Atualização a cada 15 segundos na API, 30 segundos no frontend
+ * Sistema de pontuação conforme odds selecionadas
  */
 
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
 import { getSubscriptionStatus, plans } from '../lib/stripe'
@@ -34,16 +34,263 @@ const LEAGUES = {
 const apiError = ref(null)
 const isRefreshing = ref(false)
 
+// ===============================================
+// 🎯 SISTEMA DE ACOMPANHAMENTO DE APOSTAS
+// ===============================================
+const showOddsModal = ref(false)
+const selectedGame = ref(null)
+const userBets = ref([]) // Apostas ativas do usuário
+const savingBet = ref(false)
+
+// Tipos de odds disponíveis
+const oddTypes = [
+  { id: 'home', label: 'Vitória Casa', icon: '🏠', category: '1x2' },
+  { id: 'draw', label: 'Empate', icon: '🤝', category: '1x2' },
+  { id: 'away', label: 'Vitória Fora', icon: '✈️', category: '1x2' },
+  { id: 'over_0.5', label: 'Over 0.5 Gols', icon: '⬆️', category: 'gols' },
+  { id: 'over_1.5', label: 'Over 1.5 Gols', icon: '⬆️', category: 'gols' },
+  { id: 'over_2.5', label: 'Over 2.5 Gols', icon: '⬆️', category: 'gols' },
+  { id: 'over_3.5', label: 'Over 3.5 Gols', icon: '⬆️', category: 'gols' },
+  { id: 'under_0.5', label: 'Under 0.5 Gols', icon: '⬇️', category: 'gols' },
+  { id: 'under_1.5', label: 'Under 1.5 Gols', icon: '⬇️', category: 'gols' },
+  { id: 'under_2.5', label: 'Under 2.5 Gols', icon: '⬇️', category: 'gols' },
+  { id: 'under_3.5', label: 'Under 3.5 Gols', icon: '⬇️', category: 'gols' },
+  { id: 'btts_yes', label: 'Ambas Marcam - Sim', icon: '⚽', category: 'btts' },
+  { id: 'btts_no', label: 'Ambas Marcam - Não', icon: '🚫', category: 'btts' },
+  { id: 'home_1h', label: 'Casa Vence 1º Tempo', icon: '1️⃣', category: 'tempo' },
+  { id: 'draw_1h', label: 'Empate 1º Tempo', icon: '1️⃣', category: 'tempo' },
+  { id: 'away_1h', label: 'Fora Vence 1º Tempo', icon: '1️⃣', category: 'tempo' },
+]
+
+// Dados do formulário de odd
+const betForm = ref({
+  selectedOdds: [],
+  oddValues: {}, // { 'home': 1.85, 'over_2.5': 2.10 }
+  stake: 100 // Valor apostado
+})
+
+// Carregar apostas ativas do usuário
+async function loadUserBets() {
+  if (!user.value) return
+  
+  try {
+    const { data, error } = await supabase
+      .from('user_odds')
+      .select('*, game_rooms(*)')
+      .eq('user_id', user.value.id)
+      .eq('status', 'pending')
+    
+    if (data) {
+      userBets.value = data
+    }
+  } catch (err) {
+    console.error('Erro ao carregar apostas:', err)
+  }
+}
+
+// Abrir modal de odds para um jogo
+function openOddsModal(game) {
+  selectedGame.value = game
+  betForm.value = {
+    selectedOdds: [],
+    oddValues: {},
+    stake: 100
+  }
+  showOddsModal.value = true
+}
+
+// Fechar modal
+function closeOddsModal() {
+  showOddsModal.value = false
+  selectedGame.value = null
+}
+
+// Toggle seleção de odd
+function toggleOddSelection(oddId) {
+  const idx = betForm.value.selectedOdds.indexOf(oddId)
+  if (idx > -1) {
+    betForm.value.selectedOdds.splice(idx, 1)
+    delete betForm.value.oddValues[oddId]
+  } else {
+    betForm.value.selectedOdds.push(oddId)
+    betForm.value.oddValues[oddId] = '' // Valor inicial vazio
+  }
+}
+
+// Salvar acompanhamento
+async function saveOddTracking() {
+  if (!user.value || !selectedGame.value) return
+  if (betForm.value.selectedOdds.length === 0) {
+    alert('Selecione pelo menos uma odd para acompanhar!')
+    return
+  }
+  
+  // Validar se todas as odds têm valor
+  for (const oddId of betForm.value.selectedOdds) {
+    if (!betForm.value.oddValues[oddId] || parseFloat(betForm.value.oddValues[oddId]) <= 1) {
+      alert(`Informe a odd para: ${oddTypes.find(o => o.id === oddId)?.label}`)
+      return
+    }
+  }
+  
+  savingBet.value = true
+  
+  try {
+    // Primeiro, criar ou buscar a sala do jogo
+    let roomId = null
+    
+    const { data: existingRoom } = await supabase
+      .from('game_rooms')
+      .select('id')
+      .eq('fixture_id', selectedGame.value.id)
+      .single()
+    
+    if (existingRoom) {
+      roomId = existingRoom.id
+    } else {
+      // Criar sala para o jogo
+      const { data: newRoom, error: roomError } = await supabase
+        .from('game_rooms')
+        .insert({
+          fixture_id: selectedGame.value.id,
+          home_team: selectedGame.value.home_team,
+          away_team: selectedGame.value.away_team,
+          home_team_logo: selectedGame.value.home_logo,
+          away_team_logo: selectedGame.value.away_logo,
+          home_score: selectedGame.value.home_score || 0,
+          away_score: selectedGame.value.away_score || 0,
+          minute: selectedGame.value.minute || 0,
+          status: selectedGame.value.status,
+          league: selectedGame.value.league_name,
+          league_logo: selectedGame.value.league_logo,
+          start_time: selectedGame.value.match_date,
+          owner_id: user.value.id
+        })
+        .select()
+        .single()
+      
+      if (roomError) throw roomError
+      roomId = newRoom.id
+    }
+    
+    // Inserir cada odd selecionada
+    const oddsToInsert = betForm.value.selectedOdds.map(oddId => ({
+      room_id: roomId,
+      user_id: user.value.id,
+      odd_type: oddTypes.find(o => o.id === oddId)?.category || 'other',
+      odd_pick: oddId,
+      odd_value: parseFloat(betForm.value.oddValues[oddId]),
+      status: 'pending'
+    }))
+    
+    const { error: oddsError } = await supabase
+      .from('user_odds')
+      .insert(oddsToInsert)
+    
+    if (oddsError) throw oddsError
+    
+    // Recarregar apostas
+    await loadUserBets()
+    
+    closeOddsModal()
+    alert('✅ Acompanhamento salvo! Suas odds serão monitoradas.')
+    
+  } catch (err) {
+    console.error('Erro ao salvar:', err)
+    alert('Erro ao salvar acompanhamento. Tente novamente.')
+  } finally {
+    savingBet.value = false
+  }
+}
+
+// Calcular status da aposta baseado no placar atual
+function getBetStatus(bet, game) {
+  if (!game) return 'pending'
+  
+  const totalGoals = (game.home_score || 0) + (game.away_score || 0)
+  const homeScore = game.home_score || 0
+  const awayScore = game.away_score || 0
+  
+  switch (bet.odd_pick) {
+    // 1x2
+    case 'home':
+      if (game.status === 'finished') return homeScore > awayScore ? 'won' : 'lost'
+      return homeScore > awayScore ? 'winning' : homeScore < awayScore ? 'losing' : 'pending'
+    case 'draw':
+      if (game.status === 'finished') return homeScore === awayScore ? 'won' : 'lost'
+      return homeScore === awayScore ? 'winning' : 'losing'
+    case 'away':
+      if (game.status === 'finished') return awayScore > homeScore ? 'won' : 'lost'
+      return awayScore > homeScore ? 'winning' : awayScore < homeScore ? 'losing' : 'pending'
+    
+    // Over/Under
+    case 'over_0.5':
+      if (totalGoals >= 1) return game.status === 'finished' ? 'won' : 'winning'
+      return game.status === 'finished' ? 'lost' : 'pending'
+    case 'over_1.5':
+      if (totalGoals >= 2) return game.status === 'finished' ? 'won' : 'winning'
+      return game.status === 'finished' ? 'lost' : 'pending'
+    case 'over_2.5':
+      if (totalGoals >= 3) return game.status === 'finished' ? 'won' : 'winning'
+      return game.status === 'finished' ? 'lost' : 'pending'
+    case 'over_3.5':
+      if (totalGoals >= 4) return game.status === 'finished' ? 'won' : 'winning'
+      return game.status === 'finished' ? 'lost' : 'pending'
+    case 'under_0.5':
+      if (totalGoals >= 1) return game.status === 'finished' ? 'lost' : 'losing'
+      return game.status === 'finished' ? 'won' : 'winning'
+    case 'under_1.5':
+      if (totalGoals >= 2) return game.status === 'finished' ? 'lost' : 'losing'
+      return game.status === 'finished' ? 'won' : 'winning'
+    case 'under_2.5':
+      if (totalGoals >= 3) return game.status === 'finished' ? 'lost' : 'losing'
+      return game.status === 'finished' ? 'won' : 'winning'
+    case 'under_3.5':
+      if (totalGoals >= 4) return game.status === 'finished' ? 'lost' : 'losing'
+      return game.status === 'finished' ? 'won' : 'winning'
+    
+    // BTTS
+    case 'btts_yes':
+      if (homeScore > 0 && awayScore > 0) return game.status === 'finished' ? 'won' : 'winning'
+      return game.status === 'finished' ? 'lost' : 'pending'
+    case 'btts_no':
+      if (homeScore > 0 && awayScore > 0) return game.status === 'finished' ? 'lost' : 'losing'
+      return game.status === 'finished' ? 'won' : 'winning'
+    
+    default:
+      return 'pending'
+  }
+}
+
+// Buscar jogo ativo para uma aposta
+function getGameForBet(bet) {
+  return games.value.find(g => g.id === bet.game_rooms?.fixture_id) || null
+}
+
+// Verificar se o usuário tem acompanhamento neste jogo
+function hasTrackingForGame(gameId) {
+  return userBets.value.some(b => b.game_rooms?.fixture_id === gameId)
+}
+
+// Buscar apostas do usuário para um jogo específico
+function getBetsForGame(gameId) {
+  return userBets.value.filter(b => b.game_rooms?.fixture_id === gameId)
+}
+
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) { router.push('/login'); return }
   user.value = session.user
   subscription.value = await getSubscriptionStatus(session.user.id)
   await loadGames()
+  await loadUserBets() // Carregar apostas ativas
   loading.value = false
   
   // Atualizar a cada 30 segundos para jogos ao vivo
-  refreshInterval.value = setInterval(loadGames, 30000)
+  refreshInterval.value = setInterval(async () => {
+    await loadGames()
+    await loadUserBets() // Atualizar status das apostas
+  }, 30000)
 })
 
 onUnmounted(() => {
@@ -283,6 +530,29 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
             <div v-if="game.status === 'live'" class="live-bar">
               <div class="live-progress" :style="{ width: `${(game.minute || 45) / 90 * 100}%` }"></div>
             </div>
+            
+            <!-- Tracking Info (se já tem acompanhamento) -->
+            <div v-if="hasTrackingForGame(game.id)" class="tracking-info">
+              <div class="tracking-bets">
+                <div v-for="bet in getBetsForGame(game.id)" :key="bet.id" class="tracking-bet" :class="getBetStatus(bet, game)">
+                  <span class="bet-pick">{{ oddTypes.find(o => o.id === bet.odd_pick)?.icon }} {{ oddTypes.find(o => o.id === bet.odd_pick)?.label }}</span>
+                  <span class="bet-odd">@{{ bet.odd_value }}</span>
+                  <span class="bet-status-icon">
+                    <span v-if="getBetStatus(bet, game) === 'winning'">✅</span>
+                    <span v-else-if="getBetStatus(bet, game) === 'losing'">❌</span>
+                    <span v-else-if="getBetStatus(bet, game) === 'won'">🏆</span>
+                    <span v-else-if="getBetStatus(bet, game) === 'lost'">💔</span>
+                    <span v-else>⏳</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Botão Acompanhar -->
+            <button v-if="game.status === 'live' || game.status === 'scheduled'" @click.stop="openOddsModal(game)" class="btn-track" :class="{ active: hasTrackingForGame(game.id) }">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              {{ hasTrackingForGame(game.id) ? 'Adicionar Odd' : 'Acompanhar' }}
+            </button>
           </div>
         </div>
 
@@ -301,7 +571,145 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
         <span>⚡ Atualização a cada 15 segundos</span>
         <span>⚽ +800 ligas disponíveis</span>
       </div>
+      
+      <!-- Seção de Apostas Ativas -->
+      <div v-if="userBets.length > 0" class="active-bets-section">
+        <h3>🎯 Suas Apostas em Andamento</h3>
+        <div class="active-bets-grid">
+          <div v-for="bet in userBets" :key="bet.id" class="active-bet-card" :class="getBetStatus(bet, getGameForBet(bet))">
+            <div class="bet-game-info">
+              <span class="bet-teams">{{ bet.game_rooms?.home_team }} vs {{ bet.game_rooms?.away_team }}</span>
+              <span class="bet-league">{{ bet.game_rooms?.league }}</span>
+            </div>
+            <div class="bet-details">
+              <span class="bet-type">{{ oddTypes.find(o => o.id === bet.odd_pick)?.icon }} {{ oddTypes.find(o => o.id === bet.odd_pick)?.label }}</span>
+              <span class="bet-value">@{{ bet.odd_value }}</span>
+            </div>
+            <div class="bet-status-badge" :class="getBetStatus(bet, getGameForBet(bet))">
+              <span v-if="getBetStatus(bet, getGameForBet(bet)) === 'winning'">✅ Ganhando</span>
+              <span v-else-if="getBetStatus(bet, getGameForBet(bet)) === 'losing'">❌ Perdendo</span>
+              <span v-else-if="getBetStatus(bet, getGameForBet(bet)) === 'won'">🏆 Ganhou!</span>
+              <span v-else-if="getBetStatus(bet, getGameForBet(bet)) === 'lost'">💔 Perdeu</span>
+              <span v-else>⏳ Aguardando</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
+    
+    <!-- Modal de Seleção de Odds -->
+    <Teleport to="body">
+      <div v-if="showOddsModal" class="modal-overlay" @click="closeOddsModal">
+        <div class="modal-content odds-modal" @click.stop>
+          <button class="modal-close" @click="closeOddsModal">×</button>
+          
+          <div class="modal-header">
+            <h2>🎯 Selecione suas Odds</h2>
+            <p>Quais apostas você está acompanhando neste jogo?</p>
+          </div>
+          
+          <!-- Jogo Selecionado -->
+          <div v-if="selectedGame" class="selected-game-preview">
+            <div class="game-teams">
+              <img v-if="selectedGame.home_logo" :src="selectedGame.home_logo" class="preview-logo" />
+              <span>{{ selectedGame.home_team }}</span>
+              <span class="vs">VS</span>
+              <span>{{ selectedGame.away_team }}</span>
+              <img v-if="selectedGame.away_logo" :src="selectedGame.away_logo" class="preview-logo" />
+            </div>
+            <div class="game-meta">
+              <span>{{ selectedGame.league_name }}</span>
+              <span v-if="selectedGame.status === 'live'" class="live-badge">🔴 {{ selectedGame.minute }}'</span>
+            </div>
+          </div>
+          
+          <!-- Categorias de Odds -->
+          <div class="odds-categories">
+            <!-- 1x2 -->
+            <div class="odds-category">
+              <h4>⚽ Resultado Final (1x2)</h4>
+              <div class="odds-buttons">
+                <button v-for="odd in oddTypes.filter(o => o.category === '1x2')" :key="odd.id"
+                  @click="toggleOddSelection(odd.id)"
+                  class="odd-btn" 
+                  :class="{ selected: betForm.selectedOdds.includes(odd.id) }">
+                  <span class="odd-icon">{{ odd.icon }}</span>
+                  <span class="odd-label">{{ odd.label }}</span>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Gols -->
+            <div class="odds-category">
+              <h4>📊 Over/Under Gols</h4>
+              <div class="odds-buttons">
+                <button v-for="odd in oddTypes.filter(o => o.category === 'gols')" :key="odd.id"
+                  @click="toggleOddSelection(odd.id)"
+                  class="odd-btn" 
+                  :class="{ selected: betForm.selectedOdds.includes(odd.id) }">
+                  <span class="odd-icon">{{ odd.icon }}</span>
+                  <span class="odd-label">{{ odd.label }}</span>
+                </button>
+              </div>
+            </div>
+            
+            <!-- BTTS -->
+            <div class="odds-category">
+              <h4>🥅 Ambas Marcam (BTTS)</h4>
+              <div class="odds-buttons">
+                <button v-for="odd in oddTypes.filter(o => o.category === 'btts')" :key="odd.id"
+                  @click="toggleOddSelection(odd.id)"
+                  class="odd-btn" 
+                  :class="{ selected: betForm.selectedOdds.includes(odd.id) }">
+                  <span class="odd-icon">{{ odd.icon }}</span>
+                  <span class="odd-label">{{ odd.label }}</span>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Tempo -->
+            <div class="odds-category">
+              <h4>⏱️ Primeiro Tempo</h4>
+              <div class="odds-buttons">
+                <button v-for="odd in oddTypes.filter(o => o.category === 'tempo')" :key="odd.id"
+                  @click="toggleOddSelection(odd.id)"
+                  class="odd-btn" 
+                  :class="{ selected: betForm.selectedOdds.includes(odd.id) }">
+                  <span class="odd-icon">{{ odd.icon }}</span>
+                  <span class="odd-label">{{ odd.label }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Valores das Odds Selecionadas -->
+          <div v-if="betForm.selectedOdds.length > 0" class="selected-odds-values">
+            <h4>💰 Informe as Odds</h4>
+            <div class="odds-inputs">
+              <div v-for="oddId in betForm.selectedOdds" :key="oddId" class="odd-input-row">
+                <span class="odd-input-label">{{ oddTypes.find(o => o.id === oddId)?.icon }} {{ oddTypes.find(o => o.id === oddId)?.label }}</span>
+                <input type="number" step="0.01" min="1.01" placeholder="Ex: 1.85" v-model="betForm.oddValues[oddId]" class="odd-input" />
+              </div>
+            </div>
+          </div>
+          
+          <!-- Resumo e Botão -->
+          <div class="modal-footer">
+            <div class="odds-summary">
+              <span v-if="betForm.selectedOdds.length === 0">Selecione pelo menos uma odd para acompanhar</span>
+              <span v-else>{{ betForm.selectedOdds.length }} odd(s) selecionada(s)</span>
+            </div>
+            <div class="modal-actions">
+              <button @click="closeOddsModal" class="btn-cancel">Cancelar</button>
+              <button @click="saveOddTracking" :disabled="betForm.selectedOdds.length === 0 || savingBet" class="btn-save">
+                <span v-if="savingBet">Salvando...</span>
+                <span v-else>🎯 Iniciar Acompanhamento</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -420,6 +828,99 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 .auto-dot { width: 8px; height: 8px; background: #8b5cf6; border-radius: 50%; animation: pulse 2s infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
+/* Botão Acompanhar no Card */
+.btn-track { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 15px; padding: 12px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2)); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 10px; color: #a78bfa; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+.btn-track:hover { background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3)); border-color: rgba(139, 92, 246, 0.5); transform: translateY(-2px); }
+.btn-track.active { background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.2)); border-color: rgba(34, 197, 94, 0.4); color: #22c55e; }
+.btn-track svg { width: 18px; height: 18px; }
+
+/* Tracking Info no Card */
+.tracking-info { margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.tracking-bets { display: flex; flex-direction: column; gap: 8px; }
+.tracking-bet { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; font-size: 0.85rem; }
+.tracking-bet.winning { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); }
+.tracking-bet.losing { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); }
+.tracking-bet.won { background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.2)); border: 1px solid rgba(34, 197, 94, 0.4); }
+.tracking-bet.lost { background: rgba(107, 114, 128, 0.2); border: 1px solid rgba(107, 114, 128, 0.3); opacity: 0.7; }
+.bet-pick { color: rgba(255, 255, 255, 0.8); }
+.bet-odd { color: #a78bfa; font-weight: 600; }
+.bet-status-icon { font-size: 1.1rem; }
+
+/* Seção de Apostas Ativas */
+.active-bets-section { margin-top: 40px; padding-top: 30px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.active-bets-section h3 { font-size: 1.3rem; font-weight: 700; margin-bottom: 20px; }
+.active-bets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+.active-bet-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+.active-bet-card.winning { border-color: rgba(34, 197, 94, 0.4); background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(16, 185, 129, 0.05)); }
+.active-bet-card.losing { border-color: rgba(239, 68, 68, 0.4); background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05)); }
+.active-bet-card.won { border-color: rgba(34, 197, 94, 0.5); background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(16, 185, 129, 0.1)); }
+.active-bet-card.lost { border-color: rgba(107, 114, 128, 0.3); opacity: 0.6; }
+.bet-game-info { display: flex; flex-direction: column; gap: 3px; }
+.bet-teams { font-weight: 600; color: #fff; }
+.bet-league { font-size: 0.75rem; color: rgba(255, 255, 255, 0.5); }
+.bet-details { display: flex; justify-content: space-between; align-items: center; }
+.bet-type { color: rgba(255, 255, 255, 0.8); font-size: 0.9rem; }
+.bet-value { color: #a78bfa; font-weight: 700; font-size: 1.1rem; }
+.bet-status-badge { padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; text-align: center; }
+.bet-status-badge.winning { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+.bet-status-badge.losing { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+.bet-status-badge.won { background: rgba(34, 197, 94, 0.3); color: #22c55e; }
+.bet-status-badge.lost { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
+.bet-status-badge.pending { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+
+/* Modal Overlay */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* Modal Content */
+.modal-content { background: #111; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; position: relative; animation: slideUp 0.3s ease; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+.modal-close { position: absolute; top: 15px; right: 15px; width: 35px; height: 35px; background: rgba(255, 255, 255, 0.1); border: none; border-radius: 50%; color: #fff; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; z-index: 10; }
+.modal-close:hover { background: rgba(239, 68, 68, 0.3); color: #ef4444; }
+
+/* Modal Header */
+.modal-header { padding: 25px 25px 0; text-align: center; }
+.modal-header h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; }
+.modal-header p { color: rgba(255, 255, 255, 0.5); font-size: 0.9rem; }
+
+/* Selected Game Preview */
+.selected-game-preview { margin: 20px 25px; padding: 20px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 15px; text-align: center; }
+.game-teams { display: flex; align-items: center; justify-content: center; gap: 15px; font-weight: 600; flex-wrap: wrap; }
+.preview-logo { width: 40px; height: 40px; object-fit: contain; }
+.vs { color: rgba(255, 255, 255, 0.3); font-size: 0.9rem; }
+.game-meta { margin-top: 10px; display: flex; justify-content: center; gap: 15px; font-size: 0.85rem; color: rgba(255, 255, 255, 0.5); }
+.live-badge { background: rgba(255, 68, 68, 0.2); color: #ff6b6b; padding: 3px 10px; border-radius: 15px; font-weight: 600; }
+
+/* Odds Categories */
+.odds-categories { padding: 0 25px 20px; display: flex; flex-direction: column; gap: 20px; }
+.odds-category h4 { font-size: 0.9rem; font-weight: 600; color: rgba(255, 255, 255, 0.7); margin-bottom: 10px; }
+.odds-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.odd-btn { display: flex; align-items: center; gap: 8px; padding: 10px 15px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; color: rgba(255, 255, 255, 0.7); cursor: pointer; transition: all 0.3s; font-size: 0.85rem; }
+.odd-btn:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.2); }
+.odd-btn.selected { background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2)); border-color: rgba(139, 92, 246, 0.5); color: #a78bfa; }
+.odd-icon { font-size: 1.1rem; }
+.odd-label { font-weight: 500; }
+
+/* Selected Odds Values */
+.selected-odds-values { padding: 0 25px 20px; }
+.selected-odds-values h4 { font-size: 0.9rem; font-weight: 600; color: rgba(255, 255, 255, 0.7); margin-bottom: 15px; }
+.odds-inputs { display: flex; flex-direction: column; gap: 10px; }
+.odd-input-row { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 12px 15px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; }
+.odd-input-label { flex: 1; font-size: 0.9rem; color: rgba(255, 255, 255, 0.8); }
+.odd-input { width: 100px; padding: 10px 15px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #fff; font-size: 1rem; font-weight: 600; text-align: center; }
+.odd-input:focus { outline: none; border-color: #a78bfa; }
+.odd-input::placeholder { color: rgba(255, 255, 255, 0.3); }
+
+/* Modal Footer */
+.modal-footer { padding: 20px 25px 25px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.odds-summary { text-align: center; margin-bottom: 15px; color: rgba(255, 255, 255, 0.5); font-size: 0.9rem; }
+.modal-actions { display: flex; gap: 10px; }
+.btn-cancel { flex: 1; padding: 15px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; color: rgba(255, 255, 255, 0.6); font-weight: 600; cursor: pointer; transition: all 0.3s; }
+.btn-cancel:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.btn-save { flex: 2; padding: 15px; background: linear-gradient(135deg, #8b5cf6, #3b82f6); border: none; border-radius: 10px; color: #fff; font-weight: 700; cursor: pointer; transition: all 0.3s; }
+.btn-save:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3); }
+.btn-save:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
 @media (max-width: 968px) {
   .sidebar { display: none; }
   .mobile-menu-btn { display: flex; }
@@ -433,5 +934,15 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
   .api-info { flex-direction: column; gap: 10px; text-align: center; }
   .filters { justify-content: center; }
   .auto-update-bar { justify-content: center; }
+  
+  /* Modal Mobile */
+  .modal-content { max-height: 85vh; margin: auto 10px; }
+  .odds-buttons { justify-content: center; }
+  .odd-btn { padding: 8px 12px; font-size: 0.8rem; }
+  .odd-input-row { flex-direction: column; align-items: stretch; gap: 8px; }
+  .odd-input { width: 100%; }
+  .modal-actions { flex-direction: column; }
+  .active-bets-grid { grid-template-columns: 1fr; }
+  .game-teams { font-size: 0.9rem; }
 }
 </style>
