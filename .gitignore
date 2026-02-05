@@ -43,3 +43,6 @@ credentials/
 # Supabase local
 supabase/.temp/
 supabase/.branches/
+
+.vercel
+.env*.local
