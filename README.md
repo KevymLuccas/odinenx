@@ -1,132 +1,150 @@
-# ODINENX - Plataforma de Apostas Sociais v2.0
+<p align="center">
+  <img src="https://odinenx.vercel.app/logo.webp" alt="ODINENX" width="200"/>
+</p>
 
-## 🎯 Sobre
+<h1 align="center">ODINENX v2.0</h1>
 
-ODINENX é uma plataforma SaaS de apostas esportivas com experiência social integrada. Os usuários podem acompanhar jogos ao vivo em salas com chat em tempo real, compartilhar odds e celebrar juntos.
+<p align="center">
+  <strong>🎯 Plataforma Inteligente de Análises Esportivas</strong>
+</p>
 
-## 🚀 Novidades v2.0
+<p align="center">
+  <a href="https://odinenx.vercel.app">
+    <img src="https://img.shields.io/badge/🌐_Demo-Live-00d26a?style=for-the-badge" alt="Demo"/>
+  </a>
+  <img src="https://img.shields.io/badge/Vue.js-3.x-4FC08D?style=for-the-badge&logo=vue.js&logoColor=white" alt="Vue 3"/>
+  <img src="https://img.shields.io/badge/Supabase-Backend-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase"/>
+  <img src="https://img.shields.io/badge/Vercel-Deploy-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel"/>
+</p>
 
-### Salas ao Vivo
-- 🏟️ Salas de jogos com placar em tempo real
-- 💬 Chat ao vivo com emojis, GIFs e stickers
-- 👥 Lista de usuários com badges por plano
-- 🎉 Celebrações animadas quando há gols
-- 🔒 Salas privadas com código de convite
-- 🎬 Replays de gols (com delay legal)
+---
 
-### Sistema de Planos
-| Plano | Preço | Badge | Recursos |
-|-------|-------|-------|----------|
-| Free | R$ 0 | - | Chat texto, 3 análises/dia |
-| Basic | R$ 19,90 | 🥉 | + Emojis, 1 sala privada |
-| Pro | R$ 49,90 | ⭐ | + GIFs, 5 salas privadas, IA |
-| Elite | R$ 99,90 | 👑 | + Stickers, salas ilimitadas, loja |
+## 🚀 Sobre o Projeto
 
-### Loja de Customização (Elite)
-- ✨ Efeitos visuais
-- 🎨 Cores personalizadas
-- 🖼️ Molduras de avatar
-- 🎉 Celebrações exclusivas
-- 🔊 Sons personalizados
+**ODINENX** é uma plataforma completa para análises esportivas, integrando módulos de apostas, trading e fantasy game (Cartola FC). Com dados em tempo real e inteligência artificial, oferece insights precisos para tomada de decisão.
 
-## 📁 Estrutura
+---
 
-```
-src/
-├── components/
-│   ├── LiveChat.vue          # Chat em tempo real
-│   ├── OddsPanel.vue         # Painel de odds
-│   ├── UserList.vue          # Lista de usuários
-│   ├── CelebrationOverlay.vue # Efeitos de celebração
-│   ├── CustomizationStore.vue # Loja Elite
-│   ├── PrivateRoomModal.vue  # Modal sala privada
-│   ├── GoalReplay.vue        # Replays de gols
-│   ├── FloatingReactions.vue # Reações flutuantes
-│   ├── ReactionBar.vue       # Barra de reações
-│   └── LiveScore.vue         # Placar ao vivo
-├── views/
-│   ├── LiveRooms.vue         # Lista de jogos ao vivo
-│   ├── GameRoom.vue          # Sala do jogo
-│   └── PricingV2.vue         # Nova página de preços
-├── lib/
-│   ├── useGameRoom.js        # Composable de salas
-│   ├── stripe.js             # Planos e pagamento
-│   └── supabase.js           # Cliente Supabase
-└── types/
-    └── index.ts              # Tipos TypeScript
+## ✨ Funcionalidades
 
-api/
-├── live-odds.js              # API de odds em tempo real
-├── live-fixtures.js          # API de jogos ao vivo
-├── fixture-events.js         # API de eventos do jogo
-└── goal-replays.js           # API de replays (Scorebat)
+### 🎰 Módulo BET
+- Comparador de odds em tempo real
+- Análise de value bets
+- Histórico de apostas
+- Alertas personalizados
 
-supabase/migrations/
-└── 012_live_rooms_system.sql # Schema das salas
-```
+### 📈 Módulo TRADE
+- Análise de mercados financeiros
+- Indicadores técnicos
+- Paper trading (simulação)
+- Sinais automatizados
 
-## 🔧 Instalação
+### ⚽ Módulo Cartola FC
+- Escalação automática inteligente
+- **Reserva de Luxo** - Melhor substituto potencial
+- Otimização de orçamento
+- Análise de pontuação média
 
-```bash
-# Instalar dependências
-npm install
+### 🔴 Jogos Ao Vivo
+- Transmissão em tempo real
+- 7 ligas monitoradas (Brasileirão, Premier League, La Liga, Serie A, Bundesliga, Ligue 1, Champions League)
+- Dados via Football-Data.org API
 
-# Desenvolvimento
-npm run dev
-
-# Build
-npm run build
-```
-
-## ⚙️ Variáveis de Ambiente
-
-```env
-VITE_SUPABASE_URL=sua_url
-VITE_SUPABASE_ANON_KEY=sua_key
-VITE_STRIPE_PUBLIC_KEY=sua_key_stripe
-API_FOOTBALL_KEY=sua_api_football
-ODDS_API_KEY=sua_odds_api
-SCOREBAT_TOKEN=seu_token_scorebat
-```
+---
 
 ## 🛠️ Tecnologias
 
-- **Frontend**: Vue 3 + Vite + Vue Router
-- **Backend**: Supabase (PostgreSQL + Realtime)
-- **Pagamentos**: Stripe
-- **APIs**: 
-  - API Football (jogos/placar)
-  - The Odds API (odds)
-  - Scorebat (replays)
+| Frontend | Backend | APIs |
+|----------|---------|------|
+| Vue.js 3 | Supabase | Football-Data.org |
+| Vue Router | PostgreSQL | Cartola FC API |
+| Composition API | Edge Functions | Stripe |
+| CSS3 | RLS Policies | - |
 
-## 📊 Supabase Setup
+---
 
-Execute a migration `012_live_rooms_system.sql` para criar as tabelas:
-- `game_rooms` - Salas de jogos
-- `room_users` - Usuários nas salas
-- `room_messages` - Mensagens do chat
-- `user_odds` - Odds selecionadas
-- `room_reactions` - Reações
-- `user_customizations` - Customizações Elite
-- `store_items` - Itens da loja
+## 📦 Instalação
 
-## 🔒 Políticas RLS
+```bash
+# Clone o repositório
+git clone https://github.com/KevymLuccas/odinenx.git
 
-Todas as tabelas têm Row Level Security (RLS) configurado:
-- Usuários só podem ver/editar seus próprios dados
-- Mensagens são visíveis para todos na sala
-- Apenas o owner pode gerenciar salas privadas
+# Entre na pasta
+cd odinenx
 
-## 📱 Rotas
+# Instale as dependências
+npm install
 
-```
-/live           - Lista de jogos ao vivo
-/live/:roomId   - Sala do jogo
-/pricing        - Planos e preços
-/dashboard      - Dashboard do usuário
+# Configure as variáveis de ambiente
+cp .env.example .env.local
+
+# Rode o servidor de desenvolvimento
+npm run dev
 ```
 
-## 📄 Licença
+---
 
-Proprietary - ODINENX © 2025
+## 🔐 Variáveis de Ambiente
+
+```env
+VITE_SUPABASE_URL=sua_url_supabase
+VITE_SUPABASE_ANON_KEY=sua_chave_anonima
+VITE_STRIPE_PUBLIC_KEY=sua_chave_stripe
+VITE_FOOTBALL_API_KEY=sua_chave_football_data
+```
+
+---
+
+## 📁 Estrutura do Projeto
+
+```
+📂 ODINENX/
+├── 📂 api/              # Serverless functions (Vercel)
+├── 📂 public/           # Assets estáticos
+├── 📂 src/
+│   ├── 📂 components/   # Componentes Vue
+│   ├── 📂 lib/          # Bibliotecas (Supabase, Stripe)
+│   ├── 📂 router/       # Configuração de rotas
+│   └── 📂 views/        # Páginas da aplicação
+│       └── 📂 modules/  # Módulos BET, TRADE, Cartola
+├── 📂 supabase/
+│   ├── 📂 functions/    # Edge Functions
+│   └── 📂 migrations/   # Migrações SQL
+└── 📄 vercel.json       # Configuração Vercel
+```
+
+---
+
+## 🚀 Deploy
+
+O projeto está configurado para deploy automático na **Vercel**:
+
+```bash
+# Deploy manual
+vercel --prod
+```
+
+---
+
+## 📊 Planos
+
+| Recurso | Free | Starter | Pro |
+|---------|------|---------|-----|
+| Análises/mês | 10 | 100 | ∞ |
+| Alertas | 3 | 10 | ∞ |
+| Cartola FC | ❌ | ✅ | ✅ |
+| Jogos Ao Vivo | ❌ | ✅ | ✅ |
+| Suporte | - | Email | Prioritário |
+
+---
+
+## 👨‍💻 Autor
+
+Desenvolvido por **Kevym Luccas**
+
+---
+
+<p align="center">
+  <sub>⚡ Powered by ODINENX v2.0</sub>
+</p>
 
