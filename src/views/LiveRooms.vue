@@ -19,18 +19,15 @@ const selectedFilter = ref('all')
 const refreshInterval = ref(null)
 const lastUpdate = ref(null)
 
-// Football-Data.org API Key
-const FOOTBALL_API_KEY = '1d1cd9e04db74a98ac8246a1668a0532'
-
-// Ligas suportadas
+// Ligas suportadas (para exibição de filtros)
 const LEAGUES = {
-  'BSA': { name: 'Brasileirão Série A', flag: '🇧🇷', code: 2013 },
-  'PL': { name: 'Premier League', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', code: 2021 },
-  'PD': { name: 'La Liga', flag: '🇪🇸', code: 2014 },
-  'SA': { name: 'Serie A', flag: '🇮🇹', code: 2019 },
-  'BL1': { name: 'Bundesliga', flag: '🇩🇪', code: 2002 },
-  'FL1': { name: 'Ligue 1', flag: '🇫🇷', code: 2015 },
-  'CL': { name: 'Champions League', flag: '🇪🇺', code: 2001 }
+  'BSA': { name: 'Brasileirão Série A', flag: '🇧🇷' },
+  'PL': { name: 'Premier League', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
+  'PD': { name: 'La Liga', flag: '🇪🇸' },
+  'SA': { name: 'Serie A', flag: '🇮🇹' },
+  'BL1': { name: 'Bundesliga', flag: '🇩🇪' },
+  'FL1': { name: 'Ligue 1', flag: '🇫🇷' },
+  'CL': { name: 'Champions League', flag: '🇪🇺' }
 }
 
 onMounted(async () => {
@@ -51,83 +48,29 @@ onUnmounted(() => {
 
 async function loadGames() {
   try {
-    // Primeiro tenta buscar do Supabase (cache)
-    const { data: cachedGames, error } = await supabase
-      .from('game_rooms')
-      .select('*')
-      .order('match_date', { ascending: true })
-    
-    if (!error && cachedGames?.length > 0) {
-      games.value = cachedGames.map(formatGame)
-      lastUpdate.value = new Date()
-      console.log(`✅ Carregou ${cachedGames.length} jogos do cache`)
-      return
-    }
-    
-    // Se não tem cache, busca da API diretamente
+    // Buscar da API interna (proxy que resolve CORS)
     await fetchLiveFromAPI()
   } catch (err) {
     console.error('Erro ao carregar jogos:', err)
-    // Fallback: busca da API
-    await fetchLiveFromAPI()
   }
 }
 
 async function fetchLiveFromAPI() {
   try {
-    // Buscar jogos de hoje e próximos
-    const today = new Date().toISOString().split('T')[0]
-    const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    
-    const response = await fetch(`https://api.football-data.org/v4/matches?dateFrom=${today}&dateTo=${nextWeek}`, {
-      headers: { 'X-Auth-Token': FOOTBALL_API_KEY }
-    })
+    // Usar API interna para evitar CORS
+    const response = await fetch('/api/live-games')
     
     if (response.ok) {
       const data = await response.json()
-      games.value = (data.matches || []).map(match => ({
-        id: match.id,
-        home_team: match.homeTeam.shortName || match.homeTeam.name,
-        away_team: match.awayTeam.shortName || match.awayTeam.name,
-        home_logo: match.homeTeam.crest,
-        away_logo: match.awayTeam.crest,
-        home_score: match.score?.fullTime?.home ?? (match.score?.halfTime?.home ?? null),
-        away_score: match.score?.fullTime?.away ?? (match.score?.halfTime?.away ?? null),
-        status: mapStatus(match.status),
-        match_date: match.utcDate,
-        league: match.competition.code,
-        league_name: LEAGUES[match.competition.code]?.name || match.competition.name,
-        league_flag: LEAGUES[match.competition.code]?.flag || '⚽',
-        venue: match.venue || 'A definir',
-        minute: match.minute || null
-      }))
-      lastUpdate.value = new Date()
-      console.log(`✅ Carregou ${games.value.length} jogos da API`)
+      if (data.success && data.games) {
+        games.value = data.games
+        lastUpdate.value = new Date()
+        console.log(`✅ Carregou ${data.games.length} jogos da API`)
+      }
     }
   } catch (err) {
     console.error('Erro ao buscar da API:', err)
   }
-}
-
-function formatGame(game) {
-  return {
-    ...game,
-    league_flag: LEAGUES[game.league]?.flag || '⚽',
-    league_name: LEAGUES[game.league]?.name || game.league
-  }
-}
-
-function mapStatus(apiStatus) {
-  const statusMap = {
-    'IN_PLAY': 'live',
-    'PAUSED': 'halftime',
-    'FINISHED': 'finished',
-    'SCHEDULED': 'scheduled',
-    'TIMED': 'scheduled',
-    'POSTPONED': 'postponed',
-    'CANCELLED': 'cancelled'
-  }
-  return statusMap[apiStatus] || 'scheduled'
 }
 
 const filteredGames = computed(() => {
