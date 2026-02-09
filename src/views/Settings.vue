@@ -186,7 +186,46 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
             
             <div class="info-row"><span class="label">Nome</span><span class="value">{{ user?.user_metadata?.name || 'Não informado' }}</span></div>
             <div class="info-row"><span class="label">Email</span><span class="value">{{ user?.email }}</span></div>
-            <div class="info-row"><span class="label">Plano</span><span class="value plan-value">{{ currentPlan.name }}</span></div>
+            <div class="info-row">
+              <span class="label">Plano</span>
+              <span class="value plan-badge" :class="currentPlan.id">
+                {{ currentPlan.badgeEmoji }} {{ currentPlan.name }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card de Vantagens do Plano -->
+        <div class="settings-card plan-card" :class="currentPlan.id">
+          <div class="card-header">
+            <span class="plan-emoji">{{ currentPlan.badgeEmoji || '🆓' }}</span>
+            <h3>Seu Plano: {{ currentPlan.name }}</h3>
+          </div>
+          <div class="card-content">
+            <div class="plan-price" v-if="currentPlan.price > 0">
+              <span class="price-value">R$ {{ currentPlan.price.toFixed(2).replace('.', ',') }}</span>
+              <span class="price-interval">/mês</span>
+            </div>
+            <div class="plan-price free" v-else>
+              <span class="price-value">Grátis</span>
+            </div>
+            
+            <ul class="plan-features">
+              <li v-for="(feature, i) in currentPlan.features" :key="i">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                {{ feature }}
+              </li>
+            </ul>
+            
+            <router-link v-if="currentPlan.id === 'free'" to="/pricing" class="btn-upgrade">
+              ⚡ Fazer Upgrade
+            </router-link>
+            <router-link v-else-if="currentPlan.id !== 'legend'" to="/pricing" class="btn-manage">
+              🚀 Ver Outros Planos
+            </router-link>
+            <div v-else class="legend-badge">
+              👑 Você tem o melhor plano!
+            </div>
           </div>
         </div>
 
@@ -491,5 +530,178 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
   margin-top: 12px;
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.5);
+}
+
+/* ===== PLAN BADGE ===== */
+.plan-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.plan-badge.free {
+  background: rgba(107, 114, 128, 0.2);
+  color: #9ca3af;
+}
+
+.plan-badge.basic {
+  background: rgba(205, 127, 50, 0.2);
+  border: 1px solid rgba(205, 127, 50, 0.4);
+  color: #cd7f32;
+}
+
+.plan-badge.pro {
+  background: rgba(192, 192, 192, 0.2);
+  border: 1px solid rgba(192, 192, 192, 0.4);
+  color: #c0c0c0;
+}
+
+.plan-badge.ultra {
+  background: rgba(255, 215, 0, 0.2);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  color: #ffd700;
+}
+
+.plan-badge.legend {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(236, 72, 153, 0.3));
+  border: 1px solid rgba(139, 92, 246, 0.5);
+  color: #a78bfa;
+}
+
+/* ===== PLAN CARD ===== */
+.plan-card {
+  background: rgba(255, 255, 255, 0.03);
+  position: relative;
+  overflow: hidden;
+}
+
+.plan-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #6b7280, #9ca3af);
+}
+
+.plan-card.basic::before {
+  background: linear-gradient(90deg, #cd7f32, #daa520);
+}
+
+.plan-card.pro::before {
+  background: linear-gradient(90deg, #c0c0c0, #e8e8e8);
+}
+
+.plan-card.ultra::before {
+  background: linear-gradient(90deg, #ffd700, #ffed4a);
+}
+
+.plan-card.legend::before {
+  background: linear-gradient(90deg, #8b5cf6, #ec4899);
+}
+
+.plan-card .card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.plan-emoji {
+  font-size: 1.5rem;
+}
+
+.plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.plan-price .price-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.plan-price .price-interval {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.plan-price.free .price-value {
+  color: #9ca3af;
+}
+
+.plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+}
+
+.plan-features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.plan-features li svg {
+  width: 16px;
+  height: 16px;
+  stroke: #22c55e;
+  flex-shrink: 0;
+}
+
+.btn-upgrade {
+  display: block;
+  width: 100%;
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: #fff;
+  text-align: center;
+  padding: 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+.btn-upgrade:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+}
+
+.btn-manage {
+  display: block;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  text-align: center;
+  padding: 14px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+.btn-manage:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.legend-badge {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2));
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  padding: 14px;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 700;
+  color: #a78bfa;
 }
 </style>
