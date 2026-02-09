@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, inject } from 'vue'
+import { ref, onMounted, onUnmounted, computed, inject } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { supabase } from '../lib/supabase'
 import { getSubscriptionStatus, createCustomerPortal, cancelSubscription, plans, getTrialStatus, isAdmin as checkIsAdmin } from '../lib/stripe'
@@ -16,6 +16,21 @@ const canceling = ref(false)
 const trialStatus = ref(null)
 const userIsAdmin = ref(false)
 
+// 📷 Sistema de Foto de Perfil
+const userAvatar = ref(null)
+const showAvatarModal = ref(false)
+const uploadingAvatar = ref(false)
+const avatarInput = ref(null)
+
+// 🎯 Sistema de Foco/Preferência
+const userFocus = ref('all') // 'all', 'bet', 'trade', 'cartola'
+const showFocusSelector = ref(false)
+
+// 📡 Feed em tempo real
+const liveFeed = ref([])
+const feedLoading = ref(false)
+const feedInterval = ref(null)
+
 // 📊 Estatísticas do Dashboard
 const userStats = ref({
   analysesToday: 0,
@@ -26,6 +41,18 @@ const userStats = ref({
 })
 const recentAnalyses = ref([])
 const liveGamesCount = ref(0)
+
+// Dados em tempo real
+const marketData = ref({
+  crypto: null,
+  forex: null,
+  stocks: null
+})
+const cartolaData = ref({
+  marketStatus: null,
+  lastRound: null,
+  highlights: []
+})
 
 // Toast function from App.vue
 const showToast = inject('showToast', () => {})
@@ -82,6 +109,289 @@ async function loadLiveGamesCount() {
   }
 }
 
+// 📷 Upload de foto de perfil
+async function handleAvatarUpload(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+  
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('error', 'Erro', 'A imagem deve ter no máximo 2MB')
+    return
+  }
+  
+  uploadingAvatar.value = true
+  
+  try {
+    // Upload para Supabase Storage
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${user.value.id}_${Date.now()}.${fileExt}`
+    
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, file, { upsert: true })
+    
+    if (uploadError) throw uploadError
+    
+    // Obter URL pública
+    const { data: { publicUrl } } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(fileName)
+    
+    // Atualizar perfil do usuário
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .upsert({ 
+        id: user.value.id, 
+        avatar_url: publicUrl,
+        updated_at: new Date().toISOString()
+      })
+    
+    if (updateError) throw updateError
+    
+    userAvatar.value = publicUrl
+    showAvatarModal.value = false
+    showToast('success', 'Foto atualizada!', 'Sua foto de perfil foi alterada.')
+  } catch (err) {
+    console.error('Erro ao fazer upload:', err)
+    showToast('error', 'Erro', 'Não foi possível atualizar a foto.')
+  } finally {
+    uploadingAvatar.value = false
+  }
+}
+
+// 📷 Carregar avatar do usuário
+async function loadUserAvatar(userId) {
+  try {
+    const { data } = await supabase
+      .from('profiles')
+      .select('avatar_url, focus_preference')
+      .eq('id', userId)
+      .single()
+    
+    if (data) {
+      userAvatar.value = data.avatar_url
+      userFocus.value = data.focus_preference || 'all'
+    }
+  } catch (err) {
+    console.log('Avatar não disponível')
+  }
+}
+
+// 🎯 Salvar foco do usuário
+async function saveFocusPreference(focus) {
+  userFocus.value = focus
+  showFocusSelector.value = false
+  
+  try {
+    await supabase
+      .from('profiles')
+      .upsert({ 
+        id: user.value.id, 
+        focus_preference: focus,
+        updated_at: new Date().toISOString()
+      })
+    
+    showToast('success', 'Preferência salva!', `Seu foco agora é: ${getFocusLabel(focus)}`)
+    
+    // Recarregar feed com novo foco
+    loadLiveFeed()
+  } catch (err) {
+    console.error('Erro ao salvar foco:', err)
+  }
+}
+
+// 🎯 Labels do foco
+function getFocusLabel(focus) {
+  const labels = {
+    all: '📊 Todas as áreas',
+    bet: '⚽ Apostas Esportivas',
+    trade: '📈 Day Trade',
+    cartola: '🏆 Cartola FC'
+  }
+  return labels[focus] || labels.all
+}
+
+// 📡 Carregar feed em tempo real baseado no foco
+async function loadLiveFeed() {
+  feedLoading.value = true
+  liveFeed.value = []
+  
+  try {
+    const focus = userFocus.value
+    
+    if (focus === 'all' || focus === 'bet') {
+      await loadBetFeed()
+    }
+    
+    if (focus === 'all' || focus === 'trade') {
+      await loadTradeFeed()
+    }
+    
+    if (focus === 'all' || focus === 'cartola') {
+      await loadCartolaFeed()
+    }
+    
+    // Ordenar por timestamp
+    liveFeed.value.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    
+  } catch (err) {
+    console.error('Erro ao carregar feed:', err)
+  } finally {
+    feedLoading.value = false
+  }
+}
+
+// 📡 Feed de Apostas
+async function loadBetFeed() {
+  try {
+    const response = await fetch('/api/live-games')
+    const data = await response.json()
+    
+    if (data.games?.length > 0) {
+      // Adicionar jogos ao vivo no feed
+      const liveGames = data.games.slice(0, 3)
+      liveGames.forEach(game => {
+        liveFeed.value.push({
+          type: 'bet',
+          icon: '⚽',
+          title: `${game.home_team} x ${game.away_team}`,
+          subtitle: `${game.home_score || 0} - ${game.away_score || 0} • ${game.minute}'`,
+          status: '🔴 AO VIVO',
+          timestamp: new Date().toISOString(),
+          action: () => router.push('/live')
+        })
+      })
+    }
+    
+    // Adicionar notícia genérica
+    liveFeed.value.push({
+      type: 'bet',
+      icon: '📊',
+      title: 'Análise do dia disponível',
+      subtitle: `${liveGamesCount.value || 0} jogos para analisar hoje`,
+      status: 'Novo',
+      timestamp: new Date().toISOString(),
+      action: () => router.push('/bet')
+    })
+  } catch (err) {
+    console.log('Erro ao carregar feed BET')
+  }
+}
+
+// 📡 Feed de Trade
+async function loadTradeFeed() {
+  try {
+    // Buscar dados de mercado
+    const [cryptoRes, forexRes] = await Promise.all([
+      fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true').catch(() => null),
+      fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL').catch(() => null)
+    ])
+    
+    if (cryptoRes?.ok) {
+      const crypto = await cryptoRes.json()
+      
+      if (crypto.bitcoin) {
+        const btcChange = crypto.bitcoin.usd_24h_change?.toFixed(2) || 0
+        liveFeed.value.push({
+          type: 'trade',
+          icon: '₿',
+          title: 'Bitcoin (BTC)',
+          subtitle: `$${crypto.bitcoin.usd?.toLocaleString('en-US')} • ${btcChange > 0 ? '📈' : '📉'} ${btcChange}%`,
+          status: btcChange > 0 ? '🟢 Alta' : '🔴 Baixa',
+          timestamp: new Date().toISOString(),
+          action: () => router.push('/trade')
+        })
+      }
+      
+      if (crypto.ethereum) {
+        const ethChange = crypto.ethereum.usd_24h_change?.toFixed(2) || 0
+        liveFeed.value.push({
+          type: 'trade',
+          icon: 'Ξ',
+          title: 'Ethereum (ETH)',
+          subtitle: `$${crypto.ethereum.usd?.toLocaleString('en-US')} • ${ethChange > 0 ? '📈' : '📉'} ${ethChange}%`,
+          status: ethChange > 0 ? '🟢 Alta' : '🔴 Baixa',
+          timestamp: new Date().toISOString(),
+          action: () => router.push('/trade')
+        })
+      }
+    }
+    
+    if (forexRes?.ok) {
+      const forex = await forexRes.json()
+      if (forex.USDBRL) {
+        liveFeed.value.push({
+          type: 'trade',
+          icon: '💵',
+          title: 'Dólar (USD/BRL)',
+          subtitle: `R$ ${parseFloat(forex.USDBRL.bid).toFixed(2)} • Variação: ${forex.USDBRL.pctChange}%`,
+          status: parseFloat(forex.USDBRL.pctChange) > 0 ? '🟢 Alta' : '🔴 Baixa',
+          timestamp: new Date().toISOString(),
+          action: () => router.push('/trade')
+        })
+      }
+    }
+  } catch (err) {
+    console.log('Erro ao carregar feed TRADE')
+  }
+}
+
+// 📡 Feed de Cartola
+async function loadCartolaFeed() {
+  try {
+    const [statusRes, partidasRes] = await Promise.all([
+      fetch('/api/cartola/status').catch(() => null),
+      fetch('/api/cartola/partidas').catch(() => null)
+    ])
+    
+    if (statusRes?.ok) {
+      const status = await statusRes.json()
+      const isOpen = status.mercado?.status_mercado === 1
+      
+      liveFeed.value.push({
+        type: 'cartola',
+        icon: '🏆',
+        title: 'Status do Mercado',
+        subtitle: isOpen ? 'Mercado aberto para escalações!' : 'Mercado fechado',
+        status: isOpen ? '🟢 Aberto' : '🔴 Fechado',
+        timestamp: new Date().toISOString(),
+        action: () => router.push('/cartola')
+      })
+      
+      if (status.mercado?.rodada_atual) {
+        liveFeed.value.push({
+          type: 'cartola',
+          icon: '📅',
+          title: `Rodada ${status.mercado.rodada_atual}`,
+          subtitle: 'Rodada atual do Cartola',
+          status: 'Em andamento',
+          timestamp: new Date().toISOString(),
+          action: () => router.push('/cartola')
+        })
+      }
+    }
+    
+    if (partidasRes?.ok) {
+      const partidas = await partidasRes.json()
+      const proximasPartidas = partidas.partidas?.slice(0, 2) || []
+      
+      proximasPartidas.forEach(partida => {
+        liveFeed.value.push({
+          type: 'cartola',
+          icon: '⚽',
+          title: `${partida.clube_casa_nome} x ${partida.clube_visitante_nome}`,
+          subtitle: partida.aproveitamento_mandante || 'Próxima partida',
+          status: 'Cartola',
+          timestamp: new Date().toISOString(),
+          action: () => router.push('/cartola')
+        })
+      })
+    }
+  } catch (err) {
+    console.log('Erro ao carregar feed Cartola')
+  }
+}
+
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
   
@@ -120,8 +430,18 @@ onMounted(async () => {
   await Promise.all([
     loadUserStats(session.user.id),
     loadRecentAnalyses(session.user.id),
-    loadLiveGamesCount()
+    loadLiveGamesCount(),
+    loadUserAvatar(session.user.id)
   ])
+  
+  // Carregar feed em tempo real
+  await loadLiveFeed()
+  
+  // Atualizar feed a cada 60 segundos
+  feedInterval.value = setInterval(() => {
+    loadLiveFeed()
+    loadLiveGamesCount()
+  }, 60000)
   
   loading.value = false
 })
@@ -135,6 +455,13 @@ const currentPlan = computed(() => {
   const planId = subscription.value?.plan || 'free'
   console.log('📋 Dashboard: Plano do usuário:', planId)
   return plans[planId] || plans.free
+})
+
+// Cleanup
+onUnmounted(() => {
+  if (feedInterval.value) {
+    clearInterval(feedInterval.value)
+  }
 })
 
 const isPaidPlan = computed(() => {
@@ -347,8 +674,13 @@ const navigateTo = (path) => {
         </div>
         <div class="header-right">
           <div class="user-info">
-            <div class="user-avatar">
-              {{ (user?.user_metadata?.name || user?.email || 'U')[0].toUpperCase() }}
+            <!-- Avatar com upload -->
+            <div class="user-avatar-wrapper" @click="showAvatarModal = true">
+              <img v-if="userAvatar" :src="userAvatar" alt="Avatar" class="user-avatar-img" />
+              <div v-else class="user-avatar">
+                {{ (user?.user_metadata?.name || user?.email || 'U')[0].toUpperCase() }}
+              </div>
+              <span class="avatar-edit-badge">📷</span>
             </div>
             <div class="user-details">
               <span class="user-name">{{ user?.user_metadata?.name || 'Usuário' }}</span>
@@ -357,6 +689,34 @@ const navigateTo = (path) => {
           </div>
         </div>
       </header>
+
+      <!-- Seletor de Foco -->
+      <div class="focus-selector-bar">
+        <button class="focus-current" @click="showFocusSelector = !showFocusSelector">
+          <span class="focus-icon">🎯</span>
+          <span class="focus-text">{{ getFocusLabel(userFocus) }}</span>
+          <svg class="focus-arrow" :class="{ open: showFocusSelector }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        
+        <Transition name="dropdown">
+          <div v-if="showFocusSelector" class="focus-dropdown">
+            <button 
+              v-for="focus in ['all', 'bet', 'trade', 'cartola']" 
+              :key="focus"
+              @click="saveFocusPreference(focus)"
+              class="focus-option"
+              :class="{ active: userFocus === focus }"
+            >
+              <span>{{ getFocusLabel(focus) }}</span>
+              <svg v-if="userFocus === focus" class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </button>
+          </div>
+        </Transition>
+      </div>
 
       <!-- Loading -->
       <div v-if="loading" class="loading-container">
@@ -508,6 +868,50 @@ const navigateTo = (path) => {
           </div>
         </div>
 
+        <!-- 📡 Feed em Tempo Real -->
+        <div class="live-feed-section">
+          <div class="section-header">
+            <h2>
+              <span class="live-dot-header"></span>
+              Atualizações em Tempo Real
+            </h2>
+            <button @click="loadLiveFeed" class="btn-refresh-feed" :disabled="feedLoading">
+              <svg class="refresh-icon" :class="{ spinning: feedLoading }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 4v6h-6"/>
+                <path d="M1 20v-6h6"/>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+            </button>
+          </div>
+          
+          <div v-if="feedLoading && liveFeed.length === 0" class="feed-loading">
+            <div class="spinner-small"></div>
+            <span>Carregando atualizações...</span>
+          </div>
+          
+          <div v-else-if="liveFeed.length > 0" class="feed-list">
+            <div 
+              v-for="(item, index) in liveFeed.slice(0, 6)" 
+              :key="index"
+              class="feed-item"
+              :class="item.type"
+              @click="item.action"
+            >
+              <div class="feed-icon">{{ item.icon }}</div>
+              <div class="feed-content">
+                <span class="feed-title">{{ item.title }}</span>
+                <span class="feed-subtitle">{{ item.subtitle }}</span>
+              </div>
+              <div class="feed-status" :class="item.type">{{ item.status }}</div>
+            </div>
+          </div>
+          
+          <div v-else class="feed-empty">
+            <span>📡</span>
+            <p>Nenhuma atualização disponível</p>
+          </div>
+        </div>
+
         <!-- Quick Actions -->
         <div class="quick-actions">
           <h2>Ações Rápidas</h2>
@@ -627,6 +1031,45 @@ const navigateTo = (path) => {
           <button @click="handleCancelSubscription" class="btn-confirm-cancel" :disabled="canceling">
             {{ canceling ? 'Cancelando...' : 'Confirmar Cancelamento' }}
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 📷 Modal de Upload de Avatar -->
+    <div v-if="showAvatarModal" class="modal-overlay" @click.self="showAvatarModal = false">
+      <div class="avatar-modal">
+        <button class="modal-close" @click="showAvatarModal = false">&times;</button>
+        <h3>📷 Alterar Foto de Perfil</h3>
+        
+        <div class="avatar-preview-container">
+          <img 
+            v-if="userAvatar" 
+            :src="userAvatar" 
+            alt="Preview" 
+            class="avatar-preview"
+          />
+          <div v-else class="avatar-preview-placeholder">
+            {{ userName?.charAt(0)?.toUpperCase() || 'U' }}
+          </div>
+        </div>
+        
+        <input 
+          ref="avatarInput"
+          type="file" 
+          accept="image/png,image/jpeg,image/webp"
+          @change="handleAvatarUpload"
+          style="display: none"
+        />
+        
+        <div class="avatar-modal-actions">
+          <button 
+            class="btn-upload-avatar" 
+            @click="avatarInput?.click()"
+            :disabled="uploadingAvatar"
+          >
+            {{ uploadingAvatar ? 'Enviando...' : '📤 Escolher Imagem' }}
+          </button>
+          <p class="avatar-hint">PNG, JPG ou WEBP - Máx. 2MB</p>
         </div>
       </div>
     </div>
@@ -1888,6 +2331,471 @@ const navigateTo = (path) => {
   
   .trial-info, .alert-content {
     text-align: center;
+  }
+}
+
+/* ========================================
+   🎨 Avatar Upload System
+   ======================================== */
+
+.user-avatar-wrapper {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.user-avatar-wrapper:hover {
+  transform: scale(1.05);
+}
+
+.user-avatar-img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(0, 217, 255, 0.5);
+  box-shadow: 0 4px 15px rgba(0, 217, 255, 0.3);
+}
+
+.user-avatar-placeholder {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00d9ff, #0099cc);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: bold;
+  color: white;
+  border: 3px solid rgba(0, 217, 255, 0.5);
+}
+
+.avatar-edit-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #00d9ff, #0099cc);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  border: 2px solid rgba(13, 26, 43, 0.9);
+}
+
+/* Avatar Modal */
+.avatar-modal {
+  background: linear-gradient(145deg, rgba(13, 26, 43, 0.98), rgba(8, 18, 32, 0.98));
+  border: 1px solid rgba(0, 217, 255, 0.2);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 340px;
+  width: 90%;
+  text-align: center;
+  position: relative;
+}
+
+.avatar-modal h3 {
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+}
+
+.avatar-preview-container {
+  margin: 20px auto;
+}
+
+.avatar-preview {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid rgba(0, 217, 255, 0.4);
+}
+
+.avatar-preview-placeholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00d9ff, #0099cc);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  font-weight: bold;
+  color: white;
+  margin: 0 auto;
+}
+
+.avatar-modal-actions {
+  margin-top: 20px;
+}
+
+.btn-upload-avatar {
+  background: linear-gradient(135deg, #00d9ff, #0099cc);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-upload-avatar:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 217, 255, 0.4);
+}
+
+.btn-upload-avatar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.avatar-hint {
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ========================================
+   🎯 Focus Selector
+   ======================================== */
+
+.focus-selector-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 217, 255, 0.1);
+}
+
+.focus-label {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+}
+
+.focus-selector {
+  position: relative;
+  flex: 1;
+}
+
+.focus-current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(0, 217, 255, 0.1);
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.focus-current:hover {
+  background: rgba(0, 217, 255, 0.15);
+  border-color: rgba(0, 217, 255, 0.5);
+}
+
+.focus-text {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.focus-arrow {
+  transition: transform 0.3s;
+}
+
+.focus-arrow.open {
+  transform: rotate(180deg);
+}
+
+.focus-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: rgba(13, 26, 43, 0.98);
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 100;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.focus-option {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.focus-option:last-child {
+  border-bottom: none;
+}
+
+.focus-option:hover {
+  background: rgba(0, 217, 255, 0.15);
+}
+
+.focus-option.active {
+  background: rgba(0, 217, 255, 0.2);
+  color: #00d9ff;
+}
+
+.focus-check {
+  margin-left: auto;
+  color: #00d9ff;
+}
+
+/* ========================================
+   📡 Live Feed Section
+   ======================================== */
+
+.live-feed-section {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(0, 217, 255, 0.1);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 32px;
+}
+
+.live-feed-section .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.live-feed-section h2 {
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.live-dot-header {
+  width: 10px;
+  height: 10px;
+  background: #ff4757;
+  border-radius: 50%;
+  animation: pulse-dot 1.5s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.btn-refresh-feed {
+  background: rgba(0, 217, 255, 0.1);
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  color: #00d9ff;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-refresh-feed:hover:not(:disabled) {
+  background: rgba(0, 217, 255, 0.2);
+}
+
+.btn-refresh-feed:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.refresh-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.refresh-icon.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Feed Loading */
+.feed-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.spinner-small {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(0, 217, 255, 0.2);
+  border-top-color: #00d9ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Feed List */
+.feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.feed-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.feed-item:hover {
+  background: rgba(0, 217, 255, 0.08);
+  border-color: rgba(0, 217, 255, 0.2);
+  transform: translateX(4px);
+}
+
+.feed-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.feed-item.bet .feed-icon {
+  background: rgba(0, 217, 255, 0.15);
+}
+
+.feed-item.trade .feed-icon {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.feed-item.cartola .feed-icon {
+  background: rgba(255, 193, 7, 0.15);
+}
+
+.feed-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.feed-title {
+  display: block;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.feed-subtitle {
+  display: block;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.feed-status {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.feed-status.bet {
+  background: rgba(0, 217, 255, 0.2);
+  color: #00d9ff;
+}
+
+.feed-status.trade {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.feed-status.cartola {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+}
+
+/* Feed Empty */
+.feed-empty {
+  text-align: center;
+  padding: 40px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.feed-empty span {
+  font-size: 32px;
+  display: block;
+  margin-bottom: 10px;
+}
+
+/* Mobile Feed Adjustments */
+@media (max-width: 768px) {
+  .focus-selector-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .focus-label {
+    text-align: center;
+  }
+  
+  .user-avatar-img,
+  .user-avatar-placeholder {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .feed-item {
+    padding: 12px;
+  }
+  
+  .feed-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 18px;
+  }
+  
+  .feed-title {
+    font-size: 0.9rem;
+  }
+  
+  .feed-status {
+    font-size: 0.65rem;
+    padding: 3px 8px;
   }
 }
 </style>
