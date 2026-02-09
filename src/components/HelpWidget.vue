@@ -79,21 +79,21 @@ const closeHelp = () => {
           <div class="quick-actions">
             <h4>⚡ Ações Rápidas</h4>
             <div class="actions-grid">
+              <router-link to="/live" class="action-btn live" @click="closeHelp">
+                <span>🔴</span>
+                <span>Ao Vivo</span>
+              </router-link>
               <router-link to="/palpites" class="action-btn" @click="closeHelp">
                 <span>⚽</span>
                 <span>Palpites</span>
-              </router-link>
-              <router-link to="/pricing" class="action-btn" @click="closeHelp">
-                <span>💎</span>
-                <span>Planos</span>
               </router-link>
               <router-link v-if="user" to="/dashboard" class="action-btn" @click="closeHelp">
                 <span>📊</span>
                 <span>Dashboard</span>
               </router-link>
-              <router-link v-else to="/register" class="action-btn" @click="closeHelp">
-                <span>🚀</span>
-                <span>Criar Conta</span>
+              <router-link to="/pricing" class="action-btn" @click="closeHelp">
+                <span>💎</span>
+                <span>Planos</span>
               </router-link>
             </div>
           </div>
@@ -106,10 +106,12 @@ const closeHelp = () => {
               O que oferecemos
             </h4>
             <ul>
-              <li><strong>Palpites grátis</strong> para todos os jogos</li>
+              <li><strong>Salas ao Vivo</strong> com chat em tempo real</li>
               <li>Análise completa com <strong>estatísticas H2H</strong></li>
-              <li><strong>Módulo TRADE</strong> para cripto e ações</li>
-              <li><strong>Módulo Cartola</strong> para Cartola FC</li>
+              <li><strong>Módulo TRADE</strong> para cripto e forex</li>
+              <li><strong>Cartola FC</strong> com scouts e escalação</li>
+              <li><strong>Paper Trading</strong> para praticar sem risco</li>
+              <li><strong>Alertas</strong> em tempo real</li>
             </ul>
           </div>
 
@@ -119,13 +121,13 @@ const closeHelp = () => {
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14 2 14 8 20 8"/>
               </svg>
-              Planos
+              Planos v2.0
             </h4>
             <ul>
-              <li><strong>Free:</strong> Palpites básicos grátis</li>
-              <li><strong>Basic:</strong> Análise completa + H2H</li>
-              <li><strong>Pro:</strong> + TRADE + Cartola</li>
-              <li><strong>Elite:</strong> Tudo ilimitado</li>
+              <li><strong>Free:</strong> 3 análises/dia + Chat básico</li>
+              <li><strong>Basic 🥉:</strong> Análises ilimitadas + Emojis</li>
+              <li><strong>Pro ⭐:</strong> + TRADE + Cartola + GIFs</li>
+              <li><strong>Elite 👑:</strong> Tudo ilimitado + Suporte VIP</li>
             </ul>
           </div>
 
@@ -425,7 +427,7 @@ const closeHelp = () => {
 
 .actions-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
 }
 
@@ -456,6 +458,26 @@ const closeHelp = () => {
 .action-btn span:last-child {
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.7);
+}
+
+/* Destaque Ao Vivo */
+.action-btn.live {
+  background: rgba(255, 71, 87, 0.15);
+  border-color: rgba(255, 71, 87, 0.3);
+}
+
+.action-btn.live:hover {
+  background: rgba(255, 71, 87, 0.25);
+  border-color: rgba(255, 71, 87, 0.5);
+}
+
+.action-btn.live span:first-child {
+  animation: pulse-live 1.5s infinite;
+}
+
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 /* Seções de Ajuda */
