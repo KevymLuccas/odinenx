@@ -117,7 +117,13 @@ const formatDate = (date) => {
 const getUserPlan = (userProfile) => {
   const sub = subscriptions.value.find(s => s.user_id === userProfile.id)
   if (sub?.status === 'active') {
-    return sub.price_id?.includes('elite') ? 'ELITE' : 
+    if (sub.plan === 'legend') return 'LEGEND'
+    if (sub.plan === 'ultra') return 'ULTRA'
+    if (sub.plan === 'pro') return 'PRO'
+    if (sub.plan === 'basic') return 'BASIC'
+    // Fallback para price_id
+    return sub.price_id?.includes('legend') ? 'LEGEND' :
+           sub.price_id?.includes('ultra') ? 'ULTRA' : 
            sub.price_id?.includes('pro') ? 'PRO' : 'BASIC'
   }
   return 'FREE'
@@ -561,7 +567,7 @@ const refreshData = async () => {
                   <td class="id-cell">{{ sub.id?.slice(0, 8) }}...</td>
                   <td>{{ sub.user_id?.slice(0, 8) }}...</td>
                   <td><span class="status-badge" :class="sub.status">{{ sub.status?.toUpperCase() }}</span></td>
-                  <td>{{ sub.price_id?.includes('elite') ? 'Elite' : sub.price_id?.includes('pro') ? 'Pro' : 'Basic' }}</td>
+                  <td>{{ sub.plan === 'legend' ? 'Legend' : sub.plan === 'ultra' ? 'Ultra' : sub.plan === 'pro' ? 'Pro' : sub.plan === 'basic' ? 'Basic' : sub.plan?.charAt(0).toUpperCase() + sub.plan?.slice(1) || 'Free' }}</td>
                   <td class="date-cell">{{ sub.current_period_end ? formatDate(sub.current_period_end) : '-' }}</td>
                 </tr>
               </tbody>
@@ -646,7 +652,8 @@ const refreshData = async () => {
               <option value="free">FREE</option>
               <option value="basic">BASIC</option>
               <option value="pro">PRO</option>
-              <option value="elite">ELITE</option>
+              <option value="ultra">ULTRA</option>
+              <option value="legend">LEGEND</option>
             </select>
           </div>
         </div>

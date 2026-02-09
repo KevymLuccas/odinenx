@@ -61,20 +61,20 @@ const getPrice = (plan) => {
 
 // Recursos v2.0 para comparativo
 const v2Features = [
-  { name: 'Salas ao Vivo', free: '✓', basic: '✓', pro: '✓', elite: '✓' },
-  { name: 'Chat em tempo real', free: 'Texto', basic: '+ Emoji', pro: '+ GIFs', elite: '+ Stickers' },
-  { name: 'Badge exclusivo', free: '—', basic: '🥉 Bronze', pro: '⭐ Pro', elite: '👑 Elite' },
-  { name: 'Posição na lista', free: 'Última', basic: '3ª posição', pro: '2ª posição', elite: '1ª posição' },
-  { name: 'Salas privadas', free: '—', basic: '1 sala', pro: '5 salas', elite: 'Ilimitado' },
-  { name: 'Celebração de gols', free: 'Básica', basic: 'Confetes', pro: 'Premium', elite: 'VIP' },
-  { name: 'Loja de customização', free: '—', basic: '—', pro: '—', elite: '✓' },
-  { name: 'Análises por dia', free: '3', basic: '∞', pro: '∞', elite: '∞' },
-  { name: 'Histórico', free: '7 dias', basic: '30 dias', pro: '90 dias', elite: '∞' },
-  { name: 'Módulo TRADE', free: '—', basic: '—', pro: '✓', elite: '✓' },
-  { name: 'Cartola FC', free: '—', basic: '—', pro: '✓', elite: '✓' },
-  { name: 'Alertas tempo real', free: '—', basic: '—', pro: '✓', elite: '✓' },
-  { name: 'Paper Trading', free: '—', basic: '—', pro: '✓', elite: '✓' },
-  { name: 'Suporte prioritário', free: '—', basic: 'Email', pro: '✓', elite: 'VIP 24/7' }
+  { name: 'Salas ao Vivo', free: '✓', basic: '✓', pro: '✓', ultra: '✓', legend: '✓' },
+  { name: 'Chat em tempo real', free: 'Texto', basic: '+ Emoji', pro: '+ GIFs', ultra: '+ Stickers', legend: 'Tudo' },
+  { name: 'Badge exclusivo', free: '—', basic: '🥉 Bronze', pro: '⭐ Pro', ultra: '👑 Ultra', legend: '🏆 Legend' },
+  { name: 'Posição na lista', free: 'Última', basic: '4ª posição', pro: '3ª posição', ultra: '2ª posição', legend: 'Topo!' },
+  { name: 'Salas privadas', free: '—', basic: '1 sala', pro: '5 salas', ultra: '10 salas', legend: 'Ilimitado' },
+  { name: 'Celebração de gols', free: 'Básica', basic: 'Confetes', pro: 'Premium', ultra: 'VIP', legend: 'Full Custom' },
+  { name: 'Loja de customização', free: '—', basic: '—', pro: '—', ultra: '✓', legend: '✓' },
+  { name: 'Análises por dia', free: '3', basic: '∞', pro: '∞', ultra: '∞', legend: '∞' },
+  { name: 'Histórico', free: '7 dias', basic: '30 dias', pro: '90 dias', ultra: '180 dias', legend: '∞' },
+  { name: 'Módulo TRADE', free: '—', basic: '—', pro: '✓', ultra: '✓', legend: '✓' },
+  { name: 'Cartola FC', free: '—', basic: '—', pro: '✓', ultra: '✓', legend: '✓' },
+  { name: 'Alertas tempo real', free: '—', basic: '—', pro: '✓', ultra: '✓', legend: '∞' },
+  { name: 'Paper Trading', free: '—', basic: '—', pro: '✓', ultra: '✓', legend: '✓' },
+  { name: 'Suporte prioritário', free: '—', basic: 'Email', pro: '✓', ultra: 'VIP', legend: 'VIP 24/7' }
 ]
 </script>
 
@@ -125,7 +125,8 @@ const v2Features = [
           :class="{ 
             popular: plan.popular, 
             current: currentPlan === plan.id,
-            elite: plan.id === 'elite'
+            ultra: plan.id === 'ultra',
+            legend: plan.id === 'legend'
           }"
         >
           <!-- Badges -->
@@ -172,7 +173,8 @@ const v2Features = [
             class="plan-btn"
             :class="{ 
               primary: plan.popular,
-              elite: plan.id === 'elite',
+              ultra: plan.id === 'ultra',
+              legend: plan.id === 'legend',
               disabled: currentPlan === plan.id 
             }"
             :disabled="loadingPlan === plan.id || currentPlan === plan.id"
@@ -199,7 +201,8 @@ const v2Features = [
             <div class="plan-col">Free</div>
             <div class="plan-col">Basic 🥉</div>
             <div class="plan-col highlight">Pro ⭐</div>
-            <div class="plan-col elite">Elite 👑</div>
+            <div class="plan-col ultra">Ultra 👑</div>
+            <div class="plan-col legend">Legend 🏆</div>
           </div>
           
           <div 
@@ -211,7 +214,8 @@ const v2Features = [
             <div class="plan-col">{{ feature.free }}</div>
             <div class="plan-col">{{ feature.basic }}</div>
             <div class="plan-col highlight">{{ feature.pro }}</div>
-            <div class="plan-col elite">{{ feature.elite }}</div>
+            <div class="plan-col ultra">{{ feature.ultra }}</div>
+            <div class="plan-col legend">{{ feature.legend }}</div>
           </div>
         </div>
       </section>
@@ -238,7 +242,7 @@ const v2Features = [
           
           <div class="faq-item">
             <h4>Como funciona a loja de customização?</h4>
-            <p>Usuários Elite podem comprar efeitos especiais, cores personalizadas e muito mais para se destacar nas salas.</p>
+            <p>Usuários Ultra e Legend podem comprar efeitos especiais, cores personalizadas e muito mais para se destacar nas salas.</p>
           </div>
           
           <div class="faq-item">
@@ -439,9 +443,15 @@ const v2Features = [
   box-shadow: 0 0 30px rgba(255,215,0,0.2);
 }
 
-.plan-card.elite {
-  background: linear-gradient(135deg, rgba(138,43,226,0.1) 0%, rgba(255,215,0,0.1) 100%);
-  border-color: rgba(138,43,226,0.5);
+.plan-card.ultra {
+  background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,140,0,0.1) 100%);
+  border-color: rgba(255,215,0,0.5);
+}
+
+.plan-card.legend {
+  background: linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(236,72,153,0.15) 100%);
+  border-color: rgba(139,92,246,0.5);
+  box-shadow: 0 0 30px rgba(139,92,246,0.2);
 }
 
 .plan-card.current {
@@ -597,8 +607,13 @@ const v2Features = [
   box-shadow: 0 5px 20px rgba(255,215,0,0.3);
 }
 
-.plan-btn.elite {
-  background: linear-gradient(135deg, #8a2be2 0%, #ffd700 100%);
+.plan-btn.ultra {
+  background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+  color: #000;
+}
+
+.plan-btn.legend {
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
   color: white;
 }
 
@@ -671,9 +686,14 @@ const v2Features = [
   color: #ffd700;
 }
 
-.plan-col.elite {
-  background: rgba(138,43,226,0.05);
-  color: #da70d6;
+.plan-col.ultra {
+  background: rgba(255,215,0,0.05);
+  color: #ffd700;
+}
+
+.plan-col.legend {
+  background: rgba(139,92,246,0.08);
+  color: #a78bfa;
 }
 
 /* FAQ Section */

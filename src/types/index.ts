@@ -4,7 +4,7 @@
  */
 
 // Planos
-export type PlanId = 'free' | 'basic' | 'pro' | 'elite'
+export type PlanId = 'free' | 'basic' | 'pro' | 'ultra' | 'legend'
 
 export interface Plan {
   id: PlanId

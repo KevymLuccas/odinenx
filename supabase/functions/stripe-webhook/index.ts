@@ -32,7 +32,11 @@ serve(async (req) => {
     const priceIdToPlan: { [key: string]: string } = {
       'price_1SvMedD3mufAbT6c994DmZYw': 'basic',
       'price_1SvMehD3mufAbT6cmjXFFHtA': 'pro',
-      'price_1SvMemD3mufAbT6cRHEhLdAM': 'elite'
+      'price_1SvMemD3mufAbT6cRHEhLdAM': 'ultra',
+      'price_1SxAZCD3mufAbT6cUHrvNnub': 'basic',
+      'price_1SxAZCD3mufAbT6cSdYNWkN2': 'pro',
+      'price_1SxAZDD3mufAbT6clYbRkQoo': 'ultra',
+      'price_legend_v2': 'legend'
     }
 
     const getPlanFromPriceId = (priceId: string): string => {

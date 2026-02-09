@@ -78,21 +78,21 @@
               </button>
             </div>
 
-            <!-- Elite -->
-            <div class="plan-card elite">
-              <div class="elite-badge">👑 Elite</div>
+            <!-- Ultra -->
+            <div class="plan-card ultra">
+              <div class="ultra-badge">👑 Ultra</div>
               <div class="plan-header">
-                <span class="plan-name">Elite</span>
+                <span class="plan-name">Ultra</span>
                 <span class="plan-price">R$ <strong>99</strong>,90/mês</span>
               </div>
               <ul class="plan-features">
                 <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Tudo do Pro</li>
-                <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Salas Ilimitadas</li>
-                <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> API de Odds em Tempo Real</li>
-                <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Suporte Prioritário</li>
+                <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> 10 Salas Privadas</li>
+                <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Loja de Customização</li>
+                <li><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Suporte VIP</li>
               </ul>
-              <button @click="selectPlan('elite')" class="btn-plan btn-elite">
-                Assinar Elite
+              <button @click="selectPlan('ultra')" class="btn-plan btn-ultra">
+                Assinar Ultra
               </button>
             </div>
           </div>

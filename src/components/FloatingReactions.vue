@@ -56,8 +56,9 @@ watch(() => props.reactions, (newReactions) => {
 // Get glow color based on plan
 function getGlowColor(plan) {
   switch (plan) {
-    case 'elite': return 'rgba(138, 43, 226, 0.8)'
-    case 'pro': return 'rgba(255, 215, 0, 0.6)'
+    case 'legend': return 'rgba(139, 92, 246, 0.9)'
+    case 'ultra': return 'rgba(255, 215, 0, 0.8)'
+    case 'pro': return 'rgba(192, 192, 192, 0.6)'
     case 'basic': return 'rgba(205, 127, 50, 0.5)'
     default: return 'transparent'
   }

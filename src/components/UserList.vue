@@ -25,12 +25,19 @@ const sortedUsers = computed(() => {
 
 // Configurações visuais por plano
 const planConfig = {
-  elite: {
+  legend: {
+    badge: '🏆',
+    tag: 'LEGEND',
+    bgClass: 'legend-bg',
+    glowClass: 'legend-glow',
+    textClass: 'legend-text'
+  },
+  ultra: {
     badge: '👑',
-    tag: 'ELITE',
-    bgClass: 'elite-bg',
-    glowClass: 'elite-glow',
-    textClass: 'elite-text'
+    tag: 'ULTRA',
+    bgClass: 'ultra-bg',
+    glowClass: 'ultra-glow',
+    textClass: 'ultra-text'
   },
   pro: {
     badge: '⭐',
@@ -162,7 +169,11 @@ function isCurrentUser(userId) {
 }
 
 /* Plan Backgrounds */
-.user-item.elite-bg {
+.user-item.legend-bg {
+  background: linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(236,72,153,0.15) 100%);
+}
+
+.user-item.ultra-bg {
   background: linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(255,140,0,0.1) 100%);
 }
 
@@ -175,16 +186,30 @@ function isCurrentUser(userId) {
 }
 
 /* Glow Effects */
-.user-item.elite-glow {
+.user-item.legend-glow {
+  box-shadow: 0 0 20px rgba(139,92,246,0.3);
+  animation: legend-pulse 2s infinite;
+}
+
+.user-item.ultra-glow {
   box-shadow: 0 0 15px rgba(255,215,0,0.2);
-  animation: elite-pulse 2s infinite;
+  animation: ultra-pulse 2s infinite;
 }
 
 .user-item.pro-glow {
   box-shadow: 0 0 10px rgba(192,192,192,0.15);
 }
 
-@keyframes elite-pulse {
+@keyframes legend-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(139,92,246,0.3);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(139,92,246,0.5);
+  }
+}
+
+@keyframes ultra-pulse {
   0%, 100% {
     box-shadow: 0 0 15px rgba(255,215,0,0.2);
   }
@@ -254,7 +279,11 @@ function isCurrentUser(userId) {
   opacity: 0.7;
 }
 
-.plan-tag.elite {
+.plan-tag.legend {
+  color: #a78bfa;
+}
+
+.plan-tag.ultra {
   color: #ffd700;
 }
 
@@ -279,7 +308,12 @@ function isCurrentUser(userId) {
 }
 
 /* Text colors by plan */
-.elite-text {
+.legend-text {
+  color: #a78bfa;
+  text-shadow: 0 0 15px rgba(139,92,246,0.6);
+}
+
+.ultra-text {
   color: #ffd700;
   text-shadow: 0 0 10px rgba(255,215,0,0.5);
 }

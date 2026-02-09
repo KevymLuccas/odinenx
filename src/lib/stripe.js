@@ -119,9 +119,9 @@ export const plans = {
       celebracao: 'animacao_premium'
     }
   },
-  elite: {
-    id: 'elite',
-    name: 'Elite',
+  ultra: {
+    id: 'ultra',
+    name: 'Ultra',
     price: 99.90,
     interval: 'month',
     stripePriceId: 'price_1SxAZDD3mufAbT6clYbRkQoo',
@@ -129,12 +129,54 @@ export const plans = {
     badgeEmoji: '👑',
     features: [
       'Tudo do Pro',
-      'Salas privadas ilimitadas',
+      '10 salas privadas',
       'Badge Dourado',
-      'Topo da lista de usuários',
+      'Destaque na lista',
       'Efeitos de gol customizáveis',
       'Loja de customização',
-      'Suporte VIP 24/7'
+      'Suporte VIP'
+    ],
+    limits: {
+      palpitesPerDay: -1,
+      palpitesVisiveis: -1,
+      historyDays: 180,
+      palpiteCompleto: true,
+      oddsMultiplas: true,
+      estatisticasH2H: true,
+      trade: true,
+      cartola: true,
+      alerts: true,
+      analysisPerDay: -1,
+      // v2.0 - Salas ao Vivo
+      chatTexto: true,
+      emojisBasicos: true,
+      gifs: true,
+      stickers: true,
+      imagens: true,
+      salasPrivadas: 10,
+      efeitoGolCustom: true,
+      destaqueLista: true,
+      celebracao: 'animacao_vip',
+      lojaCustomizacao: true
+    }
+  },
+  legend: {
+    id: 'legend',
+    name: 'Legend',
+    price: 199.90,
+    interval: 'month',
+    stripePriceId: 'price_legend_v2',
+    badge: 'lendario',
+    badgeEmoji: '🏆',
+    features: [
+      'TUDO ILIMITADO',
+      'Salas privadas ilimitadas',
+      'Badge Lendário exclusivo',
+      'Topo absoluto da lista',
+      'Customização total',
+      'Acesso antecipado a features',
+      'Suporte VIP 24/7',
+      'Admin dashboard'
     ],
     limits: {
       palpitesPerDay: -1,
@@ -145,9 +187,10 @@ export const plans = {
       estatisticasH2H: true,
       trade: true,
       cartola: true,
-      alerts: true,
+      alerts: -1,
       admin: true,
       reports: true,
+      analysisPerDay: -1,
       // v2.0 - Salas ao Vivo
       chatTexto: true,
       emojisBasicos: true,
@@ -167,11 +210,15 @@ export const plans = {
 export const priceIdToPlan = {
   'price_1SvMedD3mufAbT6c994DmZYw': 'basic',
   'price_1SvMehD3mufAbT6cmjXFFHtA': 'pro',
-  'price_1SvMemD3mufAbT6cRHEhLdAM': 'elite',
+  'price_1SvMemD3mufAbT6cRHEhLdAM': 'ultra',
+  'price_1SxAZCD3mufAbT6cUHrvNnub': 'basic',
+  'price_1SxAZCD3mufAbT6cSdYNWkN2': 'pro',
+  'price_1SxAZDD3mufAbT6clYbRkQoo': 'ultra',
   // v2.0 - Novos price IDs (criar no Stripe)
   'price_basic_v2': 'basic',
   'price_pro_v2': 'pro',
-  'price_elite_v2': 'elite'
+  'price_ultra_v2': 'ultra',
+  'price_legend_v2': 'legend'
 }
 
 // Helpers para sistema de salas v2.0
@@ -181,8 +228,8 @@ export const getPlanBadge = (planId) => {
 }
 
 export const getPlanOrder = (planId) => {
-  const order = { elite: 0, pro: 1, basic: 2, free: 3 }
-  return order[planId] ?? 3
+  const order = { legend: 0, ultra: 1, pro: 2, basic: 3, free: 4 }
+  return order[planId] ?? 4
 }
 
 export const canSendGif = (planId) => {
@@ -229,21 +276,21 @@ export const hasAccess = async (subscription, feature, userId = null) => {
     case 'bet':
       return true // Todos podem acessar BET básico
     case 'trade':
-      return ['pro', 'elite'].includes(planId) // Só Pro/Elite
+      return ['pro', 'ultra', 'legend'].includes(planId) // Pro+
     case 'cartola':
-      return plan.limits?.cartola === true // Só Pro/Elite
+      return plan.limits?.cartola === true // Pro+
     case 'alerts':
-      return plan.limits?.alerts === true // Só Pro/Elite
+      return plan.limits?.alerts === true // Pro+
     case 'paperTrading':
-      return plan.limits?.paperTrading === true // Só Pro/Elite
+      return plan.limits?.paperTrading === true // Pro+
     case 'admin':
-      return plan.limits?.admin === true // Só Elite
+      return plan.limits?.admin === true // Só Legend
     case 'analysisUnlimited':
       return plan.limits?.analysisPerDay === -1 // Basic+
     case 'fullHistory':
-      return plan.limits?.historyDays === -1 // Elite
+      return plan.limits?.historyDays === -1 // Legend
     case 'iaAvancada':
-      return ['pro', 'elite'].includes(planId)
+      return ['pro', 'ultra', 'legend'].includes(planId)
     default:
       return false
   }
@@ -258,7 +305,7 @@ export const hasAccessSync = (subscription, feature) => {
     case 'bet':
       return true
     case 'trade':
-      return ['pro', 'elite'].includes(planId)
+      return ['pro', 'ultra', 'legend'].includes(planId)
     case 'cartola':
       return plan.limits?.cartola === true
     case 'alerts':
@@ -272,7 +319,7 @@ export const hasAccessSync = (subscription, feature) => {
     case 'fullHistory':
       return plan.limits?.historyDays === -1
     case 'iaAvancada':
-      return ['pro', 'elite'].includes(planId)
+      return ['pro', 'ultra', 'legend'].includes(planId)
     default:
       return false
   }
@@ -389,23 +436,32 @@ export const getEffectivePlan = async (userId) => {
   try {
     // Verificar se é admin primeiro
     if (await isAdmin(userId)) {
-      return 'elite' // Admins têm acesso total
+      return 'legend' // Admins têm acesso total
     }
 
     // Buscar subscription ativa
     const { data: subscription } = await supabase
       .from('subscriptions')
-      .select('price_id, status')
+      .select('plan, price_id, status')
       .eq('user_id', userId)
       .eq('status', 'active')
       .single()
 
+    // Usar coluna plan diretamente se existir
+    if (subscription?.plan) {
+      return subscription.plan
+    }
+
+    // Fallback para price_id
     if (subscription?.price_id) {
       const planMap = {
         'price_1SvMedD3mufAbT6c994DmZYw': 'basic',
-        'price_1SMuL9D3mufAbT6cTJzOykjV': 'basic',
-        'price_1SMuOzD3mufAbT6cOKHNZPsT': 'pro',
-        'price_1SMuPwD3mufAbT6c5v8vxzLj': 'elite'
+        'price_1SvMehD3mufAbT6cmjXFFHtA': 'pro',
+        'price_1SvMemD3mufAbT6cRHEhLdAM': 'ultra',
+        'price_1SxAZCD3mufAbT6cUHrvNnub': 'basic',
+        'price_1SxAZCD3mufAbT6cSdYNWkN2': 'pro',
+        'price_1SxAZDD3mufAbT6clYbRkQoo': 'ultra',
+        'price_legend_v2': 'legend'
       }
       return planMap[subscription.price_id] || 'free'
     }

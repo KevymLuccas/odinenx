@@ -380,18 +380,18 @@ function showNotification(message) {
         </div>
       </div>
       
-      <!-- Not Elite Warning -->
-      <div v-if="userPlan !== 'elite'" class="not-elite-warning">
+      <!-- Not Ultra/Legend Warning -->
+      <div v-if="userPlan !== 'ultra' && userPlan !== 'legend'" class="not-elite-warning">
         <div class="elite-lock-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 1l3 6 6.5 1-5 4.5 1.5 6.5-6-3.5-6 3.5 1.5-6.5-5-4.5 6.5-1z"/>
           </svg>
         </div>
-        <h3>Loja Exclusiva Elite</h3>
+        <h3>Loja Exclusiva Ultra & Legend</h3>
         <p>Desbloqueie badges, stickers e itens exclusivos</p>
         <router-link to="/pricing" class="upgrade-link">
-          <span>Ver Plano Elite</span>
-          <span class="elite-price">R$99,90/mês</span>
+          <span>Ver Planos Premium</span>
+          <span class="elite-price">A partir de R$99,90/mês</span>
         </router-link>
       </div>
       

@@ -165,8 +165,8 @@ const carregarJogos = async () => {
     const planId = subscription.value?.plan || 'free'
     let limiteJogos = 15 // Free e Basic
     
-    // Admin e Elite = limite máximo
-    if (userIsAdmin.value || planId === 'elite') limiteJogos = 50
+    // Admin, Ultra e Legend = limite máximo
+    if (userIsAdmin.value || planId === 'legend' || planId === 'ultra') limiteJogos = 50
     else if (planId === 'pro') limiteJogos = 30
     
     const jogosProcessados = data.matches.slice(0, limiteJogos).map(match => {
