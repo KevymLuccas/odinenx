@@ -7,6 +7,7 @@ import CheckoutSuccess from '../views/CheckoutSuccess.vue'
 import CheckoutCancel from '../views/CheckoutCancel.vue'
 import TradeModule from '../views/modules/TradeModule.vue'
 import CartolaModule from '../views/modules/CartolaModule.vue'
+import BetModule from '../views/modules/BetModule.vue'
 import PaperTrading from '../views/PaperTrading.vue'
 import Admin from '../views/Admin.vue'
 import Alerts from '../views/Alerts.vue'
@@ -40,7 +41,7 @@ const routes = [
   {
     path: '/bet',
     name: 'Bet',
-    component: OddsComparator,
+    component: BetModule,
     meta: { requiresAuth: true }
   },
   {
