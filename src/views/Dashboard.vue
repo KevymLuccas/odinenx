@@ -153,7 +153,13 @@ async function handleAvatarUpload(event) {
     showToast('success', 'Foto atualizada!', 'Sua foto de perfil foi alterada.')
   } catch (err) {
     console.error('Erro ao fazer upload:', err)
-    showToast('error', 'Erro', 'Não foi possível atualizar a foto.')
+    
+    // Mensagem específica para bucket não encontrado
+    if (err.message?.includes('Bucket not found')) {
+      showToast('error', 'Configuração pendente', 'O armazenamento de fotos ainda não foi configurado. Tente novamente mais tarde.')
+    } else {
+      showToast('error', 'Erro', 'Não foi possível atualizar a foto.')
+    }
   } finally {
     uploadingAvatar.value = false
   }
