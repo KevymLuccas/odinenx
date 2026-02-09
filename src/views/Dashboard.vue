@@ -484,10 +484,10 @@ onMounted(async () => {
 })
 
 const currentPlan = computed(() => {
-  // Admin SEMPRE tem plano Elite (sobrescreve qualquer assinatura)
+  // Admin SEMPRE tem plano Legend (sobrescreve qualquer assinatura)
   if (userIsAdmin.value === true) {
-    console.log('🔐 Dashboard: Admin detectado, forçando plano Elite')
-    return plans.elite
+    console.log('🔐 Dashboard: Admin detectado, forçando plano Legend')
+    return plans.legend
   }
   const planId = subscription.value?.plan || 'free'
   console.log('📋 Dashboard: Plano do usuário:', planId)
