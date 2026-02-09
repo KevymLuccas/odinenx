@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
 import { getSubscriptionStatus, plans, isAdmin as checkIsAdmin } from '../lib/stripe'
@@ -12,18 +12,98 @@ const mobileMenuOpen = ref(false)
 const saving = ref(false)
 const userIsAdmin = ref(false)
 
+// 📷 Avatar
+const userAvatar = ref(null)
+const showAvatarModal = ref(false)
+const uploadingAvatar = ref(false)
+const avatarInput = ref(null)
+
+// Toast
+const showToast = inject('showToast', () => {})
+
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) { router.push('/login'); return }
   user.value = session.user
   subscription.value = await getSubscriptionStatus(session.user.id)
   userIsAdmin.value = await checkIsAdmin(session.user.id)
+  
+  // Carregar avatar
+  await loadUserAvatar(session.user.id)
 })
 
 const currentPlan = computed(() => {
   const planId = subscription.value?.plan || 'free'
   return plans[planId] || plans.free
 })
+
+// 📷 Carregar avatar
+async function loadUserAvatar(userId) {
+  try {
+    const { data } = await supabase
+      .from('profiles')
+      .select('avatar_url')
+      .eq('id', userId)
+      .single()
+    
+    if (data?.avatar_url) {
+      userAvatar.value = data.avatar_url
+    }
+  } catch (err) {
+    console.log('Avatar não disponível')
+  }
+}
+
+// 📷 Upload de foto
+async function handleAvatarUpload(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+  
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('error', 'Erro', 'A imagem deve ter no máximo 2MB')
+    return
+  }
+  
+  uploadingAvatar.value = true
+  
+  try {
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${user.value.id}_${Date.now()}.${fileExt}`
+    
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, file, { upsert: true })
+    
+    if (uploadError) throw uploadError
+    
+    const { data: { publicUrl } } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(fileName)
+    
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .upsert({ 
+        id: user.value.id, 
+        avatar_url: publicUrl,
+        updated_at: new Date().toISOString()
+      })
+    
+    if (updateError) throw updateError
+    
+    userAvatar.value = publicUrl
+    showAvatarModal.value = false
+    showToast('success', 'Foto atualizada!', 'Sua foto de perfil foi alterada.')
+  } catch (err) {
+    console.error('Erro ao fazer upload:', err)
+    if (err.message?.includes('Bucket not found')) {
+      showToast('error', 'Configuração pendente', 'O armazenamento ainda não foi configurado.')
+    } else {
+      showToast('error', 'Erro', 'Não foi possível atualizar a foto.')
+    }
+  } finally {
+    uploadingAvatar.value = false
+  }
+}
 
 const logout = async () => { await supabase.auth.signOut(); router.push('/') }
 const toggleMobileMenu = () => { mobileMenuOpen.value = !mobileMenuOpen.value }
@@ -83,14 +163,30 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
       <header class="page-header"><h1>Configurações</h1><p>Personalize sua experiência</p></header>
 
       <div class="settings-grid">
-        <div class="settings-card">
+        <!-- Card de Perfil com Foto -->
+        <div class="settings-card profile-card">
           <div class="card-header">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             <h3>Perfil</h3>
           </div>
           <div class="card-content">
+            <!-- Avatar Section -->
+            <div class="avatar-section">
+              <div class="avatar-wrapper" @click="showAvatarModal = true">
+                <img v-if="userAvatar" :src="userAvatar" alt="Avatar" class="avatar-img" />
+                <div v-else class="avatar-placeholder">
+                  {{ (user?.user_metadata?.name || user?.email || 'U')[0].toUpperCase() }}
+                </div>
+                <span class="avatar-edit">📷</span>
+              </div>
+              <button class="btn-change-photo" @click="showAvatarModal = true">
+                Alterar foto
+              </button>
+            </div>
+            
             <div class="info-row"><span class="label">Nome</span><span class="value">{{ user?.user_metadata?.name || 'Não informado' }}</span></div>
             <div class="info-row"><span class="label">Email</span><span class="value">{{ user?.email }}</span></div>
+            <div class="info-row"><span class="label">Plano</span><span class="value plan-value">{{ currentPlan.name }}</span></div>
           </div>
         </div>
 
@@ -114,6 +210,40 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
         </div>
       </div>
     </main>
+
+    <!-- 📷 Modal de Upload de Avatar -->
+    <div v-if="showAvatarModal" class="modal-overlay" @click.self="showAvatarModal = false">
+      <div class="avatar-modal">
+        <button class="modal-close" @click="showAvatarModal = false">&times;</button>
+        <h3>📷 Alterar Foto de Perfil</h3>
+        
+        <div class="avatar-preview-container">
+          <img v-if="userAvatar" :src="userAvatar" alt="Preview" class="avatar-preview" />
+          <div v-else class="avatar-preview-placeholder">
+            {{ (user?.user_metadata?.name || user?.email || 'U')[0].toUpperCase() }}
+          </div>
+        </div>
+        
+        <input 
+          ref="avatarInput"
+          type="file" 
+          accept="image/png,image/jpeg,image/webp"
+          @change="handleAvatarUpload"
+          style="display: none"
+        />
+        
+        <div class="avatar-modal-actions">
+          <button 
+            class="btn-upload-avatar" 
+            @click="avatarInput?.click()"
+            :disabled="uploadingAvatar"
+          >
+            {{ uploadingAvatar ? 'Enviando...' : '📤 Escolher Imagem' }}
+          </button>
+          <p class="avatar-hint">PNG, JPG ou WEBP - Máx. 2MB</p>
+        </div>
+      </div>
+    </div>
 
     <!-- Bottom Navigation Mobile -->
     <BottomNav :showAdmin="userIsAdmin" />
@@ -187,5 +317,179 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
   .mobile-menu { display: none; }
   .main-content { margin-left: 0; padding: 20px; padding-bottom: 85px; }
   .settings-grid { grid-template-columns: 1fr; }
+}
+
+/* Avatar Section */
+.avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 20px;
+  margin-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.avatar-wrapper {
+  position: relative;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+.avatar-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(0, 217, 255, 0.5);
+  box-shadow: 0 4px 20px rgba(0, 217, 255, 0.3);
+}
+
+.avatar-placeholder {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00d9ff, #0099cc);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: bold;
+  color: white;
+  border: 3px solid rgba(0, 217, 255, 0.5);
+}
+
+.avatar-edit {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, #00d9ff, #0099cc);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  border: 2px solid #000;
+}
+
+.btn-change-photo {
+  background: rgba(0, 217, 255, 0.1);
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  color: #00d9ff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-change-photo:hover {
+  background: rgba(0, 217, 255, 0.2);
+}
+
+.plan-value {
+  background: linear-gradient(135deg, #00d9ff, #0099cc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+}
+
+/* Modal de Avatar */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.avatar-modal {
+  background: linear-gradient(145deg, rgba(13, 26, 43, 0.98), rgba(8, 18, 32, 0.98));
+  border: 1px solid rgba(0, 217, 255, 0.2);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.avatar-modal h3 {
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+}
+
+.avatar-preview-container {
+  margin: 20px auto;
+}
+
+.avatar-preview {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid rgba(0, 217, 255, 0.4);
+}
+
+.avatar-preview-placeholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00d9ff, #0099cc);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  font-weight: bold;
+  color: white;
+  margin: 0 auto;
+}
+
+.avatar-modal-actions {
+  margin-top: 20px;
+}
+
+.btn-upload-avatar {
+  background: linear-gradient(135deg, #00d9ff, #0099cc);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-upload-avatar:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 217, 255, 0.4);
+}
+
+.btn-upload-avatar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.avatar-hint {
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
 }
 </style>
