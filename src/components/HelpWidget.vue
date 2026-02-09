@@ -578,26 +578,33 @@ const closeHelp = () => {
 }
 
 /* Mobile */
+@media (max-width: 968px) {
+  .help-widget {
+    bottom: 85px;
+    right: 20px;
+  }
+}
+
 @media (max-width: 480px) {
   .help-widget {
-    bottom: 15px;
+    bottom: 80px;
     right: 15px;
   }
   
   .help-btn {
-    width: 62px;
-    height: 62px;
+    width: 55px;
+    height: 55px;
   }
   
   .odin-icon {
-    width: 42px;
-    height: 42px;
+    width: 38px;
+    height: 38px;
   }
   
   .help-panel {
     width: calc(100vw - 30px);
     right: -10px;
-    max-height: 70vh;
+    max-height: 60vh;
   }
   
   .actions-grid {
