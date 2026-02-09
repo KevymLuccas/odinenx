@@ -1430,13 +1430,17 @@ const navigateTo = (path) => {
 .user-avatar {
   width: 45px;
   height: 45px;
-  background: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, #00d9ff, #0099cc);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 1.1rem;
+  color: white;
+  border: 2px solid rgba(0, 217, 255, 0.5);
+  box-shadow: 0 4px 15px rgba(0, 217, 255, 0.2);
+  flex-shrink: 0;
 }
 
 .user-details {
@@ -2536,6 +2540,7 @@ const navigateTo = (path) => {
   position: relative;
   cursor: pointer;
   transition: transform 0.2s ease;
+  flex-shrink: 0;
 }
 
 .user-avatar-wrapper:hover {
@@ -2543,40 +2548,41 @@ const navigateTo = (path) => {
 }
 
 .user-avatar-img {
-  width: 50px;
-  height: 50px;
+  width: 45px;
+  height: 45px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid rgba(0, 217, 255, 0.5);
-  box-shadow: 0 4px 15px rgba(0, 217, 255, 0.3);
+  border: 2px solid rgba(0, 217, 255, 0.5);
+  box-shadow: 0 4px 15px rgba(0, 217, 255, 0.2);
+  display: block;
 }
 
 .user-avatar-placeholder {
-  width: 50px;
-  height: 50px;
+  width: 45px;
+  height: 45px;
   border-radius: 50%;
   background: linear-gradient(135deg, #00d9ff, #0099cc);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: bold;
   color: white;
-  border: 3px solid rgba(0, 217, 255, 0.5);
+  border: 2px solid rgba(0, 217, 255, 0.5);
 }
 
 .avatar-edit-badge {
   position: absolute;
   bottom: -2px;
   right: -2px;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   background: linear-gradient(135deg, #00d9ff, #0099cc);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 8px;
   border: 2px solid rgba(13, 26, 43, 0.9);
 }
 
