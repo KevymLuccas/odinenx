@@ -770,10 +770,10 @@ const navigateTo = (path) => {
           </div>
         </div>
 
-        <!-- Stats Cards -->
+        <!-- Stats Cards - Filtrado por Foco -->
         <div class="stats-grid">
-          <!-- Análises Hoje -->
-          <div class="stat-card">
+          <!-- Análises Hoje - Sempre visível -->
+          <div class="stat-card" v-if="userFocus === 'all' || userFocus === 'bet'">
             <div class="stat-icon-wrapper">
               <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 21H3V3"/>
@@ -785,8 +785,8 @@ const navigateTo = (path) => {
               <span class="stat-label">Análises hoje</span>
             </div>
           </div>
-          <!-- Taxa de Acerto -->
-          <div class="stat-card">
+          <!-- Taxa de Acerto - BET -->
+          <div class="stat-card" v-if="userFocus === 'all' || userFocus === 'bet'">
             <div class="stat-icon-wrapper success">
               <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
@@ -797,8 +797,8 @@ const navigateTo = (path) => {
               <span class="stat-label">Taxa de acerto</span>
             </div>
           </div>
-          <!-- Jogos ao Vivo -->
-          <div class="stat-card live-card" @click="router.push('/live')">
+          <!-- Jogos ao Vivo - BET -->
+          <div class="stat-card live-card" v-if="userFocus === 'all' || userFocus === 'bet'" @click="router.push('/live')">
             <div class="stat-icon-wrapper warning">
               <span class="live-dot"></span>
               <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -811,7 +811,63 @@ const navigateTo = (path) => {
               <span class="stat-label">🔴 Ao Vivo</span>
             </div>
           </div>
-          <!-- Análises Restantes -->
+          
+          <!-- 📈 TRADE Stats -->
+          <div class="stat-card" v-if="userFocus === 'all' || userFocus === 'trade'" @click="router.push('/trade')">
+            <div class="stat-icon-wrapper trade-green">
+              <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+                <polyline points="16 7 22 7 22 13"/>
+              </svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ marketData.btc || '--' }}</span>
+              <span class="stat-label">BTC/USD</span>
+            </div>
+          </div>
+          <div class="stat-card" v-if="userFocus === 'trade'" @click="router.push('/trade')">
+            <div class="stat-icon-wrapper trade-blue">
+              <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ marketData.usd || '--' }}</span>
+              <span class="stat-label">USD/BRL</span>
+            </div>
+          </div>
+          
+          <!-- 🏆 CARTOLA Stats -->
+          <div class="stat-card" v-if="userFocus === 'all' || userFocus === 'cartola'" @click="router.push('/cartola')">
+            <div class="stat-icon-wrapper cartola-gold">
+              <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 2a10 10 0 0 0-7.07 17.07"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ cartolaData.status || 'Mercado' }}</span>
+              <span class="stat-label">Cartola FC</span>
+            </div>
+          </div>
+          <div class="stat-card" v-if="userFocus === 'cartola'" @click="router.push('/cartola')">
+            <div class="stat-icon-wrapper cartola-green">
+              <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ cartolaData.rodada || '--' }}</span>
+              <span class="stat-label">Rodada Atual</span>
+            </div>
+          </div>
+          
+          <!-- Análises Restantes - Sempre visível -->
           <div class="stat-card">
             <div class="stat-icon-wrapper primary">
               <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -912,11 +968,12 @@ const navigateTo = (path) => {
           </div>
         </div>
 
-        <!-- Quick Actions -->
+        <!-- Quick Actions - Filtrado por Foco -->
         <div class="quick-actions">
           <h2>Ações Rápidas</h2>
           <div class="actions-grid">
-            <div class="action-card">
+            <!-- BET Action -->
+            <div class="action-card" v-if="userFocus === 'all' || userFocus === 'bet'">
               <div class="action-icon-wrapper bet">
                 <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"/>
@@ -927,7 +984,23 @@ const navigateTo = (path) => {
               <p>Analise partidas esportivas</p>
               <router-link to="/bet" class="action-btn">Iniciar</router-link>
             </div>
-            <div class="action-card">
+            
+            <!-- Ao Vivo Action - BET -->
+            <div class="action-card live-action" v-if="userFocus === 'bet'">
+              <div class="action-icon-wrapper live">
+                <span class="live-dot-action"></span>
+                <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polygon points="10 8 16 12 10 16 10 8"/>
+                </svg>
+              </div>
+              <h4>Jogos ao Vivo</h4>
+              <p>{{ liveGamesCount }} jogos acontecendo</p>
+              <router-link to="/live" class="action-btn live-btn">Assistir</router-link>
+            </div>
+            
+            <!-- TRADE Action -->
+            <div class="action-card" v-if="userFocus === 'all' || userFocus === 'trade'">
               <div class="action-icon-wrapper trade">
                 <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
@@ -935,10 +1008,27 @@ const navigateTo = (path) => {
                 </svg>
               </div>
               <h4>Nova Análise TRADE</h4>
-              <p>Analise ativos financeiros</p>
+              <p>Cripto, Forex e Ações</p>
               <router-link to="/trade" class="action-btn">Iniciar</router-link>
             </div>
-            <div class="action-card">
+            
+            <!-- Paper Trading - TRADE -->
+            <div class="action-card" v-if="userFocus === 'trade'">
+              <div class="action-icon-wrapper paper">
+                <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+              </div>
+              <h4>Paper Trading</h4>
+              <p>Pratique sem risco</p>
+              <router-link to="/paper-trading" class="action-btn">Praticar</router-link>
+            </div>
+            
+            <!-- CARTOLA Action -->
+            <div class="action-card" v-if="userFocus === 'all' || userFocus === 'cartola'">
               <div class="action-icon-wrapper cartola">
                 <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"/>
@@ -950,6 +1040,23 @@ const navigateTo = (path) => {
               <p>Escale seu time com IA</p>
               <router-link to="/cartola" class="action-btn">Acessar</router-link>
             </div>
+            
+            <!-- Scouts - CARTOLA -->
+            <div class="action-card" v-if="userFocus === 'cartola'">
+              <div class="action-icon-wrapper scouts">
+                <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <h4>Ver Scouts</h4>
+              <p>Pontuação em tempo real</p>
+              <router-link to="/cartola" class="action-btn">Ver</router-link>
+            </div>
+            
+            <!-- Relatórios - Sempre visível -->
             <div class="action-card">
               <div class="action-icon-wrapper report">
                 <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1417,6 +1524,40 @@ const navigateTo = (path) => {
   stroke: #3b82f6;
 }
 
+/* Trade Stats Colors */
+.stat-icon-wrapper.trade-green {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.stat-icon-wrapper.trade-green .stat-svg {
+  stroke: #10b981;
+}
+
+.stat-icon-wrapper.trade-blue {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.stat-icon-wrapper.trade-blue .stat-svg {
+  stroke: #3b82f6;
+}
+
+/* Cartola Stats Colors */
+.stat-icon-wrapper.cartola-gold {
+  background: rgba(255, 193, 7, 0.15);
+}
+
+.stat-icon-wrapper.cartola-gold .stat-svg {
+  stroke: #ffc107;
+}
+
+.stat-icon-wrapper.cartola-green {
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.stat-icon-wrapper.cartola-green .stat-svg {
+  stroke: #22c55e;
+}
+
 .stat-svg {
   width: 28px;
   height: 28px;
@@ -1584,6 +1725,59 @@ const navigateTo = (path) => {
 
 .action-icon-wrapper.cartola .action-svg {
   stroke: #9b59b6;
+}
+
+/* Live Action */
+.action-icon-wrapper.live {
+  background: rgba(255, 71, 87, 0.15);
+  position: relative;
+}
+
+.action-icon-wrapper.live .action-svg {
+  stroke: #ff4757;
+}
+
+.live-dot-action {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  background: #ff4757;
+  border-radius: 50%;
+  animation: pulse-live 1.5s infinite;
+}
+
+.action-card.live-action {
+  border-color: rgba(255, 71, 87, 0.3);
+}
+
+.action-btn.live-btn {
+  background: rgba(255, 71, 87, 0.2);
+  color: #ff4757;
+  border: 1px solid rgba(255, 71, 87, 0.3);
+}
+
+.action-btn.live-btn:hover {
+  background: rgba(255, 71, 87, 0.3);
+}
+
+/* Paper Trading Action */
+.action-icon-wrapper.paper {
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.action-icon-wrapper.paper .action-svg {
+  stroke: #8b5cf6;
+}
+
+/* Scouts Action */
+.action-icon-wrapper.scouts {
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.action-icon-wrapper.scouts .action-svg {
+  stroke: #22c55e;
 }
 
 .action-svg {
