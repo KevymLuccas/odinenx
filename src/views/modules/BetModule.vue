@@ -1018,7 +1018,7 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
   margin-left: 260px; 
   padding: 30px;
   padding-top: calc(30px + env(safe-area-inset-top));
-  padding-bottom: calc(30px + env(safe-area-inset-bottom));
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
   -webkit-overflow-scrolling: touch;
 }
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 20px; }
@@ -1271,7 +1271,7 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
   /* Conteúdo Principal */
   .main-content { 
     margin-left: 0 !important; 
-    padding: 20px 15px 85px 15px !important;
+    padding: 20px 15px 120px 15px !important;
     width: 100% !important;
     max-width: 100% !important;
     overflow-x: hidden !important;
