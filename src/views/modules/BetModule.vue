@@ -542,55 +542,12 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 </script>
 
 <template>
-  <div class="dashboard">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-header"><router-link to="/"><img src="/logo.webp" alt="ODINENX" class="sidebar-logo" /></router-link></div>
-      <nav class="sidebar-nav">
-        <div class="nav-category">Principal</div>
-        <router-link to="/dashboard" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</router-link>
-        <div class="nav-category">Módulos</div>
-        <router-link to="/bet" class="nav-item active"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>BET</router-link>
-        <router-link to="/trade" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>TRADE</router-link>
-        <router-link to="/cartola" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>Cartola FC</router-link>
-        <div class="nav-category">Acompanhamento</div>
-        <router-link to="/alerts" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Alertas</router-link>
-        <router-link to="/history" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>Histórico</router-link>
-        <div class="nav-category">Sistema</div>
-        <router-link to="/settings" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Configurações</router-link>
-      </nav>
-      <div class="sidebar-footer">
-        <div class="plan-badge-sidebar">{{ currentPlan.name }}</div>
-        <button @click="logout" class="logout-btn"><svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sair</button>
-      </div>
-    </aside>
-
-    <!-- Mobile Menu Button -->
-    <button class="mobile-menu-btn" @click="toggleMobileMenu">
-      <svg v-if="!mobileMenuOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-
-    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false"></div>
-    <nav class="mobile-menu" :class="{ open: mobileMenuOpen }">
-      <div class="mobile-menu-header"><img src="/logo.webp" alt="ODINENX" class="mobile-logo" /></div>
-      <div class="mobile-nav">
-        <button @click="navigateTo('/dashboard')" class="mobile-nav-item">Dashboard</button>
-        <button @click="navigateTo('/bet')" class="mobile-nav-item active">BET</button>
-        <button @click="navigateTo('/trade')" class="mobile-nav-item">TRADE</button>
-        <button @click="navigateTo('/cartola')" class="mobile-nav-item">Cartola FC</button>
-        <button @click="navigateTo('/alerts')" class="mobile-nav-item">Alertas</button>
-        <button @click="navigateTo('/history')" class="mobile-nav-item">Histórico</button>
-        <button @click="navigateTo('/settings')" class="mobile-nav-item">Configurações</button>
-      </div>
-      <button @click="logout" class="mobile-logout">Sair</button>
-    </nav>
-
+  <div class="bet-page">
     <!-- Main Content -->
     <main class="main-content">
       <header class="page-header">
         <div class="header-left">
-          <h1>Módulo BET</h1>
+          <h1>⚽ Módulo BET</h1>
           <p>Análise inteligente de apostas esportivas</p>
           <div class="api-status-row">
             <span class="api-badge real" v-if="!loading && jogos.length > 0">
@@ -605,21 +562,15 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
           </div>
         </div>
         <div class="header-right">
-          <div class="api-fonte">
-            <span class="fonte-badge">⚽ Football-Data.org</span>
-          </div>
           <div class="liga-selector">
             <select v-model="ligaSelecionada">
-              <option value="brasileirao">🇧🇷 Brasileirão Série A</option>
-              <option value="premier">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League</option>
+              <option value="brasileirao">🇧🇷 Brasileirão</option>
+              <option value="premier">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier</option>
               <option value="laliga">🇪🇸 La Liga</option>
               <option value="seriea">🇮🇹 Serie A</option>
               <option value="bundesliga">🇩🇪 Bundesliga</option>
               <option value="ligue1">🇫🇷 Ligue 1</option>
-              <option value="champions">🏆 Champions League</option>
-              <option value="eredivisie">🇳🇱 Eredivisie</option>
-              <option value="portugal">🇵🇹 Primeira Liga</option>
-              <option value="championship">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Championship</option>
+              <option value="champions">🏆 UCL</option>
             </select>
           </div>
           <button @click="carregarJogos" class="btn-refresh" :disabled="loading">
@@ -905,127 +856,28 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 </template>
 
 <style scoped>
-.dashboard { 
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: flex; 
+/* ===== BET PAGE - Layout Moderno ===== */
+.bet-page { 
   min-height: 100vh; 
   min-height: 100dvh;
-  min-height: -webkit-fill-available;
   background: #000; 
   color: #fff; 
 }
-.sidebar { 
-  width: 260px; 
-  background: rgba(10, 10, 10, 0.95); 
-  border-right: 1px solid rgba(255, 255, 255, 0.1); 
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: flex; 
-  -webkit-box-orient: vertical;
-  -webkit-box-direction: normal;
-  -webkit-flex-direction: column;
-  flex-direction: column; 
-  position: fixed; 
-  height: 100vh;
-  height: 100dvh; 
-  z-index: 100;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-}
-.sidebar-header { padding: 25px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-.sidebar-logo { height: 40px; width: auto; }
-.sidebar-nav { -webkit-box-flex: 1; -webkit-flex: 1; flex: 1; padding: 20px 15px; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-box-direction: normal; -webkit-flex-direction: column; flex-direction: column; gap: 5px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-.nav-category { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: rgba(255, 255, 255, 0.35); padding: 15px 15px 8px; font-weight: 600; }
-.nav-category:first-child { padding-top: 0; }
-.nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 15px; border-radius: 10px; color: rgba(255, 255, 255, 0.6); text-decoration: none; transition: all 0.3s; font-weight: 500; }
-.nav-item:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
-.nav-item.active { background: rgba(255, 255, 255, 0.1); color: #fff; }
-.nav-icon { width: 20px; height: 20px; }
-.sidebar-footer { padding: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
-.plan-badge-sidebar { background: rgba(255, 255, 255, 0.1); padding: 8px 15px; border-radius: 8px; text-align: center; font-weight: 600; margin-bottom: 15px; font-size: 0.9rem; }
-.logout-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px; background: transparent; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; color: rgba(255, 255, 255, 0.6); cursor: pointer; transition: all 0.3s; }
-.logout-btn:hover { border-color: #ef4444; color: #ef4444; }
-.logout-icon { width: 18px; height: 18px; }
-
-.mobile-menu-btn { 
-  display: none; 
-  position: fixed; 
-  top: calc(20px + env(safe-area-inset-top)); 
-  right: calc(20px + env(safe-area-inset-right)); 
-  width: 50px; 
-  height: 50px; 
-  border-radius: 12px; 
-  background: rgba(255, 255, 255, 0.95); 
-  border: none; 
-  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3); 
-  z-index: 1000; 
-  cursor: pointer; 
-  -webkit-box-align: center;
-  align-items: center; 
-  -webkit-box-pack: center;
-  justify-content: center;
-  -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none;
-}
-.mobile-menu-btn svg { width: 28px; height: 28px; stroke: #000; }
-.mobile-overlay { 
-  display: none; 
-  position: fixed; 
-  inset: 0; 
-  background: rgba(0, 0, 0, 0.7); 
-  z-index: 998;
-  -webkit-backdrop-filter: blur(5px);
-  backdrop-filter: blur(5px);
-}
-.mobile-menu { 
-  display: none; 
-  position: fixed; 
-  bottom: 0; 
-  left: 0; 
-  right: 0; 
-  background: #0a0a0a; 
-  border-top-left-radius: 25px; 
-  border-top-right-radius: 25px; 
-  padding: 25px;
-  padding-bottom: calc(25px + env(safe-area-inset-bottom)); 
-  z-index: 999; 
-  -webkit-transform: translateY(100%);
-  transform: translateY(100%); 
-  -webkit-transition: -webkit-transform 0.3s ease;
-  transition: transform 0.3s ease;
-  max-height: 80vh;
-  max-height: 80dvh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-}
-.mobile-menu.open { -webkit-transform: translateY(0); transform: translateY(0); }
-.mobile-menu-header { text-align: center; margin-bottom: 20px; }
-.mobile-logo { height: 35px; }
-.mobile-nav { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-box-direction: normal; -webkit-flex-direction: column; flex-direction: column; gap: 8px; }
-.mobile-nav-item { padding: 15px 20px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; color: #fff; font-weight: 500; cursor: pointer; -webkit-transition: all 0.3s; transition: all 0.3s; text-align: left; -webkit-tap-highlight-color: transparent; }
-.mobile-nav-item:hover, .mobile-nav-item.active { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); }
-.mobile-logout { width: 100%; margin-top: 15px; padding: 15px; background: transparent; border: 1px solid #ef4444; border-radius: 12px; color: #ef4444; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
 .main-content { 
-  -webkit-box-flex: 1; 
-  -webkit-flex: 1; 
-  flex: 1; 
-  margin-left: 260px; 
-  padding: 30px;
-  padding-top: calc(30px + env(safe-area-inset-top));
+  padding: 20px;
+  padding-top: calc(20px + env(safe-area-inset-top));
   padding-bottom: calc(100px + env(safe-area-inset-bottom));
-  -webkit-overflow-scrolling: touch;
+  max-width: 1200px;
+  margin: 0 auto;
 }
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 20px; }
-.header-left h1 { font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
-.header-left p { color: rgba(255, 255, 255, 0.5); margin-bottom: 8px; }
+
+/* Page Header */
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
+.header-left h1 { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; }
+.header-left p { color: rgba(255, 255, 255, 0.5); margin-bottom: 8px; font-size: 0.9rem; }
 .header-right { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.liga-selector select { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; padding: 12px 20px; color: #fff; font-size: 1rem; cursor: pointer; }
+.liga-selector select { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; padding: 10px 15px; color: #fff; font-size: 0.9rem; cursor: pointer; }
 .liga-selector select option { background: #1a1a1a; color: #fff; }
 
 /* API Status */
@@ -1036,17 +888,17 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 .pulse-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite; box-shadow: 0 0 8px #22c55e; }
 .loading-dot { width: 8px; height: 8px; background: #fbbf24; border-radius: 50%; animation: blink 1s infinite; }
 .last-update { font-size: 0.75rem; color: rgba(255, 255, 255, 0.4); }
-.api-fonte { display: flex; align-items: center; gap: 8px; }
-.fonte-badge { background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; }
 
 @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-.btn-refresh { width: 48px; height: 48px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
+
+.btn-refresh { width: 44px; height: 44px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
 .btn-refresh:hover { background: rgba(255, 255, 255, 0.2); }
 .btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-refresh svg { width: 22px; height: 22px; stroke: #fff; }
+.btn-refresh svg { width: 20px; height: 20px; stroke: #fff; }
 .btn-refresh svg.spinning { animation: spin 1s linear infinite; }
 
+/* Loading & Error States */
 .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 100px 20px; }
 .spinner { width: 50px; height: 50px; border: 3px solid rgba(255, 255, 255, 0.1); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -1059,9 +911,10 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 .btn-retry { background: #fff; color: #000; border: none; padding: 15px 40px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
 .btn-retry:hover { transform: scale(1.05); }
 
-.api-badge { display: flex; align-items: center; gap: 10px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 12px; padding: 12px 20px; margin-bottom: 15px; }
-.api-badge svg { width: 20px; height: 20px; stroke: #22c55e; }
-.api-badge span { font-size: 0.85rem; color: rgba(255, 255, 255, 0.8); }
+/* Bet Content */
+.bet-content .api-badge { display: flex; align-items: center; gap: 10px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 12px; padding: 12px 20px; margin-bottom: 15px; }
+.bet-content .api-badge svg { width: 20px; height: 20px; stroke: #22c55e; }
+.bet-content .api-badge span { font-size: 0.85rem; color: rgba(255, 255, 255, 0.8); }
 
 .disclaimer-box { display: flex; align-items: center; gap: 15px; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 12px; padding: 15px 20px; margin-bottom: 20px; }
 .disclaimer-box svg { width: 24px; height: 24px; stroke: #fbbf24; flex-shrink: 0; }
@@ -1069,31 +922,28 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 
 .no-games { text-align: center; padding: 60px 20px; color: rgba(255, 255, 255, 0.5); }
 
-.jogos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px; }
+/* Jogos Grid */
+.jogos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
 .jogo-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.3s; }
 .jogo-card:hover { transform: translateY(-5px); border-color: rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.05); }
-.jogo-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+.jogo-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
 .jogo-info { display: flex; flex-direction: column; gap: 3px; }
 .jogo-data { font-size: 0.85rem; color: rgba(255, 255, 255, 0.7); }
 .jogo-local { font-size: 0.75rem; color: rgba(255, 255, 255, 0.4); }
-.confianca-badge { background: rgba(255, 255, 255, 0.1); padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
-.confianca-badge.alta { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
-.confianca-badge.media { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
-.confianca-badge.sem { background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.4); }
-.jogo-times { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.jogo-times { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 .time { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1; }
-.time img { width: 60px; height: 60px; object-fit: contain; border-radius: 10px; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(255, 255, 255, 0.1); padding: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05); }
-.time-nome { font-weight: 600; font-size: 0.95rem; text-align: center; }
-.time-odd { font-size: 0.8rem; color: #3b82f6; background: rgba(59, 130, 246, 0.1); padding: 3px 10px; border-radius: 10px; font-weight: 600; }
+.time img { width: 50px; height: 50px; object-fit: contain; border-radius: 10px; background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid rgba(255, 255, 255, 0.1); padding: 6px; }
+.time-nome { font-weight: 600; font-size: 0.85rem; text-align: center; }
+.time-odd { font-size: 0.75rem; color: #3b82f6; background: rgba(59, 130, 246, 0.1); padding: 3px 8px; border-radius: 8px; font-weight: 600; }
 .versus { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-.vs { font-size: 0.8rem; color: rgba(255, 255, 255, 0.3); }
-.xg { font-size: 1.2rem; font-weight: 700; color: rgba(255, 255, 255, 0.6); }
-.probabilidades-bar { display: flex; height: 30px; border-radius: 8px; overflow: hidden; margin-bottom: 15px; }
-.prob { display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; min-width: 40px; }
+.vs { font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); }
+.xg { font-size: 1.1rem; font-weight: 700; color: rgba(255, 255, 255, 0.6); }
+.probabilidades-bar { display: flex; height: 28px; border-radius: 8px; overflow: hidden; margin-bottom: 12px; }
+.prob { display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600; min-width: 35px; }
 .prob.casa { background: #22c55e; color: #000; }
 .prob.empate { background: #6b7280; color: #fff; }
 .prob.fora { background: #3b82f6; color: #fff; }
-.no-odds-bar { display: flex; align-items: center; justify-content: center; height: 30px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; margin-bottom: 15px; }
+.no-odds-bar { display: flex; align-items: center; justify-content: center; height: 28px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; margin-bottom: 12px; }
 .no-odds-bar span { font-size: 0.8rem; color: rgba(255, 255, 255, 0.4); }
 .jogo-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
 .melhor-aposta { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: rgba(255, 255, 255, 0.7); }
@@ -1257,166 +1107,95 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 .no-odds-modal h3 { font-size: 1.3rem; margin-bottom: 10px; }
 .no-odds-modal p { color: rgba(255, 255, 255, 0.6); }
 
-@media (max-width: 968px) {
-  /* Sidebar e Menu Mobile */
-  .sidebar { display: none !important; }
-  
-  .mobile-menu-btn { 
-    display: none !important;
+@media (max-width: 768px) {
+  .main-content {
+    padding: 15px;
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
   }
   
-  .mobile-overlay { display: none; }
-  .mobile-menu { display: none; }
-  
-  /* Conteúdo Principal */
-  .main-content { 
-    margin-left: 0 !important; 
-    padding: 20px 15px 120px 15px !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-    box-sizing: border-box !important;
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    gap: 12px;
   }
   
-  /* Grid de Jogos */
-  .jogos-grid { 
-    grid-template-columns: 1fr !important; 
-    gap: 15px !important; 
-    width: 100% !important;
+  .header-left h1 { font-size: 1.5rem; }
+  
+  .header-right {
+    flex-direction: row;
+    justify-content: center;
+    gap: 10px;
   }
   
-  /* Header da Página */
-  .page-header { 
-    flex-direction: column !important; 
-    align-items: center !important; 
-    text-align: center !important; 
-    gap: 15px !important;
-    width: 100% !important;
+  .liga-selector select {
+    padding: 10px 12px;
+    font-size: 0.85rem;
   }
-  .header-left { text-align: center !important; width: 100% !important; }
-  .header-left h1 { font-size: 1.4rem !important; }
-  .header-right { 
-    width: 100% !important; 
-    display: flex !important; 
-    flex-direction: column !important; 
-    align-items: center !important; 
-    gap: 10px !important; 
-  }
-  .liga-selector { width: 100% !important; max-width: 100% !important; }
-  .liga-selector select { width: 100% !important; text-align: center !important; }
-  .api-fonte { justify-content: center !important; }
   
-  /* Cards de Jogos */
-  .jogo-card { 
-    padding: 15px !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
+  .jogos-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
-  .jogo-times { gap: 8px !important; }
-  .time img { width: 40px !important; height: 40px !important; }
-  .time-nome { font-size: 0.8rem !important; }
+  
+  .jogo-card { padding: 16px; }
+  .time img { width: 45px; height: 45px; }
+  .time-nome { font-size: 0.8rem; }
   
   /* Modal */
-  .modal-overlay { padding: 10px !important; align-items: flex-end !important; }
-  .modal-analise { 
-    max-height: 85vh !important; 
-    border-radius: 20px 20px 0 0 !important;
-    padding: 15px !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
+  .modal-overlay { 
+    padding: 0;
+    align-items: flex-end;
   }
-  .odds-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; }
-  .odd-card { padding: 10px 6px !important; }
-  .odd-value { font-size: 1rem !important; }
-  .mercados-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
+  
+  .modal-analise {
+    max-height: 90vh;
+    border-radius: 20px 20px 0 0;
+    margin: 0;
+  }
+  
+  .odds-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .mercados-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 480px) {
-  .main-content { 
-    padding: 70px 12px 130px 12px !important;
-  }
-  .header-left h1 { font-size: 1.3rem !important; }
+  .header-left h1 { font-size: 1.3rem; }
   
-  /* Times em coluna no mobile pequeno */
-  .jogo-times { 
-    flex-direction: column !important; 
-    gap: 12px !important; 
+  .jogo-times {
+    gap: 5px;
   }
-  .time { 
-    flex-direction: row !important; 
-    width: 100% !important; 
-    justify-content: flex-start !important; 
-    gap: 10px !important; 
-  }
-  .time img { width: 36px !important; height: 36px !important; }
-  .time-nome { text-align: left !important; font-size: 0.85rem !important; }
-  .versus { padding: 8px 0 !important; font-size: 0.75rem !important; }
   
-  /* Barra de Probabilidades */
-  .probabilidades-bar { height: 30px !important; }
-  .prob { font-size: 0.65rem !important; min-width: 25px !important; }
+  .time img { width: 40px; height: 40px; padding: 4px; }
+  .time-nome { font-size: 0.75rem; }
+  .time-odd { font-size: 0.7rem; padding: 2px 6px; }
   
-  /* Odds em coluna */
-  .odds-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
+  .probabilidades-bar { height: 24px; }
+  .prob { font-size: 0.65rem; min-width: 30px; }
+  
+  .confianca-indicador { padding: 10px 12px; }
+  .confianca-texto { font-size: 0.75rem; }
+  .confianca-numero { font-size: 1.1rem; }
+  
+  .melhor-aposta-destaque { padding: 12px; }
+  .melhor-aposta-destaque .valor { font-size: 1rem; }
+  
+  .odds-grid { grid-template-columns: 1fr; gap: 8px; }
   .odd-card { 
-    display: flex !important; 
-    justify-content: space-between !important; 
-    align-items: center !important; 
-    padding: 12px !important; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 12px; 
   }
-  .odd-label { margin-bottom: 0 !important; font-size: 0.8rem !important; }
-  .odd-value { margin-bottom: 0 !important; font-size: 1rem !important; }
   
-  /* Modal Header */
-  .modal-header-jogo { flex-direction: column !important; gap: 15px !important; }
-  .time-modal { flex-direction: row !important; gap: 10px !important; }
-  .time-modal img { width: 45px !important; height: 45px !important; }
-  .time-modal h3 { font-size: 0.95rem !important; text-align: left !important; }
-  
-  .recomendacao-texto { font-size: 1.1rem !important; }
-  
-  .jogo-footer { 
-    flex-direction: column !important; 
-    align-items: flex-start !important;
-    gap: 8px !important;
-  }
-  .melhor-aposta { width: 100% !important; }
+  .recomendacao-texto { font-size: 1.1rem; }
 }
 
 /* ===== SAFARI FIXES ===== */
-.dashboard { 
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: flex;
-}
-
-.sidebar-nav,
-.mobile-nav,
 .header-right,
 .jogo-footer {
   display: -webkit-box;
   display: -webkit-flex;
   display: flex;
-}
-
-/* Fix gap para Safari antigo */
-@supports not (gap: 10px) {
-  .jogos-grid > * { margin-bottom: 15px; }
-  .jogo-times > * { margin-right: 10px; }
-}
-
-/* Fix para inputs no Safari */
-input, select, textarea, button {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  border-radius: 10px;
-}
-
-/* Fix scroll Safari */
-.main-content {
-  -webkit-overflow-scrolling: touch;
 }
 
 /* Fix para transform no Safari */
@@ -1428,32 +1207,6 @@ input, select, textarea, button {
 .spinner {
   -webkit-animation: spin 1s linear infinite;
   animation: spin 1s linear infinite;
-}
-
-/* Fix para safe area (notch do iPhone) */
-@supports (padding-top: env(safe-area-inset-top)) {
-  .main-content {
-    padding-top: calc(30px + env(safe-area-inset-top));
-    padding-bottom: calc(120px + env(safe-area-inset-bottom));
-    padding-left: calc(20px + env(safe-area-inset-left));
-    padding-right: calc(20px + env(safe-area-inset-right));
-  }
-  
-  .mobile-menu {
-    padding-bottom: calc(25px + env(safe-area-inset-bottom));
-  }
-  
-  .mobile-menu-btn {
-    top: calc(20px + env(safe-area-inset-top));
-    right: calc(20px + env(safe-area-inset-right));
-  }
-}
-
-/* Fix backdrop-filter Safari */
-.sidebar,
-.mobile-menu {
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
 }
 
 /* ===== TRIAL/LIMITE BANNERS ===== */
