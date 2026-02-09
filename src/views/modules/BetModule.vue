@@ -356,9 +356,6 @@ const getTeamLogo = (teamName, teamId = null) => {
   // Fallback para avatar gerado com cores do tema
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(teamName)}&background=1a1a2e&color=00e5ff&size=100&bold=true&format=png`
 }
-  // Fallback para avatar gerado
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(teamName)}&background=1a1a2e&color=00e5ff&size=100&bold=true&format=svg`
-}
 
 // Função para gerar "hash" numérico a partir de string (para variação consistente)
 const hashString = (str) => {
