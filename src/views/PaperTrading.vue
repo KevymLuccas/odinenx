@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
-import { getSubscriptionStatus, plans, hasAccess } from '../lib/stripe'
+import { getSubscriptionStatus, plans, hasAccess, isAdmin as checkIsAdmin } from '../lib/stripe'
 import { 
   getPaperWallet, 
   getPaperPositions, 
@@ -12,11 +12,13 @@ import {
   executeSell,
   updatePositionPrices
 } from '../lib/paperTrading'
+import BottomNav from '../components/BottomNav.vue'
 
 const router = useRouter()
 const user = ref(null)
 const subscription = ref(null)
 const mobileMenuOpen = ref(false)
+const userIsAdmin = ref(false)
 
 // Estados do Paper Trading
 const wallet = ref(null)
@@ -48,13 +50,16 @@ onMounted(async () => {
   
   user.value = session.user
   subscription.value = await getSubscriptionStatus(session.user.id)
+  userIsAdmin.value = await checkIsAdmin(session.user.id)
   
-  // Verificar acesso ao Paper Trading
-  const hasPaperAccess = await hasAccess(subscription.value, 'paperTrading', session.user.id)
-  if (!hasPaperAccess) {
-    alert('❌ Acesso Negado!\n\nPaper Trading está disponível apenas para os planos Pro e Elite.')
-    router.push('/pricing')
-    return
+  // Verificar acesso ao Paper Trading (admin ignora)
+  if (!userIsAdmin.value) {
+    const hasPaperAccess = await hasAccess(subscription.value, 'paperTrading', session.user.id)
+    if (!hasPaperAccess) {
+      alert('❌ Acesso Negado!\n\nPaper Trading está disponível apenas para os planos Pro e Elite.')
+      router.push('/pricing')
+      return
+    }
   }
   
   await loadPaperTradingData()
@@ -473,6 +478,9 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
         </div>
       </div>
     </div>
+
+    <!-- Bottom Navigation Mobile -->
+    <BottomNav :showAdmin="userIsAdmin" />
   </div>
 </template>
 
@@ -766,6 +774,14 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
   
   .positions-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .mobile-menu-overlay {
+    display: none;
+  }
+  
+  .main-content {
+    padding-bottom: 85px;
   }
 }
 </style>

@@ -7,7 +7,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
-import { getSubscriptionStatus, plans } from '../lib/stripe'
+import { getSubscriptionStatus, plans, isAdmin as checkIsAdmin } from '../lib/stripe'
+import BottomNav from '../components/BottomNav.vue'
 
 const router = useRouter()
 const user = ref(null)
@@ -16,12 +17,14 @@ const loading = ref(true)
 const mobileMenuOpen = ref(false)
 const history = ref([])
 const activeFilter = ref('all')
+const userIsAdmin = ref(false)
 
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) { router.push('/login'); return }
   user.value = session.user
   subscription.value = await getSubscriptionStatus(session.user.id)
+  userIsAdmin.value = await checkIsAdmin(session.user.id)
   await loadHistory()
   loading.value = false
 })
@@ -137,6 +140,9 @@ const formatDate = (date) => new Date(date).toLocaleDateString('pt-BR', { day: '
         </div>
       </div>
     </main>
+
+    <!-- Bottom Navigation Mobile -->
+    <BottomNav :showAdmin="userIsAdmin" />
   </div>
 </template>
 
@@ -223,10 +229,10 @@ const formatDate = (date) => new Date(date).toLocaleDateString('pt-BR', { day: '
 
 @media (max-width: 968px) {
   .sidebar { display: none; }
-  .mobile-menu-btn { display: flex; }
-  .mobile-overlay { display: block; }
-  .mobile-menu { display: block; }
-  .main-content { margin-left: 0; padding: 20px; padding-bottom: 100px; }
+  .mobile-menu-btn { display: none; }
+  .mobile-overlay { display: none; }
+  .mobile-menu { display: none; }
+  .main-content { margin-left: 0; padding: 20px; padding-bottom: 85px; }
   .stats-grid { grid-template-columns: 1fr; }
   .page-header h1 { font-size: 1.5rem; }
 }

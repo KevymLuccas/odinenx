@@ -2,13 +2,15 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../../lib/supabase'
-import { getSubscriptionStatus, plans, getTrialStatus } from '../../lib/stripe'
+import { getSubscriptionStatus, plans, getTrialStatus, isAdmin as checkIsAdmin } from '../../lib/stripe'
+import BottomNav from '../../components/BottomNav.vue'
 
 const router = useRouter()
 const user = ref(null)
 const subscription = ref(null)
 const mobileMenuOpen = ref(false)
 const loading = ref(true)
+const userIsAdmin = ref(false)
 
 // Abas principais
 const abaAtiva = ref('analise') // analise, dashboard, operacoes, risco, diario, acompanhamento
@@ -93,9 +95,10 @@ onMounted(async () => {
   if (!session) { router.push('/login'); return }
   user.value = session.user
   subscription.value = await getSubscriptionStatus(session.user.id)
+  userIsAdmin.value = await checkIsAdmin(session.user.id)
   
-  // Verificar se trial expirou para usuários free
-  if (!subscription.value?.plan || subscription.value.plan === 'free') {
+  // Verificar se trial expirou para usuários free (admin ignora)
+  if (!userIsAdmin.value && (!subscription.value?.plan || subscription.value.plan === 'free')) {
     const trialStatus = await getTrialStatus(session.user.id)
     if (trialStatus?.expired) {
       router.push('/trial-expired')
@@ -1422,6 +1425,9 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
         </div>
       </div>
     </main>
+
+    <!-- Bottom Navigation Mobile -->
+    <BottomNav :showAdmin="userIsAdmin" />
   </div>
 </template>
 
@@ -1724,29 +1730,15 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
   /* Sidebar e Menu Mobile */
   .sidebar { display: none !important; }
   .mobile-menu-btn { 
-    display: flex !important; 
-    position: fixed;
-    top: 15px;
-    right: 15px;
-    width: 48px;
-    height: 48px;
-    z-index: 1001;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 12px;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    display: none !important;
   }
-  .mobile-menu-btn svg { width: 26px; height: 26px; stroke: #000; }
-  .mobile-overlay { display: block; }
-  .mobile-menu { display: block; }
+  .mobile-overlay { display: none; }
+  .mobile-menu { display: none; }
   
   /* Main Content */
   .main-content { 
     margin-left: 0 !important; 
-    padding: 70px 15px 120px 15px !important;
+    padding: 20px 15px 85px 15px !important;
     width: 100%;
     box-sizing: border-box;
     overflow-x: hidden;

@@ -2,19 +2,22 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
-import { getSubscriptionStatus, plans } from '../lib/stripe'
+import { getSubscriptionStatus, plans, isAdmin as checkIsAdmin } from '../lib/stripe'
+import BottomNav from '../components/BottomNav.vue'
 
 const router = useRouter()
 const user = ref(null)
 const subscription = ref(null)
 const mobileMenuOpen = ref(false)
 const saving = ref(false)
+const userIsAdmin = ref(false)
 
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) { router.push('/login'); return }
   user.value = session.user
   subscription.value = await getSubscriptionStatus(session.user.id)
+  userIsAdmin.value = await checkIsAdmin(session.user.id)
 })
 
 const currentPlan = computed(() => {
@@ -111,6 +114,9 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
         </div>
       </div>
     </main>
+
+    <!-- Bottom Navigation Mobile -->
+    <BottomNav :showAdmin="userIsAdmin" />
   </div>
 </template>
 
@@ -176,10 +182,10 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 
 @media (max-width: 968px) {
   .sidebar { display: none; }
-  .mobile-menu-btn { display: flex; }
-  .mobile-overlay { display: block; }
-  .mobile-menu { display: block; }
-  .main-content { margin-left: 0; padding: 20px; padding-bottom: 100px; }
+  .mobile-menu-btn { display: none; }
+  .mobile-overlay { display: none; }
+  .mobile-menu { display: none; }
+  .main-content { margin-left: 0; padding: 20px; padding-bottom: 85px; }
   .settings-grid { grid-template-columns: 1fr; }
 }
 </style>

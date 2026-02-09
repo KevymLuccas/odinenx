@@ -8,7 +8,8 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
-import { getSubscriptionStatus, plans } from '../lib/stripe'
+import { getSubscriptionStatus, plans, isAdmin as checkIsAdmin } from '../lib/stripe'
+import BottomNav from '../components/BottomNav.vue'
 
 const router = useRouter()
 const user = ref(null)
@@ -19,6 +20,7 @@ const games = ref([])
 const selectedFilter = ref('all')
 const refreshInterval = ref(null)
 const lastUpdate = ref(null)
+const userIsAdmin = ref(false)
 
 // Ligas suportadas (para exibição de filtros)
 const LEAGUES = {
@@ -326,6 +328,7 @@ onMounted(async () => {
   if (!session) { router.push('/login'); return }
   user.value = session.user
   subscription.value = await getSubscriptionStatus(session.user.id)
+  userIsAdmin.value = await checkIsAdmin(session.user.id)
   await loadGames()
   await loadUserBets() // Carregar apostas ativas
   loading.value = false
@@ -761,6 +764,9 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
         </div>
       </div>
     </Teleport>
+
+    <!-- Bottom Navigation Mobile -->
+    <BottomNav :showAdmin="userIsAdmin" />
   </div>
 </template>
 
@@ -980,10 +986,10 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
 
 @media (max-width: 968px) {
   .sidebar { display: none; }
-  .mobile-menu-btn { display: flex; }
-  .mobile-overlay { display: block; }
-  .mobile-menu { display: block; }
-  .main-content { margin-left: 0; padding: 20px; padding-bottom: 100px; }
+  .mobile-menu-btn { display: none; }
+  .mobile-overlay { display: none; }
+  .mobile-menu { display: none; }
+  .main-content { margin-left: 0; padding: 20px; padding-bottom: 85px; }
   .stats-grid { grid-template-columns: 1fr; }
   .games-grid { grid-template-columns: 1fr; }
   .page-header { flex-direction: column; align-items: flex-start; }

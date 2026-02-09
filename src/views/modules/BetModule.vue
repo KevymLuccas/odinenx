@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../../lib/supabase'
 import { getSubscriptionStatus, plans, hasAccess, isAdmin as checkIsAdmin } from '../../lib/stripe'
+import BottomNav from '../../components/BottomNav.vue'
 
 const router = useRouter()
 const user = ref(null)
@@ -897,6 +898,9 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
         </div>
       </div>
     </main>
+
+    <!-- Bottom Navigation Mobile -->
+    <BottomNav :showAdmin="userIsAdmin" />
   </div>
 </template>
 
@@ -1258,31 +1262,16 @@ const navigateTo = (path) => { router.push(path); mobileMenuOpen.value = false }
   .sidebar { display: none !important; }
   
   .mobile-menu-btn { 
-    display: flex !important;
-    position: fixed !important;
-    top: 15px !important;
-    right: 15px !important;
-    width: 48px !important;
-    height: 48px !important;
-    z-index: 1001 !important;
-    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
-    border: none !important;
-    border-radius: 12px !important;
-    color: white !important;
-    font-size: 1.5rem !important;
-    align-items: center !important;
-    justify-content: center !important;
-    cursor: pointer !important;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4) !important;
+    display: none !important;
   }
   
-  .mobile-overlay { display: block; }
-  .mobile-menu { display: block; }
+  .mobile-overlay { display: none; }
+  .mobile-menu { display: none; }
   
   /* Conteúdo Principal */
   .main-content { 
     margin-left: 0 !important; 
-    padding: 70px 15px 120px 15px !important;
+    padding: 20px 15px 85px 15px !important;
     width: 100% !important;
     max-width: 100% !important;
     overflow-x: hidden !important;

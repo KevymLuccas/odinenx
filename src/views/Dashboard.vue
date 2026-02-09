@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { supabase } from '../lib/supabase'
 import { getSubscriptionStatus, createCustomerPortal, cancelSubscription, plans, getTrialStatus, isAdmin as checkIsAdmin } from '../lib/stripe'
 import ViewerCounter from '../components/ViewerCounter.vue'
+import BottomNav from '../components/BottomNav.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -629,6 +630,9 @@ const navigateTo = (path) => {
         </div>
       </div>
     </div>
+
+    <!-- Bottom Navigation Mobile -->
+    <BottomNav :showAdmin="userIsAdmin" />
   </div>
 </template>
 
@@ -1473,23 +1477,22 @@ const navigateTo = (path) => {
   }
   
   .mobile-menu-btn {
-    display: -webkit-box;
-    display: -webkit-flex;
-    display: flex;
+    display: none;
   }
   
   .mobile-overlay {
-    display: block;
+    display: none;
   }
   
   .mobile-menu {
-    display: block;
+    display: none;
   }
   
   .main-content {
     margin-left: 0;
     padding-left: calc(20px + env(safe-area-inset-left));
     padding-right: calc(20px + env(safe-area-inset-right));
+    padding-bottom: 85px;
   }
   
   .dashboard-header {

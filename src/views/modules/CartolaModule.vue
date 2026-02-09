@@ -2,7 +2,8 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../../lib/supabase'
-import { getSubscriptionStatus, plans, getTrialStatus } from '../../lib/stripe'
+import { getSubscriptionStatus, plans, getTrialStatus, isAdmin as checkIsAdmin } from '../../lib/stripe'
+import BottomNav from '../../components/BottomNav.vue'
 
 const router = useRouter()
 const user = ref(null)
@@ -24,6 +25,7 @@ const mobileMenuOpen = ref(false)
 const modalJogador = ref(null)
 const modalPosicao = ref(null)
 const jogadoresFixados = ref(new Set()) // Jogadores já escalados no Cartola real
+const userIsAdmin = ref(false)
 
 // Funções para o modal de jogador
 const abrirModalJogador = (atleta, origem = 'campo') => {
@@ -161,9 +163,10 @@ onMounted(async () => {
   
   user.value = session.user
   subscription.value = await getSubscriptionStatus(session.user.id)
+  userIsAdmin.value = await checkIsAdmin(session.user.id)
   
-  // Verificar se trial expirou para usuários free
-  if (!subscription.value?.plan || subscription.value.plan === 'free') {
+  // Verificar se trial expirou para usuários free (admin ignora)
+  if (!userIsAdmin.value && (!subscription.value?.plan || subscription.value.plan === 'free')) {
     const trialStatus = await getTrialStatus(session.user.id)
     if (trialStatus?.expired) {
       router.push('/trial-expired')
@@ -1524,6 +1527,9 @@ const navigateTo = (path) => {
         </div>
       </div>
     </main>
+
+    <!-- Bottom Navigation Mobile -->
+    <BottomNav :showAdmin="userIsAdmin" />
   </div>
 </template>
 
@@ -3206,21 +3212,21 @@ const navigateTo = (path) => {
   }
   
   .mobile-menu-btn {
-    display: flex;
+    display: none;
   }
   
   .mobile-overlay {
-    display: block;
+    display: none;
   }
   
   .mobile-menu {
-    display: block;
+    display: none;
   }
   
   .main-content {
     margin-left: 0;
     padding: 20px;
-    padding-bottom: 100px;
+    padding-bottom: 85px;
   }
   
   .dashboard-header {

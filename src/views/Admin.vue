@@ -3,12 +3,14 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
 import { isAdmin } from '../lib/stripe'
+import BottomNav from '../components/BottomNav.vue'
 
 const router = useRouter()
 const user = ref(null)
 const loading = ref(true)
 const activeTab = ref('dashboard')
 const mobileMenuOpen = ref(false)
+const userIsAdmin = ref(false)
 
 // Admin data
 const users = ref([])
@@ -36,9 +38,10 @@ onMounted(async () => {
   
   user.value = session.user
 
-  const userIsAdmin = await isAdmin(session.user.id)
+  const checkAdmin = await isAdmin(session.user.id)
+  userIsAdmin.value = checkAdmin
   
-  if (!userIsAdmin) {
+  if (!checkAdmin) {
     router.push('/dashboard')
     return
   }
@@ -653,6 +656,9 @@ const refreshData = async () => {
         </div>
       </div>
     </div>
+
+    <!-- Bottom Navigation Mobile -->
+    <BottomNav :showAdmin="userIsAdmin" />
   </div>
 </template>
 
@@ -853,10 +859,10 @@ const refreshData = async () => {
 /* MOBILE */
 @media (max-width: 900px) {
   .sidebar { display: none; }
-  .main-content { margin-left: 0; padding: 80px 20px 30px; }
-  .mobile-menu-btn { display: block; }
-  .mobile-overlay { display: block; }
-  .mobile-menu { display: flex; }
+  .main-content { margin-left: 0; padding: 20px 20px 85px; }
+  .mobile-menu-btn { display: none; }
+  .mobile-overlay { display: none; }
+  .mobile-menu { display: none; }
   .dashboard-header { flex-direction: column; align-items: flex-start; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .search-input { min-width: 100%; }
