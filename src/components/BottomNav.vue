@@ -43,11 +43,11 @@ const navItems = computed(() => {
       activeColor: '#22c55e'
     },
     { 
-      id: 'trade', 
-      path: '/trade', 
-      label: 'Trade', 
-      icon: 'trade',
-      activeColor: '#3b82f6'
+      id: 'cartola', 
+      path: '/cartola', 
+      label: 'Cartola', 
+      icon: 'cartola',
+      activeColor: '#f97316'
     },
     { 
       id: 'more', 
@@ -65,7 +65,7 @@ const navItems = computed(() => {
 const moreMenuOpen = defineModel('moreMenuOpen', { default: false })
 
 const moreItems = [
-  { id: 'cartola', path: '/cartola', label: 'Cartola FC', icon: '⚽' },
+  { id: 'trade', path: '/trade', label: 'Trade', icon: '📈' },
   { id: 'alerts', path: '/alerts', label: 'Alertas', icon: '🔔' },
   { id: 'history', path: '/history', label: 'Histórico', icon: '📊' },
   { id: 'settings', path: '/settings', label: 'Configurações', icon: '⚙️' },
@@ -172,10 +172,11 @@ const closeMenu = () => {
           <path d="M12 6v6l4 2"/>
         </svg>
         
-        <!-- Trade -->
-        <svg v-else-if="item.icon === 'trade'" class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
-          <polyline points="16 7 22 7 22 13"/>
+        <!-- Cartola -->
+        <svg v-else-if="item.icon === 'cartola'" class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>
         </svg>
         
         <!-- More -->
