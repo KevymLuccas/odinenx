@@ -2665,51 +2665,47 @@ const navigateTo = (path) => {
    ======================================== */
 
 .focus-selector-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 12px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(0, 217, 255, 0.1);
-}
-
-.focus-label {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.6);
-  white-space: nowrap;
-}
-
-.focus-selector {
   position: relative;
-  flex: 1;
+  margin-bottom: 24px;
 }
 
 .focus-current {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  background: rgba(0, 217, 255, 0.1);
-  border: 1px solid rgba(0, 217, 255, 0.3);
-  border-radius: 8px;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 217, 255, 0.15);
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s;
+  color: white;
 }
 
 .focus-current:hover {
-  background: rgba(0, 217, 255, 0.15);
-  border-color: rgba(0, 217, 255, 0.5);
+  background: rgba(0, 217, 255, 0.1);
+  border-color: rgba(0, 217, 255, 0.3);
+}
+
+.focus-icon {
+  font-size: 16px;
+  flex-shrink: 0;
 }
 
 .focus-text {
+  flex: 1;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  text-align: left;
 }
 
 .focus-arrow {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
   transition: transform 0.3s;
+  stroke: rgba(255, 255, 255, 0.6);
 }
 
 .focus-arrow.open {
@@ -2724,7 +2720,7 @@ const navigateTo = (path) => {
   margin-top: 4px;
   background: rgba(13, 26, 43, 0.98);
   border: 1px solid rgba(0, 217, 255, 0.3);
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
   z-index: 100;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -2733,9 +2729,15 @@ const navigateTo = (path) => {
 .focus-option {
   display: flex;
   align-items: center;
-  padding: 12px 14px;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
   cursor: pointer;
   transition: all 0.2s;
+  border: none;
+  background: transparent;
+  color: white;
+  font-size: 0.9rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -2752,9 +2754,10 @@ const navigateTo = (path) => {
   color: #00d9ff;
 }
 
-.focus-check {
-  margin-left: auto;
-  color: #00d9ff;
+.check-icon {
+  width: 18px;
+  height: 18px;
+  stroke: #00d9ff;
 }
 
 /* ========================================
