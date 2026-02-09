@@ -44,14 +44,14 @@ const liveGamesCount = ref(0)
 
 // Dados em tempo real
 const marketData = ref({
-  crypto: null,
-  forex: null,
-  stocks: null
+  btc: null,
+  eth: null,
+  usd: null,
+  eur: null
 })
 const cartolaData = ref({
-  marketStatus: null,
-  lastRound: null,
-  highlights: []
+  status: 'Carregando...',
+  rodada: '--'
 })
 
 // Toast function from App.vue
@@ -292,11 +292,16 @@ async function loadTradeFeed() {
       
       if (crypto.bitcoin) {
         const btcChange = crypto.bitcoin.usd_24h_change?.toFixed(2) || 0
+        const btcPrice = crypto.bitcoin.usd?.toLocaleString('en-US') || '--'
+        
+        // Atualizar marketData para os cards
+        marketData.value.btc = `$${btcPrice}`
+        
         liveFeed.value.push({
           type: 'trade',
           icon: '₿',
           title: 'Bitcoin (BTC)',
-          subtitle: `$${crypto.bitcoin.usd?.toLocaleString('en-US')} • ${btcChange > 0 ? '📈' : '📉'} ${btcChange}%`,
+          subtitle: `$${btcPrice} • ${btcChange > 0 ? '📈' : '📉'} ${btcChange}%`,
           status: btcChange > 0 ? '🟢 Alta' : '🔴 Baixa',
           timestamp: new Date().toISOString(),
           action: () => router.push('/trade')
@@ -305,6 +310,8 @@ async function loadTradeFeed() {
       
       if (crypto.ethereum) {
         const ethChange = crypto.ethereum.usd_24h_change?.toFixed(2) || 0
+        marketData.value.eth = `$${crypto.ethereum.usd?.toLocaleString('en-US')}`
+        
         liveFeed.value.push({
           type: 'trade',
           icon: 'Ξ',
@@ -320,15 +327,21 @@ async function loadTradeFeed() {
     if (forexRes?.ok) {
       const forex = await forexRes.json()
       if (forex.USDBRL) {
+        const usdPrice = parseFloat(forex.USDBRL.bid).toFixed(2)
+        marketData.value.usd = `R$${usdPrice}`
+        
         liveFeed.value.push({
           type: 'trade',
           icon: '💵',
           title: 'Dólar (USD/BRL)',
-          subtitle: `R$ ${parseFloat(forex.USDBRL.bid).toFixed(2)} • Variação: ${forex.USDBRL.pctChange}%`,
+          subtitle: `R$ ${usdPrice} • Variação: ${forex.USDBRL.pctChange}%`,
           status: parseFloat(forex.USDBRL.pctChange) > 0 ? '🟢 Alta' : '🔴 Baixa',
           timestamp: new Date().toISOString(),
           action: () => router.push('/trade')
         })
+      }
+      if (forex.EURBRL) {
+        marketData.value.eur = `R$${parseFloat(forex.EURBRL.bid).toFixed(2)}`
       }
     }
   } catch (err) {
@@ -346,7 +359,7 @@ async function loadCartolaFeed() {
     
     if (statusRes?.ok) {
       const status = await statusRes.json()
-      const isOpen = status.mercado?.status_mercado === 1
+      const isOpen = status.status_mercado === 1
       
       liveFeed.value.push({
         type: 'cartola',
@@ -358,12 +371,18 @@ async function loadCartolaFeed() {
         action: () => router.push('/cartola')
       })
       
-      if (status.mercado?.rodada_atual) {
+      // Atualizar cartolaData
+      cartolaData.value = {
+        status: isOpen ? 'Aberto' : 'Fechado',
+        rodada: status.rodada_atual || '--'
+      }
+      
+      if (status.rodada_atual) {
         liveFeed.value.push({
           type: 'cartola',
           icon: '📅',
-          title: `Rodada ${status.mercado.rodada_atual}`,
-          subtitle: 'Rodada atual do Cartola',
+          title: `Rodada ${status.rodada_atual}`,
+          subtitle: `Cartola FC ${status.temporada || new Date().getFullYear()}`,
           status: 'Em andamento',
           timestamp: new Date().toISOString(),
           action: () => router.push('/cartola')
@@ -372,23 +391,35 @@ async function loadCartolaFeed() {
     }
     
     if (partidasRes?.ok) {
-      const partidas = await partidasRes.json()
-      const proximasPartidas = partidas.partidas?.slice(0, 2) || []
+      const data = await partidasRes.json()
+      // A API retorna { partidas: [...], clubes: {...} }
+      const partidas = data.partidas || []
+      const clubes = data.clubes || {}
+      
+      // Filtrar apenas partidas válidas e pegar as primeiras 2
+      const proximasPartidas = partidas
+        .filter(p => p.clube_casa_id && p.clube_visitante_id)
+        .slice(0, 2)
       
       proximasPartidas.forEach(partida => {
-        liveFeed.value.push({
-          type: 'cartola',
-          icon: '⚽',
-          title: `${partida.clube_casa_nome} x ${partida.clube_visitante_nome}`,
-          subtitle: partida.aproveitamento_mandante || 'Próxima partida',
-          status: 'Cartola',
-          timestamp: new Date().toISOString(),
-          action: () => router.push('/cartola')
-        })
+        const clubeCasa = clubes[partida.clube_casa_id]
+        const clubeVisitante = clubes[partida.clube_visitante_id]
+        
+        if (clubeCasa && clubeVisitante) {
+          liveFeed.value.push({
+            type: 'cartola',
+            icon: '⚽',
+            title: `${clubeCasa.nome || clubeCasa.abreviacao} x ${clubeVisitante.nome || clubeVisitante.abreviacao}`,
+            subtitle: partida.partida_data ? new Date(partida.partida_data).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' }) : 'Próxima partida',
+            status: 'Cartola',
+            timestamp: new Date().toISOString(),
+            action: () => router.push('/cartola')
+          })
+        }
       })
     }
   } catch (err) {
-    console.log('Erro ao carregar feed Cartola')
+    console.log('Erro ao carregar feed Cartola:', err)
   }
 }
 
